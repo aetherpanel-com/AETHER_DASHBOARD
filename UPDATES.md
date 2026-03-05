@@ -146,9 +146,79 @@ pm2 restart aether-dashboard
 
 ## 📝 Version Changelog
 
-### Version 1.2.1 (Latest)
+### Version 1.3 (Latest) 🎉
 
-**Release Date:** Current
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+**🚀 This is a MAJOR feature update!** Version 1.3 brings powerful server management features that make your dashboard stand out from competitors.
+
+**New Features:**
+
+| Feature | Description |
+|---------|-------------|
+| ⚡ **Quick Server Actions** | Start/Stop/Restart/Kill servers with one click directly from server cards |
+| 📦 **Server Templates** | Admins can create pre-configured templates for instant server deployment |
+| 📊 **Live Stats Dashboard** | Real-time CPU, RAM, Disk, Network graphs using Chart.js |
+| 💻 **Console Commands** | Send commands to server console without opening Pterodactyl |
+| 📁 **File Manager** | Browse, edit, create, delete, rename, compress files directly |
+| 💾 **Backup System** | Create, download, restore, and delete server backups |
+| ⏰ **Scheduled Tasks** | Schedule server restarts, commands, and automatic backups |
+| 🗃️ **Database Manager** | Create, manage, and rotate MySQL database passwords |
+| 🚨 **Usage Alerts** | Warning notifications when CPU/RAM/Disk usage is high |
+
+**Bug Fixes (20+ Pterodactyl Integration Fixes):**
+- 🐛 **Allocation Management** - Allocations now properly removed after server creation
+- 🐛 **Server Identifier** - Fixed panel URLs using wrong ID type (now uses identifier)
+- 🐛 **OOM Disabled Field** - Build updates now include required `oom_disabled` field
+- 🐛 **Power Signals** - Fixed power actions using wrong API endpoint (now uses Client API)
+- 🐛 **Server Resources** - Fixed stats endpoint (now uses Client API correctly)
+- 🐛 **Egg ID Matching** - Fixed type mismatch in egg selection
+- 🐛 **Environment Variables** - Better parsing for all variable formats
+- 🐛 **Nest ID** - Server creation now includes required nest ID
+- 🐛 **Discord OAuth** - Now updates username/email on login
+- 🐛 **Timezone Issues** - Linkvertise cooldowns now use consistent UTC timestamps
+- 🐛 **User Deletion** - Now properly deletes user from Pterodactyl panel
+- 🐛 **Panel Disconnect** - Fixed incorrect resource return calculation
+- 🐛 **Session Data** - User session now includes all required fields
+- 🐛 **Race Conditions** - Atomic allocation claiming prevents double-booking
+- 🐛 **Install Scripts** - Server creation now properly triggers install scripts
+- 🐛 **Pagination** - API calls now request up to 100 items per page
+- 🐛 **User Lookup** - Efficient email/external ID filtering in API calls
+- 🐛 **External ID** - User creation now supports external ID for linking
+- 🐛 **File Writing** - Fixed Content-Type for file write operations
+
+**Improvements:**
+- 🛡️ **Global Error Handlers** - Prevents server crashes from unhandled errors
+- ⏱️ **Request Timeout Protection** - 60-second timeout prevents hanging requests
+- 🏥 **Health Check Endpoint** - `/health` endpoint for monitoring
+- 🔌 **Pterodactyl API Timeouts** - 30/60 second timeouts for API calls
+- 📊 **Chart.js Integration** - Beautiful real-time graphs for server stats
+
+**Database Changes:**
+- ✅ Added `pterodactyl_identifier` column to servers table
+- ✅ Added `server_templates` table for admin templates
+- ✅ All migrations run automatically on startup
+
+**How to Update:**
+```bash
+# GitHub method (recommended)
+cd AETHER_PANEL
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+Or via SFTP: Download latest version, replace files (keep database.db and .env), run `npm install`, restart dashboard.
+
+**⚠️ Important:** Always backup `database.db` and `.env` before updating!
+
+---
+
+### Version 1.2.1
+
+**Release Date:** Previous
 
 **Bug Fixes:**
 - 🐛 **Fixed [object Object] Error Display** - Error messages now display properly instead of showing `[object Object]`
@@ -404,7 +474,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.2.1
+**Last Updated:** Version 1.3
 
 **Made with ❤️ for free hosting providers**
 

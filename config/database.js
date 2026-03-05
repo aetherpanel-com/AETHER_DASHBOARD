@@ -128,6 +128,12 @@ function initializeDatabase() {
                         if (!columnNames.includes('public_address')) {
                             columnsToAdd.push({ name: 'public_address', type: 'TEXT' });
                         }
+                        // BUGFIX #3: Add pterodactyl_identifier column for Client API panel URLs
+                        // pterodactyl_id = internal numeric ID (for Application API)
+                        // pterodactyl_identifier = 8-char string (for Client API panel URLs)
+                        if (!columnNames.includes('pterodactyl_identifier')) {
+                            columnsToAdd.push({ name: 'pterodactyl_identifier', type: 'TEXT' });
+                        }
                         
                         // Add missing columns
                         columnsToAdd.forEach(col => {
@@ -408,6 +414,33 @@ function initializeDatabase() {
                         );
                     }
                 });
+            });
+
+            // ============================================
+            // FEATURE 2: Server Templates
+            // ============================================
+            // Create Server_Templates table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS server_templates (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    egg_id INTEGER NOT NULL,
+                    ram_mb INTEGER DEFAULT 1024,
+                    cpu_percent INTEGER DEFAULT 100,
+                    storage_mb INTEGER DEFAULT 5120,
+                    is_active INTEGER DEFAULT 1,
+                    icon TEXT DEFAULT '🎮',
+                    display_order INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating server_templates table:', err);
+                } else {
+                    console.log('✅ Server_Templates table created/verified');
+                }
             });
 
             // Create Resource_Prices table

@@ -106,7 +106,30 @@ if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET) {
             let user = await get('SELECT * FROM users WHERE discord_id = ?', [profile.id]);
             
             if (user) {
-                // User exists with this Discord ID, return them
+                // BUGFIX #11: User exists with this Discord ID - update username/email if changed
+                // Discord users may change their username or email, so we should keep our records in sync
+                const updates = [];
+                const params = [];
+                
+                // Update username if changed (and user doesn't have a password - i.e., is a Discord-only user)
+                if (profile.username && profile.username !== user.username && !user.password) {
+                    updates.push('username = ?');
+                    params.push(profile.username);
+                }
+                
+                // Update email if changed and provided
+                if (profile.email && profile.email !== user.email) {
+                    updates.push('email = ?');
+                    params.push(profile.email);
+                }
+                
+                if (updates.length > 0) {
+                    params.push(user.id);
+                    await run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params);
+                    // Refresh user data
+                    user = await get('SELECT * FROM users WHERE id = ?', [user.id]);
+                }
+                
                 return done(null, user);
             }
             

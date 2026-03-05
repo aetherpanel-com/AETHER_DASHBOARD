@@ -7,6 +7,133 @@
     <title>Servers - Aether Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/dashboard.css">
+    <style>
+        /* Power Control Buttons */
+        .power-btn {
+            font-size: 11px !important;
+            padding: 5px 10px !important;
+            border-radius: 6px !important;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .power-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .power-icon {
+            font-size: 10px;
+        }
+        .power-start {
+            background: rgba(34, 197, 94, 0.2) !important;
+            color: #22c55e !important;
+            border-color: rgba(34, 197, 94, 0.4) !important;
+        }
+        .power-start:hover:not(:disabled) {
+            background: rgba(34, 197, 94, 0.4) !important;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+        }
+        .power-stop {
+            background: rgba(234, 179, 8, 0.2) !important;
+            color: #eab308 !important;
+            border-color: rgba(234, 179, 8, 0.4) !important;
+        }
+        .power-stop:hover:not(:disabled) {
+            background: rgba(234, 179, 8, 0.4) !important;
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
+        }
+        .power-restart {
+            background: rgba(59, 130, 246, 0.2) !important;
+            color: #3b82f6 !important;
+            border-color: rgba(59, 130, 246, 0.4) !important;
+        }
+        .power-restart:hover:not(:disabled) {
+            background: rgba(59, 130, 246, 0.4) !important;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+        .power-kill {
+            background: rgba(239, 68, 68, 0.2) !important;
+            color: #ef4444 !important;
+            border-color: rgba(239, 68, 68, 0.4) !important;
+        }
+        .power-kill:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.4) !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Status States */
+        .status-running {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.4);
+        }
+        .status-running .status-dot {
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
+        }
+        .status-offline {
+            background: rgba(107, 114, 128, 0.2);
+            color: #9ca3af;
+            border: 1px solid rgba(107, 114, 128, 0.4);
+        }
+        .status-offline .status-dot {
+            background: #6b7280;
+            animation: none;
+        }
+        .status-starting {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+            border: 1px solid rgba(234, 179, 8, 0.4);
+        }
+        .status-starting .status-dot {
+            background: #eab308;
+            animation: pulse 0.5s infinite;
+        }
+        .status-stopping {
+            background: rgba(249, 115, 22, 0.2);
+            color: #f97316;
+            border: 1px solid rgba(249, 115, 22, 0.4);
+        }
+        .status-stopping .status-dot {
+            background: #f97316;
+            animation: pulse 0.5s infinite;
+        }
+        .status-unknown {
+            background: rgba(107, 114, 128, 0.1);
+            color: #6b7280;
+            border: 1px solid rgba(107, 114, 128, 0.2);
+        }
+        .status-unknown .status-dot {
+            background: #6b7280;
+            animation: pulse 1s infinite;
+        }
+    </style>
 </head>
 <body>
     <div class="dashboard-container">
@@ -90,8 +217,18 @@
                         </div>
                     </div>
                     
+                    <!-- Quick Deploy Templates Section -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <div class="card-header">⚡ Quick Deploy Templates</div>
+                        <p style="color: #94a3b8; margin-bottom: 16px;">Deploy a pre-configured server with one click!</p>
+                        <div id="templatesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                            <p style="color: #94a3b8;">Loading templates...</p>
+                        </div>
+                    </div>
+                    
                     <div class="card">
-                        <div class="card-header">Create New Server</div>
+                        <div class="card-header">🔧 Custom Server</div>
+                        <p style="color: #94a3b8; margin-bottom: 16px;">Or configure your own server with custom resources.</p>
                         <form id="createServerForm">
                             <div class="form-group">
                                 <label for="serverName">Server Name</label>
@@ -200,6 +337,106 @@
             document.getElementById('pageTitle').textContent = 'Create Server';
             loadResourceDisplay();
             loadEggs();
+            loadServerTemplates();
+        }
+        
+        // ============================================
+        // FEATURE 2: Server Templates - User UI
+        // ============================================
+        
+        async function loadServerTemplates() {
+            const container = document.getElementById('templatesGrid');
+            
+            try {
+                const response = await fetch('/servers/api/templates');
+                const data = await response.json();
+                
+                if (data.success && data.templates && data.templates.length > 0) {
+                    renderTemplates(data.templates);
+                } else {
+                    container.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #94a3b8;">
+                            <p>No templates available. Use the custom server form below.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading templates:', error);
+                container.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #94a3b8;">
+                        <p>Could not load templates. Use the custom server form below.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderTemplates(templates) {
+            const container = document.getElementById('templatesGrid');
+            
+            let html = '';
+            templates.forEach(template => {
+                html += `
+                    <div class="template-card" style="background: rgba(30, 30, 50, 0.6); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; padding: 16px; transition: all 0.3s ease; cursor: pointer;" 
+                         onmouseover="this.style.borderColor='rgba(124, 58, 237, 0.6)'; this.style.boxShadow='0 0 20px rgba(124, 58, 237, 0.2)';"
+                         onmouseout="this.style.borderColor='rgba(124, 58, 237, 0.3)'; this.style.boxShadow='none';">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <span style="font-size: 32px;">${template.icon || '🎮'}</span>
+                            <div>
+                                <h4 style="margin: 0; color: #f8fafc; font-weight: 600;">${escapeHtml(template.name)}</h4>
+                                <span style="color: #94a3b8; font-size: 12px;">${template.egg_name || 'Game Server'}</span>
+                            </div>
+                        </div>
+                        ${template.description ? `<p style="color: #94a3b8; font-size: 13px; margin-bottom: 12px;">${escapeHtml(template.description)}</p>` : ''}
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px; color: #cbd5e1;">
+                            <span title="RAM">💾 ${Math.round(template.ram_mb / 1024 * 10) / 10}GB</span>
+                            <span title="CPU">⚡ ${template.cpu_percent}%</span>
+                            <span title="Storage">📁 ${Math.round(template.storage_mb / 1024 * 10) / 10}GB</span>
+                        </div>
+                        <button onclick="deployTemplate(${template.id}, '${escapeHtml(template.name)}')" class="btn btn-primary" style="width: 100%; padding: 10px;">
+                            🚀 Deploy Now
+                        </button>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        async function deployTemplate(templateId, templateName) {
+            // Show server name prompt
+            const serverName = prompt(`Enter a name for your server (or leave blank for "${templateName} Server"):`);
+            
+            // User cancelled
+            if (serverName === null) return;
+            
+            // Show loading state
+            showNotification('Creating server from template...', 'info');
+            
+            try {
+                const response = await fetch('/servers/api/create-from-template', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        template_id: templateId,
+                        server_name: serverName.trim() || null
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message || 'Server created successfully!', 'success');
+                    // Refresh resources and go to server list
+                    loadResourceDisplay();
+                    showServerList();
+                    loadServers();
+                } else {
+                    showNotification(data.message || 'Failed to create server', 'error');
+                }
+            } catch (error) {
+                console.error('Error deploying template:', error);
+                showNotification('Error creating server from template', 'error');
+            }
         }
         
         async function loadResourceDisplay() {
@@ -339,16 +576,24 @@
             
             let html = '<div style="display: grid; gap: 16px;">';
             servers.forEach(server => {
-                const hasPterodactylId = server.pterodactyl_id;
+                // BUGFIX #3: Use pterodactyl_identifier for panel URLs (Client API uses identifier, not internal ID)
+                const hasPterodactylIdentifier = server.pterodactyl_identifier || server.pterodactyl_id;
+                const hasIdentifier = !!server.pterodactyl_identifier;
                 html += `
-                    <div style="padding: 20px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; border-left: 4px solid #7c3aed; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <div class="server-card" data-server-id="${server.id}" style="padding: 20px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; border-left: 4px solid #7c3aed; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div style="flex: 1;">
                                 <!-- 
                                     DEPRECATED: Do not use server_ip, server_ip_alias, or server_port
                                     Use server.public_address instead (format: alias:port or ip:port)
                                 -->
-                                <h3 style="margin: 0 0 8px 0; color: #f8fafc; font-weight: 600;">${escapeHtml(server.name)}</h3>
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                    <h3 style="margin: 0; color: #f8fafc; font-weight: 600;">${escapeHtml(server.name)}</h3>
+                                    <span id="status-badge-${server.id}" class="status-badge status-unknown" title="Checking status...">
+                                        <span class="status-dot"></span>
+                                        <span class="status-text">Loading...</span>
+                                    </span>
+                                </div>
                                 ${server.public_address ? 
                                     `<p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 16px; font-weight: 500;">
                                         🌐 Server Address: ${escapeHtml(server.public_address)}
@@ -360,14 +605,36 @@
                                     <div>CPU: ${server.cpu}%</div>
                                     <div>Storage: ${Math.round(server.storage / 1024)}GB</div>
                                 </div>
+                                
+                                <!-- Quick Action Buttons -->
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                                    ${hasIdentifier ? `
+                                        <button class="btn power-btn power-start" onclick="sendPowerAction(${server.id}, 'start')" title="Start Server">
+                                            <span class="power-icon">▶</span> Start
+                                        </button>
+                                        <button class="btn power-btn power-stop" onclick="sendPowerAction(${server.id}, 'stop')" title="Stop Server">
+                                            <span class="power-icon">⏹</span> Stop
+                                        </button>
+                                        <button class="btn power-btn power-restart" onclick="sendPowerAction(${server.id}, 'restart')" title="Restart Server">
+                                            <span class="power-icon">🔄</span> Restart
+                                        </button>
+                                        <button class="btn power-btn power-kill" onclick="sendPowerAction(${server.id}, 'kill')" title="Force Kill Server">
+                                            <span class="power-icon">💀</span> Kill
+                                        </button>
+                                    ` : `
+                                        <span style="color: #94a3b8; font-size: 12px;">Power controls unavailable</span>
+                                    `}
+                                </div>
+                                
                                 <div id="stats-${server.id}" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                    ${hasPterodactylId && panelUrl ? 
-                                        `<a href="${escapeHtml(panelUrl)}/server/${server.pterodactyl_id}" target="_blank" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; text-decoration: none; display: inline-block;">
+                                    <a href="/servers/view/${server.id}" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px; text-decoration: none; display: inline-block;">
+                                        📊 Live Stats
+                                    </a>
+                                    ${hasPterodactylIdentifier && panelUrl ? 
+                                        `<a href="${escapeHtml(panelUrl)}/server/${server.pterodactyl_identifier || server.pterodactyl_id}" target="_blank" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; text-decoration: none; display: inline-block;">
                                             Open in Panel
                                         </a>` :
-                                        `<button class="btn btn-secondary" onclick="loadServerStats(${server.id})" style="font-size: 12px; padding: 6px 12px;">
-                                            View Statistics
-                                        </button>`
+                                        ''
                                     }
                                 </div>
                             </div>
@@ -380,6 +647,13 @@
             });
             html += '</div>';
             container.innerHTML = html;
+            
+            // Load status for all servers
+            servers.forEach(server => {
+                if (server.pterodactyl_identifier) {
+                    loadServerStatus(server.id);
+                }
+            });
         }
         
         // Create server form handler
@@ -584,12 +858,13 @@
                             </div>
                         `;
                     } else {
-                        // Show Panel button if server has pterodactyl_id
+                        // BUGFIX #3: Show Panel button if server has pterodactyl_identifier (or fallback to pterodactyl_id)
                         const panelUrl = await loadPanelUrl();
-                        if (server.pterodactyl_id && panelUrl) {
+                        const serverIdentifier = server.pterodactyl_identifier || server.pterodactyl_id;
+                        if (serverIdentifier && panelUrl) {
                             html += `
                                 <p style="color: #cbd5e1; font-size: 12px; margin-bottom: 8px;">View and manage your server in the Pterodactyl panel.</p>
-                                <a href="${panelUrl}/server/${server.pterodactyl_id}" target="_blank" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; text-decoration: none; display: inline-block;">
+                                <a href="${panelUrl}/server/${serverIdentifier}" target="_blank" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; text-decoration: none; display: inline-block;">
                                     Open in Panel
                                 </a>
                                 <div style="font-size: 12px; color: #cbd5e1; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(124, 58, 237, 0.3);">
@@ -618,6 +893,113 @@
                 statsContainer.innerHTML = '<p style="color: #dc3545; font-size: 12px;">Error loading statistics</p>';
             }
         }
+        
+        // ============================================
+        // FEATURE 1: Quick Action Buttons - Power Control
+        // ============================================
+        
+        // Load server status and update badge
+        async function loadServerStatus(serverId) {
+            const badge = document.getElementById(`status-badge-${serverId}`);
+            if (!badge) return;
+            
+            try {
+                const response = await fetch(`/servers/api/status/${serverId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateStatusBadge(serverId, data.status);
+                } else {
+                    updateStatusBadge(serverId, 'unknown');
+                }
+            } catch (error) {
+                console.error('Error loading server status:', error);
+                updateStatusBadge(serverId, 'unknown');
+            }
+        }
+        
+        // Update the status badge UI
+        function updateStatusBadge(serverId, status) {
+            const badge = document.getElementById(`status-badge-${serverId}`);
+            if (!badge) return;
+            
+            // Remove all status classes
+            badge.classList.remove('status-running', 'status-offline', 'status-starting', 'status-stopping', 'status-unknown');
+            
+            // Map status to display text and class
+            const statusMap = {
+                'running': { text: 'Online', class: 'status-running' },
+                'online': { text: 'Online', class: 'status-running' },
+                'offline': { text: 'Offline', class: 'status-offline' },
+                'starting': { text: 'Starting', class: 'status-starting' },
+                'stopping': { text: 'Stopping', class: 'status-stopping' },
+                'unknown': { text: 'Unknown', class: 'status-unknown' }
+            };
+            
+            const statusInfo = statusMap[status] || statusMap['unknown'];
+            badge.classList.add(statusInfo.class);
+            badge.querySelector('.status-text').textContent = statusInfo.text;
+            badge.title = `Server is ${statusInfo.text.toLowerCase()}`;
+        }
+        
+        // Send power action to server
+        async function sendPowerAction(serverId, action) {
+            // Find the card and disable buttons during action
+            const card = document.querySelector(`.server-card[data-server-id="${serverId}"]`);
+            const buttons = card ? card.querySelectorAll('.power-btn') : [];
+            
+            // Disable all power buttons
+            buttons.forEach(btn => btn.disabled = true);
+            
+            // Update status to show action in progress
+            const actionStatusMap = {
+                'start': 'starting',
+                'stop': 'stopping',
+                'restart': 'starting',
+                'kill': 'stopping'
+            };
+            updateStatusBadge(serverId, actionStatusMap[action]);
+            
+            try {
+                const response = await fetch(`/servers/api/power/${serverId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    
+                    // Poll for status update after a delay
+                    setTimeout(() => loadServerStatus(serverId), 2000);
+                    setTimeout(() => loadServerStatus(serverId), 5000);
+                    setTimeout(() => loadServerStatus(serverId), 10000);
+                } else {
+                    showNotification(data.message || `Failed to ${action} server`, 'error');
+                    // Reload actual status
+                    loadServerStatus(serverId);
+                }
+            } catch (error) {
+                console.error('Error sending power action:', error);
+                showNotification(`Failed to ${action} server`, 'error');
+                loadServerStatus(serverId);
+            } finally {
+                // Re-enable buttons
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+        
+        // Refresh all server statuses periodically (every 30 seconds)
+        setInterval(() => {
+            document.querySelectorAll('.server-card').forEach(card => {
+                const serverId = card.dataset.serverId;
+                if (serverId) {
+                    loadServerStatus(serverId);
+                }
+            });
+        }, 30000);
     </script>
 </body>
 </html>

@@ -30,6 +30,11 @@ router.get('/store', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, '../views/resource-store.html'));
 });
 
+// Server details page (real-time stats)
+router.get('/view/:id', requireAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, '../views/server-details.html'));
+});
+
 // API endpoint to get user's servers
 router.get('/api/list', requireAuth, async (req, res) => {
     try {
@@ -201,6 +206,7 @@ router.post('/api/create', requireAuth, async (req, res) => {
         }
         
         let pterodactyl_id = null;
+        let claimedAllocationId = null;  // BUGFIX #16: Track claimed allocation for cleanup on error
         
         // If Pterodactyl is configured, create server there
         if (await pterodactyl.isConfigured()) {
@@ -219,7 +225,11 @@ router.post('/api/create', requireAuth, async (req, res) => {
                 const nestId = settings?.default_nest_id || egg.nest_id;
                 const locationId = settings?.default_location_id;
                 
-                // Get an available allocation (highest priority first)
+                // BUGFIX #16: Atomically claim an allocation to prevent race conditions
+                // We mark it as inactive immediately, then delete it on success or restore on failure
+                // This prevents two concurrent requests from selecting the same allocation
+                
+                // Step 1: Find an available allocation
                 const allocation = await get(`
                     SELECT * FROM pterodactyl_allocations 
                     WHERE is_active = 1 
@@ -234,22 +244,53 @@ router.post('/api/create', requireAuth, async (req, res) => {
                     });
                 }
                 
-                // Parse environment variables
+                // Step 2: Atomically claim the allocation by marking it inactive
+                // This uses a WHERE clause to ensure we only claim it if it's still active
+                const claimResult = await run(
+                    'UPDATE pterodactyl_allocations SET is_active = 0 WHERE id = ? AND is_active = 1',
+                    [allocation.id]
+                );
+                
+                // If no rows were updated, another request claimed this allocation
+                if (claimResult.changes === 0) {
+                    return res.status(409).json({ 
+                        success: false, 
+                        message: 'Server allocation was claimed by another request. Please try again.' 
+                    });
+                }
+                
+                // Track the claimed allocation for cleanup if something fails
+                claimedAllocationId = allocation.id;
+                
+                // BUGFIX #9: Parse environment variables properly
+                // Handle various formats from Pterodactyl API and database storage
                 let environmentVariables = {};
                 try {
                     if (egg.environment_variables) {
                         const envVars = JSON.parse(egg.environment_variables);
+                        
                         if (Array.isArray(envVars)) {
+                            // Format: [{attributes: {env_variable, default_value}}, ...]
                             envVars.forEach(variable => {
                                 const attr = variable.attributes || variable;
-                                if (attr.env_variable && attr.default_value !== undefined) {
-                                    environmentVariables[attr.env_variable] = attr.default_value;
+                                if (attr.env_variable) {
+                                    // Use default_value if available, otherwise empty string
+                                    // This ensures required variables are always included
+                                    environmentVariables[attr.env_variable] = attr.default_value ?? '';
+                                }
+                            });
+                        } else if (typeof envVars === 'object' && envVars !== null) {
+                            // Format: {ENV_VAR: "value", ...} (already parsed object)
+                            Object.entries(envVars).forEach(([key, value]) => {
+                                if (typeof key === 'string' && key.length > 0) {
+                                    environmentVariables[key] = value ?? '';
                                 }
                             });
                         }
                     }
                 } catch (error) {
                     console.warn('Error parsing environment variables:', error);
+                    // If parsing fails, try to use egg startup defaults or leave empty
                 }
                 
                 // Create server in Pterodactyl
@@ -263,13 +304,18 @@ router.post('/api/create', requireAuth, async (req, res) => {
                     });
                 }
                 
+                // BUGFIX #10: When using a specific allocation, we must NOT use the deploy block
+                // The allocation already determines the node. Using both causes conflicts.
+                // Also, the nest_id is required for server creation.
                 const serverData = {
                     name: name,
                     user: parseInt(pterodactylUserId),
+                    nest: parseInt(nestId),  // BUGFIX #10: nest is required
                     egg: parseInt(egg_id),
                     docker_image: egg.docker_image || 'ghcr.io/pterodactyl/yolks:java_17',
                     startup: egg.startup_command || '',
                     environment: environmentVariables,
+                    skip_scripts: false,  // Run egg install scripts (important for proper server setup)
                     limits: {
                         memory: ram,
                         swap: 0,
@@ -283,13 +329,10 @@ router.post('/api/create', requireAuth, async (req, res) => {
                         backups: 0
                     },
                     allocation: {
-                        default: allocation.allocation_id
-                    },
-                    deploy: {
-                        locations: locationId ? [parseInt(locationId)] : [],
-                        dedicated_ip: false,
-                        port_range: []
+                        default: parseInt(allocation.allocation_id)  // Must be integer
                     }
+                    // NOTE: Do NOT include 'deploy' block when specifying allocation.default
+                    // The allocation already determines which node the server will be on
                 };
                 
                 // Create server in Pterodactyl with timeout protection
@@ -303,6 +346,14 @@ router.post('/api/create', requireAuth, async (req, res) => {
                     
                     console.error('Pterodactyl server creation failed:', errorMessage);
                     
+                    // BUGFIX #16: Release the allocation back to the pool since server creation failed
+                    try {
+                        await run('UPDATE pterodactyl_allocations SET is_active = 1 WHERE id = ?', [allocation.id]);
+                        console.log(`Allocation ${allocation.allocation_id} released back to pool after failed server creation`);
+                    } catch (releaseError) {
+                        console.error('Failed to release allocation:', releaseError);
+                    }
+                    
                     if (!res.headersSent) {
                         return res.status(500).json({ 
                             success: false, 
@@ -313,6 +364,11 @@ router.post('/api/create', requireAuth, async (req, res) => {
                 }
                 
                 pterodactyl_id = createResult.data?.id || createResult.data?.attributes?.id;
+                
+                // BUGFIX #3: Extract both internal ID and identifier
+                // pterodactyl_id = internal numeric ID (for Application API)
+                // pterodactyl_identifier = 8-char string (for Client API panel URLs)
+                const pterodactyl_identifier = createResult.data?.attributes?.identifier || createResult.data?.identifier || null;
                 
                 // Extract public_address from allocations
                 let publicAddress = null;
@@ -332,12 +388,22 @@ router.post('/api/create', requireAuth, async (req, res) => {
                     }
                 }
                 
-                // Store server in our database with public_address
+                // Store server in our database with public_address and identifier
                 const result = await run(
-                    `INSERT INTO servers (user_id, pterodactyl_id, name, ram, cpu, storage, public_address) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                    [req.session.user.id, pterodactyl_id, name, ram, cpu, storage, publicAddress]
+                    `INSERT INTO servers (user_id, pterodactyl_id, pterodactyl_identifier, name, ram, cpu, storage, public_address) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [req.session.user.id, pterodactyl_id, pterodactyl_identifier, name, ram, cpu, storage, publicAddress]
                 );
+                
+                // BUGFIX #1: Remove the used allocation from the database
+                // The allocation is now assigned to this server in Pterodactyl, so it's no longer available
+                try {
+                    await run('DELETE FROM pterodactyl_allocations WHERE allocation_id = ?', [allocation.allocation_id]);
+                    console.log(`Allocation ${allocation.allocation_id} removed from available pool`);
+                } catch (allocError) {
+                    // Log but don't fail the request - the server was created successfully
+                    console.error('Warning: Failed to remove allocation from database:', allocError);
+                }
                 
                 console.log(`Server created successfully: ID ${result.lastID}, Pterodactyl ID ${pterodactyl_id}`);
                 
@@ -352,6 +418,7 @@ router.post('/api/create', requireAuth, async (req, res) => {
                             cpu,
                             storage,
                             pterodactyl_id,
+                            pterodactyl_identifier,
                             public_address: publicAddress
                         }
                     });
@@ -360,6 +427,16 @@ router.post('/api/create', requireAuth, async (req, res) => {
             } catch (error) {
                 console.error('Error creating server in Pterodactyl:', error);
                 console.error('Error stack:', error.stack);
+                
+                // BUGFIX #16: Release the claimed allocation if we had one
+                if (claimedAllocationId) {
+                    try {
+                        await run('UPDATE pterodactyl_allocations SET is_active = 1 WHERE id = ?', [claimedAllocationId]);
+                        console.log(`Released allocation ${claimedAllocationId} after server creation error`);
+                    } catch (releaseError) {
+                        console.error('Failed to release allocation on error:', releaseError);
+                    }
+                }
                 
                 if (!res.headersSent) {
                     const errorMessage = error.message || 'Unknown error occurred';
@@ -460,11 +537,874 @@ router.delete('/api/delete/:id', requireAuth, async (req, res) => {
     }
 });
 
+// ============================================
+// FEATURE 1: Quick Action Buttons - Power Control
+// ============================================
+
+// API endpoint to send power action to server (start, stop, restart, kill)
+router.post('/api/power/:id', requireAuth, async (req, res) => {
+    try {
+        const serverId = req.params.id;
+        const { action } = req.body;
+        
+        // Validate action
+        const validActions = ['start', 'stop', 'restart', 'kill'];
+        if (!action || !validActions.includes(action)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Invalid action. Must be one of: ${validActions.join(', ')}` 
+            });
+        }
+        
+        // Verify ownership
+        const server = await get('SELECT * FROM servers WHERE id = ? AND user_id = ?', 
+            [serverId, req.session.user.id]);
+        
+        if (!server) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Server not found' 
+            });
+        }
+        
+        // Check if Pterodactyl is configured
+        if (!await pterodactyl.isConfigured()) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Pterodactyl panel is not configured' 
+            });
+        }
+        
+        // Need the server identifier (not internal ID) for Client API
+        const serverIdentifier = server.pterodactyl_identifier;
+        
+        if (!serverIdentifier) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Server identifier not found. This server may have been created before the identifier system was implemented.' 
+            });
+        }
+        
+        // Send power signal via Client API
+        const result = await pterodactyl.sendServerPowerSignal(serverIdentifier, action);
+        
+        if (!result.success) {
+            return res.status(500).json({ 
+                success: false, 
+                message: result.error || `Failed to ${action} server` 
+            });
+        }
+        
+        // Return success with action performed
+        const actionMessages = {
+            start: 'Server is starting...',
+            stop: 'Server is stopping...',
+            restart: 'Server is restarting...',
+            kill: 'Server has been force killed'
+        };
+        
+        res.json({ 
+            success: true, 
+            message: actionMessages[action],
+            action: action
+        });
+    } catch (error) {
+        console.error('Error sending power action:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error sending power action to server' 
+        });
+    }
+});
+
+// ============================================
+// FEATURE 4: Send command to server console
+// ============================================
+
+// API endpoint to send a command to server console
+router.post('/api/command/:id', requireAuth, async (req, res) => {
+    try {
+        const serverId = req.params.id;
+        const { command } = req.body;
+        
+        // Validate command
+        if (!command || typeof command !== 'string' || command.trim().length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Command is required' 
+            });
+        }
+        
+        // Verify ownership
+        const server = await get('SELECT * FROM servers WHERE id = ? AND user_id = ?', 
+            [serverId, req.session.user.id]);
+        
+        if (!server) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Server not found' 
+            });
+        }
+        
+        // Check if Pterodactyl is configured
+        if (!await pterodactyl.isConfigured()) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Pterodactyl panel is not configured' 
+            });
+        }
+        
+        const serverIdentifier = server.pterodactyl_identifier;
+        
+        if (!serverIdentifier) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Server identifier not available' 
+            });
+        }
+        
+        // Send command
+        const result = await pterodactyl.sendServerCommand(serverIdentifier, command.trim());
+        
+        if (!result.success) {
+            // Check if server is offline
+            if (result.error?.errors?.[0]?.code === 'HttpException' || 
+                result.error?.message?.includes('offline')) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Server must be online to send commands' 
+                });
+            }
+            return res.status(500).json({ 
+                success: false, 
+                message: result.error || 'Failed to send command' 
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Command sent successfully'
+        });
+    } catch (error) {
+        console.error('Error sending command:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error sending command to server' 
+        });
+    }
+});
+
+// ============================================
+// FEATURE 5: File Manager API Endpoints
+// ============================================
+
+// Helper to verify server ownership
+async function verifyServerOwnership(req, serverId) {
+    const server = await get('SELECT * FROM servers WHERE id = ? AND user_id = ?', 
+        [serverId, req.session.user.id]);
+    return server;
+}
+
+// List files in directory
+router.get('/api/files/:id/list', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const directory = req.query.directory || '/';
+        const result = await pterodactyl.listFiles(server.pterodactyl_identifier, directory);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to list files' });
+        }
+        
+        res.json({ success: true, files: result.data?.data || [] });
+    } catch (error) {
+        console.error('Error listing files:', error);
+        res.status(500).json({ success: false, message: 'Error listing files' });
+    }
+});
+
+// Get file contents
+router.get('/api/files/:id/contents', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const filePath = req.query.file;
+        if (!filePath) {
+            return res.status(400).json({ success: false, message: 'File path is required' });
+        }
+        
+        const result = await pterodactyl.getFileContents(server.pterodactyl_identifier, filePath);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to get file contents' });
+        }
+        
+        // The result.data contains the raw file contents
+        res.json({ success: true, content: result.data });
+    } catch (error) {
+        console.error('Error getting file contents:', error);
+        res.status(500).json({ success: false, message: 'Error getting file contents' });
+    }
+});
+
+// Write/save file
+router.post('/api/files/:id/write', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const { file, content } = req.body;
+        if (!file) {
+            return res.status(400).json({ success: false, message: 'File path is required' });
+        }
+        
+        const result = await pterodactyl.writeFile(server.pterodactyl_identifier, file, content || '');
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to write file' });
+        }
+        
+        res.json({ success: true, message: 'File saved successfully' });
+    } catch (error) {
+        console.error('Error writing file:', error);
+        res.status(500).json({ success: false, message: 'Error writing file' });
+    }
+});
+
+// Create directory
+router.post('/api/files/:id/create-folder', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const { name, root = '/' } = req.body;
+        if (!name) {
+            return res.status(400).json({ success: false, message: 'Folder name is required' });
+        }
+        
+        const result = await pterodactyl.createDirectory(server.pterodactyl_identifier, name, root);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to create folder' });
+        }
+        
+        res.json({ success: true, message: 'Folder created successfully' });
+    } catch (error) {
+        console.error('Error creating folder:', error);
+        res.status(500).json({ success: false, message: 'Error creating folder' });
+    }
+});
+
+// Delete files/folders
+router.post('/api/files/:id/delete', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const { files, root = '/' } = req.body;
+        if (!files || !Array.isArray(files) || files.length === 0) {
+            return res.status(400).json({ success: false, message: 'Files to delete are required' });
+        }
+        
+        const result = await pterodactyl.deleteFiles(server.pterodactyl_identifier, root, files);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to delete files' });
+        }
+        
+        res.json({ success: true, message: 'Files deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting files:', error);
+        res.status(500).json({ success: false, message: 'Error deleting files' });
+    }
+});
+
+// Rename file/folder
+router.put('/api/files/:id/rename', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const { from, to, root = '/' } = req.body;
+        if (!from || !to) {
+            return res.status(400).json({ success: false, message: 'From and to names are required' });
+        }
+        
+        const result = await pterodactyl.renameFile(server.pterodactyl_identifier, root, from, to);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to rename' });
+        }
+        
+        res.json({ success: true, message: 'Renamed successfully' });
+    } catch (error) {
+        console.error('Error renaming:', error);
+        res.status(500).json({ success: false, message: 'Error renaming' });
+    }
+});
+
+// ============================================
+// FEATURE 6: Backup System API Endpoints
+// ============================================
+
+// List backups
+router.get('/api/backups/:id/list', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const result = await pterodactyl.listBackups(server.pterodactyl_identifier);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to list backups' });
+        }
+        
+        res.json({ success: true, backups: result.data?.data || [] });
+    } catch (error) {
+        console.error('Error listing backups:', error);
+        res.status(500).json({ success: false, message: 'Error listing backups' });
+    }
+});
+
+// Create backup
+router.post('/api/backups/:id/create', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const { name, is_locked } = req.body;
+        const result = await pterodactyl.createBackup(server.pterodactyl_identifier, name || null, is_locked || false);
+        
+        if (!result.success) {
+            // Check for backup limit error
+            if (result.error?.errors?.[0]?.code === 'TooManyRequestsHttpException') {
+                return res.status(400).json({ success: false, message: 'Backup limit reached. Delete an old backup first.' });
+            }
+            return res.status(500).json({ success: false, message: result.error || 'Failed to create backup' });
+        }
+        
+        res.json({ success: true, message: 'Backup creation started', backup: result.data?.attributes });
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        res.status(500).json({ success: false, message: 'Error creating backup' });
+    }
+});
+
+// Delete backup
+router.delete('/api/backups/:id/:backupUuid', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const result = await pterodactyl.deleteBackup(server.pterodactyl_identifier, req.params.backupUuid);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to delete backup' });
+        }
+        
+        res.json({ success: true, message: 'Backup deleted' });
+    } catch (error) {
+        console.error('Error deleting backup:', error);
+        res.status(500).json({ success: false, message: 'Error deleting backup' });
+    }
+});
+
+// Get backup download URL
+router.get('/api/backups/:id/:backupUuid/download', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const result = await pterodactyl.getBackupDownloadUrl(server.pterodactyl_identifier, req.params.backupUuid);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to get download URL' });
+        }
+        
+        res.json({ success: true, url: result.data?.attributes?.url });
+    } catch (error) {
+        console.error('Error getting download URL:', error);
+        res.status(500).json({ success: false, message: 'Error getting download URL' });
+    }
+});
+
+// Restore backup
+router.post('/api/backups/:id/:backupUuid/restore', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const { truncate } = req.body;
+        const result = await pterodactyl.restoreBackup(server.pterodactyl_identifier, req.params.backupUuid, truncate || false);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to restore backup' });
+        }
+        
+        res.json({ success: true, message: 'Backup restoration started' });
+    } catch (error) {
+        console.error('Error restoring backup:', error);
+        res.status(500).json({ success: false, message: 'Error restoring backup' });
+    }
+});
+
+// ============================================
+// FEATURE 7: Scheduled Tasks API Endpoints
+// ============================================
+
+// List schedules
+router.get('/api/schedules/:id/list', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const result = await pterodactyl.listSchedules(server.pterodactyl_identifier);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to list schedules' });
+        }
+        
+        res.json({ success: true, schedules: result.data?.data || [] });
+    } catch (error) {
+        console.error('Error listing schedules:', error);
+        res.status(500).json({ success: false, message: 'Error listing schedules' });
+    }
+});
+
+// Create schedule
+router.post('/api/schedules/:id/create', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const { name, minute, hour, day_of_month, month, day_of_week, is_active, only_when_online } = req.body;
+        
+        if (!name) {
+            return res.status(400).json({ success: false, message: 'Schedule name is required' });
+        }
+        
+        const result = await pterodactyl.createSchedule(
+            server.pterodactyl_identifier,
+            name,
+            minute || '*',
+            hour || '*',
+            day_of_month || '*',
+            month || '*',
+            day_of_week || '*',
+            is_active !== false,
+            only_when_online !== false
+        );
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to create schedule' });
+        }
+        
+        res.json({ success: true, message: 'Schedule created', schedule: result.data?.attributes });
+    } catch (error) {
+        console.error('Error creating schedule:', error);
+        res.status(500).json({ success: false, message: 'Error creating schedule' });
+    }
+});
+
+// Delete schedule
+router.delete('/api/schedules/:id/:scheduleId', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const result = await pterodactyl.deleteSchedule(server.pterodactyl_identifier, req.params.scheduleId);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to delete schedule' });
+        }
+        
+        res.json({ success: true, message: 'Schedule deleted' });
+    } catch (error) {
+        console.error('Error deleting schedule:', error);
+        res.status(500).json({ success: false, message: 'Error deleting schedule' });
+    }
+});
+
+// Execute schedule now
+router.post('/api/schedules/:id/:scheduleId/execute', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const result = await pterodactyl.executeSchedule(server.pterodactyl_identifier, req.params.scheduleId);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to execute schedule' });
+        }
+        
+        res.json({ success: true, message: 'Schedule executed' });
+    } catch (error) {
+        console.error('Error executing schedule:', error);
+        res.status(500).json({ success: false, message: 'Error executing schedule' });
+    }
+});
+
+// Add task to schedule
+router.post('/api/schedules/:id/:scheduleId/tasks', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const { action, payload, time_offset } = req.body;
+        
+        if (!action || !payload) {
+            return res.status(400).json({ success: false, message: 'Action and payload are required' });
+        }
+        
+        const result = await pterodactyl.createScheduleTask(
+            server.pterodactyl_identifier,
+            req.params.scheduleId,
+            action,
+            payload,
+            time_offset || 0
+        );
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to create task' });
+        }
+        
+        res.json({ success: true, message: 'Task added', task: result.data?.attributes });
+    } catch (error) {
+        console.error('Error creating task:', error);
+        res.status(500).json({ success: false, message: 'Error creating task' });
+    }
+});
+
+// ============================================
+// FEATURE 8: Database Management API Endpoints
+// ============================================
+
+// List databases
+router.get('/api/databases/:id/list', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const result = await pterodactyl.listDatabases(server.pterodactyl_identifier);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to list databases' });
+        }
+        
+        res.json({ success: true, databases: result.data?.data || [] });
+    } catch (error) {
+        console.error('Error listing databases:', error);
+        res.status(500).json({ success: false, message: 'Error listing databases' });
+    }
+});
+
+// Create database
+router.post('/api/databases/:id/create', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const { database, remote } = req.body;
+        
+        if (!database) {
+            return res.status(400).json({ success: false, message: 'Database name is required' });
+        }
+        
+        // Validate database name (alphanumeric and underscores only)
+        if (!/^[a-zA-Z0-9_]+$/.test(database)) {
+            return res.status(400).json({ success: false, message: 'Database name can only contain letters, numbers, and underscores' });
+        }
+        
+        const result = await pterodactyl.createDatabase(server.pterodactyl_identifier, database, remote || '%');
+        
+        if (!result.success) {
+            if (result.error?.errors?.[0]?.code === 'TooManyRequestsHttpException') {
+                return res.status(400).json({ success: false, message: 'Database limit reached' });
+            }
+            return res.status(500).json({ success: false, message: result.error || 'Failed to create database' });
+        }
+        
+        res.json({ success: true, message: 'Database created', database: result.data?.attributes });
+    } catch (error) {
+        console.error('Error creating database:', error);
+        res.status(500).json({ success: false, message: 'Error creating database' });
+    }
+});
+
+// Rotate database password
+router.post('/api/databases/:id/:databaseId/rotate', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const result = await pterodactyl.rotateDatabasePassword(server.pterodactyl_identifier, req.params.databaseId);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to rotate password' });
+        }
+        
+        res.json({ success: true, message: 'Password rotated', database: result.data?.attributes });
+    } catch (error) {
+        console.error('Error rotating password:', error);
+        res.status(500).json({ success: false, message: 'Error rotating password' });
+    }
+});
+
+// Delete database
+router.delete('/api/databases/:id/:databaseId', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const result = await pterodactyl.deleteDatabase(server.pterodactyl_identifier, req.params.databaseId);
+        
+        if (!result.success) {
+            return res.status(500).json({ success: false, message: result.error || 'Failed to delete database' });
+        }
+        
+        res.json({ success: true, message: 'Database deleted' });
+    } catch (error) {
+        console.error('Error deleting database:', error);
+        res.status(500).json({ success: false, message: 'Error deleting database' });
+    }
+});
+
+// API endpoint to get server status (running, offline, starting, stopping)
+router.get('/api/status/:id', requireAuth, async (req, res) => {
+    try {
+        const serverId = req.params.id;
+        
+        // Verify ownership
+        const server = await get('SELECT * FROM servers WHERE id = ? AND user_id = ?', 
+            [serverId, req.session.user.id]);
+        
+        if (!server) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Server not found' 
+            });
+        }
+        
+        // Check if Pterodactyl is configured
+        if (!await pterodactyl.isConfigured()) {
+            return res.json({ 
+                success: true, 
+                status: 'unknown',
+                message: 'Pterodactyl not configured'
+            });
+        }
+        
+        const serverIdentifier = server.pterodactyl_identifier;
+        
+        if (!serverIdentifier) {
+            return res.json({ 
+                success: true, 
+                status: 'unknown',
+                message: 'Server identifier not available'
+            });
+        }
+        
+        // Get server resources which includes current state
+        const result = await pterodactyl.getServerResources(serverIdentifier);
+        
+        if (!result.success) {
+            return res.json({ 
+                success: true, 
+                status: 'unknown',
+                message: 'Could not fetch server status'
+            });
+        }
+        
+        // Extract status from response
+        const currentState = result.data?.attributes?.current_state || 
+                            result.data?.current_state || 
+                            'unknown';
+        
+        // Also get resource usage if available
+        const resources = result.data?.attributes?.resources || result.data?.resources || null;
+        
+        res.json({ 
+            success: true, 
+            status: currentState,
+            resources: resources ? {
+                cpu_absolute: resources.cpu_absolute,
+                memory_bytes: resources.memory_bytes,
+                disk_bytes: resources.disk_bytes,
+                network_rx_bytes: resources.network_rx_bytes,
+                network_tx_bytes: resources.network_tx_bytes,
+                uptime: resources.uptime
+            } : null
+        });
+    } catch (error) {
+        console.error('Error getting server status:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error getting server status' 
+        });
+    }
+});
+
 // REMOVED FOR V1: Upgrade and Sync endpoints removed for production stability
 // These features have been fully removed from the codebase
 
 // REMOVED FOR V1: Sync endpoint removed for production stability
 // API endpoint to sync server resources from Pterodactyl to dashboard - FULLY REMOVED
+
+// ============================================
+// FEATURE 3: Server Details API
+// ============================================
+
+// API endpoint to get server details (for server details page)
+router.get('/api/details/:id', requireAuth, async (req, res) => {
+    try {
+        const serverId = req.params.id;
+        
+        // Verify ownership
+        const server = await get('SELECT * FROM servers WHERE id = ? AND user_id = ?', 
+            [serverId, req.session.user.id]);
+        
+        if (!server) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Server not found' 
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            server: server
+        });
+    } catch (error) {
+        console.error('Error getting server details:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error getting server details' 
+        });
+    }
+});
 
 // API endpoint to get server statistics
 router.get('/api/stats/:id', requireAuth, async (req, res) => {
@@ -752,6 +1692,288 @@ router.get('/api/eggs', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error fetching eggs:', error);
         res.status(500).json({ success: false, message: 'Error fetching eggs' });
+    }
+});
+
+// ============================================
+// FEATURE 2: Server Templates - Public Endpoints
+// ============================================
+
+// API endpoint to get active server templates (for users)
+router.get('/api/templates', requireAuth, async (req, res) => {
+    try {
+        // Join with eggs table to get egg name
+        const templates = await query(`
+            SELECT t.*, e.name as egg_name, e.nest_id
+            FROM server_templates t
+            LEFT JOIN pterodactyl_eggs e ON t.egg_id = e.egg_id
+            WHERE t.is_active = 1
+            ORDER BY t.display_order ASC, t.created_at DESC
+        `);
+        res.json({ success: true, templates: templates || [] });
+    } catch (error) {
+        console.error('Error fetching templates:', error);
+        res.status(500).json({ success: false, message: 'Error fetching templates' });
+    }
+});
+
+// API endpoint to create server from template
+router.post('/api/create-from-template', requireAuth, async (req, res) => {
+    try {
+        const { template_id, server_name } = req.body;
+        
+        if (!template_id) {
+            return res.status(400).json({ success: false, message: 'Template ID is required' });
+        }
+        
+        // Fetch the template
+        const template = await get(`
+            SELECT t.*, e.nest_id, e.environment_variables
+            FROM server_templates t
+            LEFT JOIN pterodactyl_eggs e ON t.egg_id = e.egg_id
+            WHERE t.id = ? AND t.is_active = 1
+        `, [template_id]);
+        
+        if (!template) {
+            return res.status(404).json({ success: false, message: 'Template not found or inactive' });
+        }
+        
+        // Use template name if no custom name provided
+        const finalServerName = server_name?.trim() || `${template.name} Server`;
+        
+        // Get user's resources
+        const user = await get(
+            'SELECT purchased_ram, purchased_cpu, purchased_storage, server_slots FROM users WHERE id = ?',
+            [req.session.user.id]
+        );
+        
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        
+        // Calculate used resources
+        const usedResources = await get(`
+            SELECT COALESCE(SUM(ram), 0) as used_ram, 
+                   COALESCE(SUM(cpu), 0) as used_cpu, 
+                   COALESCE(SUM(storage), 0) as used_storage,
+                   COUNT(*) as server_count
+            FROM servers WHERE user_id = ?
+        `, [req.session.user.id]);
+        
+        const availableRam = user.purchased_ram - (usedResources?.used_ram || 0);
+        const availableCpu = user.purchased_cpu - (usedResources?.used_cpu || 0);
+        const availableStorage = user.purchased_storage - (usedResources?.used_storage || 0);
+        const availableSlots = user.server_slots - (usedResources?.server_count || 0);
+        
+        // Check server slots
+        if (availableSlots <= 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No server slots available. Purchase more slots in the store.' 
+            });
+        }
+        
+        // Check resources
+        if (template.ram_mb > availableRam) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Not enough RAM. Need ${template.ram_mb}MB, have ${availableRam}MB available.` 
+            });
+        }
+        if (template.cpu_percent > availableCpu) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Not enough CPU. Need ${template.cpu_percent}%, have ${availableCpu}% available.` 
+            });
+        }
+        if (template.storage_mb > availableStorage) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Not enough storage. Need ${template.storage_mb}MB, have ${availableStorage}MB available.` 
+            });
+        }
+        
+        // Forward to the existing create server logic
+        // Construct internal request to reuse existing server creation code
+        req.body = {
+            name: finalServerName,
+            egg_id: template.egg_id,
+            ram: template.ram_mb,
+            cpu: template.cpu_percent,
+            storage: template.storage_mb,
+            from_template: true
+        };
+        
+        // Call the existing server creation logic
+        // This is a workaround - ideally we'd refactor to share logic
+        // For now, we redirect to the create endpoint logic
+        const createServerHandler = router.stack.find(r => 
+            r.route && r.route.path === '/api/create' && r.route.methods.post
+        );
+        
+        // Just call the create endpoint directly via fetch to reuse logic
+        // Actually, let's duplicate the essential logic for templates
+        
+        // Check Pterodactyl configuration
+        if (!await pterodactyl.isConfigured()) {
+            return res.status(400).json({ success: false, message: 'Pterodactyl is not configured' });
+        }
+        
+        // Get egg details
+        const egg = await get('SELECT * FROM pterodactyl_eggs WHERE egg_id = ?', [template.egg_id]);
+        if (!egg) {
+            return res.status(400).json({ success: false, message: 'Template egg not found in database' });
+        }
+        
+        // Get user's Pterodactyl user ID
+        let pteroUserId = req.session.user.pterodactyl_user_id;
+        
+        if (!pteroUserId) {
+            // Try to get from database
+            const dbUser = await get('SELECT pterodactyl_user_id FROM users WHERE id = ?', [req.session.user.id]);
+            if (dbUser?.pterodactyl_user_id) {
+                pteroUserId = dbUser.pterodactyl_user_id;
+                req.session.user.pterodactyl_user_id = pteroUserId;
+            } else {
+                // Create Pterodactyl user
+                const userResult = await pterodactyl.createPterodactylUser(
+                    req.session.user.username,
+                    req.session.user.email,
+                    req.session.user.id
+                );
+                
+                if (!userResult.success) {
+                    return res.status(500).json({ success: false, message: 'Failed to create Pterodactyl user' });
+                }
+                
+                pteroUserId = userResult.user.id;
+                await run('UPDATE users SET pterodactyl_user_id = ? WHERE id = ?', [pteroUserId, req.session.user.id]);
+                req.session.user.pterodactyl_user_id = pteroUserId;
+            }
+        }
+        
+        // Get an available allocation (with atomic claim)
+        const claimResult = await run(
+            `UPDATE pterodactyl_allocations 
+             SET is_active = 0 
+             WHERE id = (SELECT id FROM pterodactyl_allocations WHERE is_active = 1 LIMIT 1)`
+        );
+        
+        if (!claimResult || claimResult.changes === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'No available server allocations. Please contact an administrator.' 
+            });
+        }
+        
+        const allocation = await get('SELECT * FROM pterodactyl_allocations WHERE is_active = 0 ORDER BY id DESC LIMIT 1');
+        
+        if (!allocation) {
+            return res.status(400).json({ success: false, message: 'Failed to claim allocation' });
+        }
+        
+        // Parse environment variables
+        let environment = {};
+        if (egg.environment_variables) {
+            try {
+                let envVars = egg.environment_variables;
+                if (typeof envVars === 'string') {
+                    envVars = JSON.parse(envVars);
+                }
+                
+                if (Array.isArray(envVars)) {
+                    envVars.forEach(v => {
+                        if (v.env_variable) {
+                            environment[v.env_variable] = v.default_value ?? '';
+                        }
+                    });
+                } else if (typeof envVars === 'object') {
+                    for (const [key, value] of Object.entries(envVars)) {
+                        environment[key] = value ?? '';
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing environment variables:', e);
+            }
+        }
+        
+        // Create server in Pterodactyl
+        const serverData = {
+            name: finalServerName,
+            user: parseInt(pteroUserId),
+            egg: template.egg_id,
+            nest: egg.nest_id,
+            docker_image: egg.docker_image || 'ghcr.io/pterodactyl/yolks:java_17',
+            startup: egg.startup || 'java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar',
+            environment: environment,
+            limits: {
+                memory: template.ram_mb,
+                swap: 0,
+                disk: template.storage_mb,
+                io: 500,
+                cpu: template.cpu_percent
+            },
+            feature_limits: {
+                databases: 0,
+                backups: 2,
+                allocations: 1
+            },
+            allocation: {
+                default: allocation.allocation_id
+            },
+            skip_scripts: false
+        };
+        
+        const createResult = await pterodactyl.createServer(serverData);
+        
+        if (!createResult.success) {
+            // Release the allocation on failure
+            await run('UPDATE pterodactyl_allocations SET is_active = 1 WHERE id = ?', [allocation.id]);
+            return res.status(500).json({ 
+                success: false, 
+                message: createResult.error || 'Failed to create server in Pterodactyl' 
+            });
+        }
+        
+        // Extract server info
+        const pteroServer = createResult.data?.attributes || createResult.data;
+        const pterodactylId = pteroServer?.id;
+        const pterodactylIdentifier = pteroServer?.identifier;
+        
+        // Delete the used allocation
+        await run('DELETE FROM pterodactyl_allocations WHERE id = ?', [allocation.id]);
+        
+        // Get public address
+        let publicAddress = null;
+        if (pterodactylId) {
+            try {
+                const serverDetails = await pterodactyl.getServerDetails(pterodactylId);
+                if (serverDetails.success) {
+                    publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
+                }
+            } catch (e) {
+                console.error('Error fetching server details:', e);
+            }
+        }
+        
+        // Save to database
+        const insertResult = await run(
+            `INSERT INTO servers (user_id, pterodactyl_id, pterodactyl_identifier, name, ram, cpu, storage, public_address) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [req.session.user.id, pterodactylId, pterodactylIdentifier, finalServerName, 
+             template.ram_mb, template.cpu_percent, template.storage_mb, publicAddress]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: `Server "${finalServerName}" created from template!`,
+            server_id: insertResult.lastID,
+            pterodactyl_id: pterodactylId
+        });
+        
+    } catch (error) {
+        console.error('Error creating server from template:', error);
+        res.status(500).json({ success: false, message: 'Error creating server from template' });
     }
 });
 

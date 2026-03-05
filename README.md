@@ -4,11 +4,29 @@ A powerful dashboard for **free hosting providers** to monetize their services t
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.2.1
+**Version:** 1.3
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
+
+---
+
+## ✨ What's New in Version 1.3
+
+This major update brings **powerful server management features** that put you ahead of competitors:
+
+| Feature | Description |
+|---------|-------------|
+| ⚡ **Quick Actions** | Start/Stop/Restart servers with one click directly from dashboard |
+| 📦 **Server Templates** | Admins create pre-configured templates for instant server deployment |
+| 📊 **Live Stats Dashboard** | Real-time CPU, RAM, Disk graphs with Chart.js |
+| 💻 **Console Commands** | Send commands to server console without opening Pterodactyl |
+| 📁 **File Manager** | Browse, edit, create, delete files directly from dashboard |
+| 💾 **Backup System** | Create, download, and restore server backups |
+| ⏰ **Scheduled Tasks** | Automate server restarts, commands, and backups |
+| 🗃️ **Database Manager** | Create and manage MySQL databases for your servers |
+| 🚨 **Usage Alerts** | Get notified when CPU/RAM/Disk usage is high |
 
 ---
 
@@ -20,14 +38,16 @@ A powerful dashboard for **free hosting providers** to monetize their services t
 - 🎮 **Manage game servers** - Integrate with Pterodactyl panel to provide Minecraft, CS:GO, and other game servers
 - 👥 **Control your business** - Full admin panel to manage users, pricing, resources, and revenue
 - 🚀 **Easy setup** - Designed for Linux VPS (the standard for hosting providers)
+- ⚡ **Full server control** - Start/stop/restart, file manager, console, backups - all from one dashboard!
 
 ### How It Works
 
 1. **Your users** complete Linkvertise links to earn coins
 2. **You earn revenue** from Linkvertise when users complete links
 3. **Users spend coins** to purchase server resources (RAM, CPU, Storage)
-4. **Users create servers** using their purchased resources
-5. **You manage everything** through the admin panel
+4. **Users create servers** using their purchased resources (or use quick templates!)
+5. **Users manage servers** directly from the dashboard (no need to open Pterodactyl!)
+6. **You manage everything** through the admin panel
 
 **Perfect for free hosting businesses!** No complex setup needed.
 
@@ -892,6 +912,99 @@ pm2 restart aether-dashboard
 
 ---
 
+## 🚀 Feature Highlights (Version 1.3)
+
+**These features make your dashboard stand out from competitors!**
+
+### ⚡ Quick Server Actions
+
+Users can **Start/Stop/Restart/Kill** their servers with one click - no need to open Pterodactyl panel!
+
+- Buttons appear directly on the server card
+- Real-time status badges show current state
+- Works instantly with visual feedback
+
+### 📦 Server Templates (Admin Feature)
+
+Create **pre-configured server templates** for instant deployment:
+
+1. Go to Admin Panel → Templates tab
+2. Create a template (e.g., "Minecraft Paper 1.20")
+3. Set the egg, RAM, CPU, and storage
+4. Users can deploy servers instantly from templates!
+
+**Perfect for:** Common server types, beginner-friendly options
+
+### 📊 Live Stats Dashboard
+
+Users click **"📊 Live Stats"** on any server to see:
+
+- Real-time CPU, RAM, Disk usage (animated gauges)
+- Network I/O statistics
+- Interactive history graphs (Chart.js)
+- Server uptime tracking
+- Auto-refreshes every 5 seconds
+
+### 💻 Server Console
+
+Send commands directly from the dashboard:
+
+- Command input with send button
+- Command history tracking
+- No need to open Pterodactyl panel
+
+**Note:** Full console output requires WebSocket, available via "Open in Panel" button.
+
+### 📁 File Manager
+
+Full file management without leaving the dashboard:
+
+- **Browse** - Navigate folders and files
+- **Edit** - Edit text files with syntax-aware editor
+- **Create** - Make new files and folders
+- **Delete** - Remove files safely
+- **Rename** - Rename files and folders
+- **Compress** - Create .tar.gz archives
+- **Decompress** - Extract archives
+
+### 💾 Backup System
+
+Protect user data with easy backups:
+
+- **Create** - One-click backup creation
+- **Download** - Download backups to local machine
+- **Restore** - Restore server from backup
+- **Delete** - Clean up old backups
+
+### ⏰ Scheduled Tasks
+
+Automate server management:
+
+- **Schedule restarts** - Auto-restart at specific times
+- **Run commands** - Execute commands on schedule
+- **Create backups** - Scheduled automatic backups
+- Cron-style scheduling (minute, hour, day, etc.)
+
+### 🗃️ Database Management
+
+For servers that need databases:
+
+- **Create** - Create MySQL databases
+- **Rotate Password** - Generate new secure passwords
+- **Delete** - Remove unused databases
+- Copy connection strings easily
+
+### 🚨 Usage Alerts
+
+Automatic warnings when resources are high:
+
+- ⚠️ **Warning** at 80% usage (yellow)
+- 🔴 **Critical** at 90% usage (red)
+- Applies to CPU, RAM, and Disk
+- Helps users manage resources before issues occur
+
+---
+
 ## 🎨 Managing Your Hosting Business
 
 ### For You (Administrator)
@@ -952,7 +1065,7 @@ Before going live, make sure you've completed:
 - [ ] Used a strong `SESSION_SECRET` (32+ characters, random)
 - [ ] Set up HTTPS/SSL certificate (Let's Encrypt is free)
 - [ ] Configured firewall (only allow ports 80, 443, and SSH)
-- [ ] Set up regular backups of `database.db`
+- [ ] Set up regular backups of `database.db` - See [Backup & Recovery Guide](BACKUP_RECOVERY.md)
 - [ ] Updated Node.js to latest LTS version
 - [ ] Using PM2 to keep app running
 - [ ] Set up monitoring/logging
@@ -962,175 +1075,17 @@ Before going live, make sure you've completed:
 
 ## ❓ Troubleshooting
 
-### "node: command not found"
+**Having issues?** Check out our comprehensive [Troubleshooting Guide](TROUBLESHOOTING.md) for solutions to common problems:
 
-**Problem:** Node.js isn't installed correctly.
+- Node.js installation issues
+- Port conflicts
+- Connection problems
+- Login/session issues
+- Password recovery
+- Database issues
+- And much more!
 
-**Solution:**
-1. Go back to Step 3 (Install Node.js)
-2. Make sure you followed all the steps
-3. Try running the installation commands again
-4. After installing, close and reopen your SSH connection
-
-### "Port 3000 is already in use"
-
-**Problem:** Something else is using port 3000.
-
-**Solution:**
-1. **Option 1:** Change the port in `.env` file:
-   ```bash
-   nano .env
-   ```
-   Change `PORT=3000` to `PORT=3001`
-   Save and restart: `pm2 restart aether-dashboard`
-
-2. **Option 2:** Find what's using port 3000:
-   ```bash
-   sudo lsof -i :3000
-   ```
-   Stop that process
-
-### "Cannot access dashboard from browser"
-
-**Check these things:**
-
-1. **Is the dashboard running?**
-   ```bash
-   pm2 list
-   ```
-   You should see `aether-dashboard` with status `online`
-
-2. **Check the logs:**
-   ```bash
-   pm2 logs aether-dashboard
-   ```
-   Look for errors (red text)
-
-3. **Test from the VPS itself:**
-   ```bash
-   curl http://localhost:3000
-   ```
-   If this works, the problem is with firewall or network
-
-4. **Check firewall:**
-   - Make sure you completed Step 8 (Configure Firewall)
-   - Check cloud provider firewall (DigitalOcean, AWS, etc.)
-
-5. **Check if port is open:**
-   - Use an online tool: https://www.yougetsignal.com/tools/open-ports/
-   - Enter your VPS IP and port 3000
-
-### "Login redirects back to login page"
-
-**This is usually a session/cookie issue:**
-
-1. **Check your `.env` file:**
-   ```bash
-   nano .env
-   ```
-   - If using HTTPS, make sure `USE_HTTPS=true`
-   - If using HTTP, make sure `USE_HTTPS=false`
-   - Save and restart: `pm2 restart aether-dashboard`
-
-2. **If using Nginx, check the configuration:**
-   - Make sure all the proxy headers are set (see Nginx setup above)
-   - Test config: `sudo nginx -t`
-   - Reload: `sudo systemctl reload nginx`
-
-3. **Check server logs:**
-   ```bash
-   pm2 logs aether-dashboard
-   ```
-   Look for any errors
-
-### "Linkvertise not giving coins"
-
-**Checklist:**
-- ✅ Linkvertise configuration is saved in Admin Panel
-- ✅ Link is marked as "Active" in Admin Panel
-- ✅ Cooldown timer has expired (if applicable)
-- ✅ Check server logs: `pm2 logs aether-dashboard`
-
-### "I forgot my admin password"
-
-**Don't worry!** You can reset your admin password without losing any data.
-
-**Easy Solution (Recommended):**
-
-1. **Connect to your VPS via SSH** (same way you installed the dashboard)
-
-2. **Go to your dashboard folder:**
-   ```bash
-   cd AETHER_PANEL
-   ```
-
-3. **Run the password reset script:**
-   ```bash
-   node reset-admin-password.js "your-new-password-here"
-   ```
-   
-   **Replace `your-new-password-here` with your desired password**
-   
-   **Example:**
-   ```bash
-   node reset-admin-password.js "mypassword123"
-   ```
-
-4. **You'll see a success message:**
-   ```
-   ✅ Admin password reset successfully!
-   
-   📝 Login Details:
-      Username: admin
-      Password: mypassword123
-   ```
-
-5. **Restart the dashboard (if it's running):**
-   ```bash
-   pm2 restart aether-dashboard
-   ```
-
-6. **Log in with your new password:**
-   - Username: `admin`
-   - Password: (the password you just set)
-
-**✅ What this does:**
-- Resets ONLY the admin password
-- Keeps ALL your data (users, servers, settings, etc.)
-- Safe and easy to use
-
-**❌ What this does NOT do:**
-- Does NOT delete any data
-- Does NOT affect other users
-- Does NOT change any settings
-
-**⚠️ Important Notes:**
-- Make sure to remember your new password!
-- Save it in a safe place
-- The password must be at least 6 characters long
-
-**Alternative Method (Only if script doesn't work):**
-
-If the script doesn't work for some reason, you can delete the database file (⚠️ **WARNING: This deletes ALL data!**):
-
-1. **Delete the database file:**
-   ```bash
-   cd AETHER_PANEL
-   rm database.db
-   ```
-
-2. **Restart the dashboard:**
-   ```bash
-   pm2 restart aether-dashboard
-   ```
-
-3. **This creates a new admin account:**
-   - Username: `admin`
-   - Password: `admin123`
-
-4. **⚠️ You'll lose ALL your data** (users, servers, settings, etc.)
-
-**We recommend using the password reset script instead!**
+👉 **[View Troubleshooting Guide →](TROUBLESHOOTING.md)**
 
 ---
 
@@ -1154,15 +1109,18 @@ pm2 restart aether-dashboard
 
 **⚠️ Always backup your `database.db` and `.env` files before updating!**
 
+👉 **[See the Backup & Recovery Guide](BACKUP_RECOVERY.md)** for detailed backup instructions and how to restore if something goes wrong.
+
 ---
 
 ## 📖 Need More Help?
 
 1. **Check this README** - Most questions are answered here
-2. **Check the Update Guide** - [UPDATES.md](UPDATES.md) for update instructions
-3. **Check server logs** - `pm2 logs aether-dashboard`
-4. **Check error messages** - They usually tell you what's wrong
-5. **Review the troubleshooting section** - Common issues and solutions are listed above
+2. **Check the Troubleshooting Guide** - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues and solutions
+3. **Check the Update Guide** - [UPDATES.md](UPDATES.md) for update instructions
+4. **Check the Backup Guide** - [BACKUP_RECOVERY.md](BACKUP_RECOVERY.md) for backup and recovery instructions
+5. **Check server logs** - `pm2 logs aether-dashboard`
+6. **Check error messages** - They usually tell you what's wrong
 
 ---
 
@@ -1184,7 +1142,7 @@ pm2 start server.js --name aether-dashboard  # Start
 
 ### Important Files
 - **`.env`** - Your configuration (keep secret!)
-- **`database.db`** - All your data (backup regularly!)
+- **`database.db`** - All your data (backup regularly!) - See [Backup & Recovery Guide](BACKUP_RECOVERY.md)
 - **`reset-admin-password.js`** - Password reset script (use if you forget admin password)
 
 ---
@@ -1217,4 +1175,4 @@ MIT License - Feel free to use, modify, and distribute!
 
 **Made with ❤️ for free hosting providers. Start earning revenue today!** 🚀💰
 
-**Version 1.2.1** - Production Ready ✅
+**Version 1.3** - Production Ready ✅

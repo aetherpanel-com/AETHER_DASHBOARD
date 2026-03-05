@@ -116,6 +116,7 @@
                             <button class="tab-btn" onclick="showTab('coins')">Coin Management</button>
                             <button class="tab-btn" onclick="showTab('linkvertise')">Linkvertise</button>
                             <button class="tab-btn" onclick="showTab('store')">Store Management</button>
+                            <button class="tab-btn" onclick="showTab('templates')">Server Templates</button>
                             <button class="tab-btn" onclick="showTab('panel')">Panel</button>
                         </div>
                     </div>
@@ -319,6 +320,63 @@
                                 <div id="currentPricing" style="display: grid; gap: 12px;">
                                     <p style="color: #cbd5e1;">Loading...</p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Server Templates Tab -->
+                    <div id="templatesTab" class="tab-content" style="display: none;">
+                        <div class="card" style="margin-bottom: 20px;">
+                            <div class="card-header">Server Templates</div>
+                            <p style="color: #cbd5e1; margin-bottom: 20px;">
+                                Create pre-configured server templates that users can deploy with one click. Templates include predefined resource allocations and game types.
+                            </p>
+                            
+                            <!-- Add Template Form -->
+                            <div style="background: rgba(30, 30, 50, 0.5); padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(124, 58, 237, 0.2);">
+                                <h4 style="color: #f8fafc; margin: 0 0 16px 0;">Add New Template</h4>
+                                <form id="addTemplateForm">
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                                        <div class="form-group">
+                                            <label>Template Name *</label>
+                                            <input type="text" id="templateName" required placeholder="e.g., Minecraft Starter">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Icon (emoji)</label>
+                                            <input type="text" id="templateIcon" placeholder="🎮" maxlength="4" style="width: 60px;">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Game Type (Egg) *</label>
+                                            <select id="templateEgg" required>
+                                                <option value="">Select an egg...</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>RAM (MB)</label>
+                                            <input type="number" id="templateRam" value="1024" min="512">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>CPU (%)</label>
+                                            <input type="number" id="templateCpu" value="100" min="50">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Storage (MB)</label>
+                                            <input type="number" id="templateStorage" value="5120" min="1024">
+                                        </div>
+                                        <div class="form-group" style="grid-column: 1 / -1;">
+                                            <label>Description</label>
+                                            <textarea id="templateDescription" placeholder="Brief description of this template..." rows="2" style="width: 100%; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; color: #f8fafc; padding: 8px;"></textarea>
+                                        </div>
+                                    </div>
+                                    <div style="margin-top: 16px;">
+                                        <button type="submit" class="btn btn-primary">Add Template</button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- Templates List -->
+                            <div id="templatesList">
+                                <p style="color: #94a3b8;">Loading templates...</p>
                             </div>
                         </div>
                     </div>
@@ -545,6 +603,9 @@
                 loadLinkvertiseLinks();
             } else if (tabName === 'store') {
                 loadStorePrices();
+            } else if (tabName === 'templates') {
+                loadTemplates();
+                loadEggsForTemplates();
             } else if (tabName === 'panel') {
                 loadPanelConfig();
                 loadPanelSettings();
@@ -1316,9 +1377,10 @@
                 return;
             }
             
-            // Filter currentEggs to only include selected ones
+            // BUGFIX #7: Filter currentEggs to only include selected ones
+            // Parse eggId as integer to ensure consistent type comparison
             const selectedEggs = window.currentEggs.filter(egg => {
-                const eggId = egg.id || egg.egg_id || egg.attributes?.id;
+                const eggId = parseInt(egg.id || egg.egg_id || egg.attributes?.id, 10);
                 return selectedEggIds.includes(eggId);
             });
             
@@ -1635,6 +1697,191 @@
                 submitBtn.textContent = originalText;
             }
         });
+        
+        // ============================================
+        // FEATURE 2: Server Templates Management
+        // ============================================
+        
+        // Load eggs for template dropdown
+        async function loadEggsForTemplates() {
+            try {
+                const response = await fetch('/servers/api/eggs');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('templateEgg');
+                    select.innerHTML = '<option value="">Select an egg...</option>';
+                    
+                    data.eggs.forEach(egg => {
+                        const option = document.createElement('option');
+                        option.value = egg.egg_id;
+                        option.textContent = egg.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading eggs:', error);
+            }
+        }
+        
+        // Load all templates
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/admin/api/templates');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderTemplatesList(data.templates);
+                }
+            } catch (error) {
+                console.error('Error loading templates:', error);
+                document.getElementById('templatesList').innerHTML = 
+                    '<p style="color: #ef4444;">Error loading templates</p>';
+            }
+        }
+        
+        // Render templates list
+        function renderTemplatesList(templates) {
+            const container = document.getElementById('templatesList');
+            
+            if (!templates || templates.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #94a3b8;">
+                        <p style="font-size: 48px; margin-bottom: 16px;">📦</p>
+                        <p>No templates created yet.</p>
+                        <p style="font-size: 14px;">Create your first template above to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div style="display: grid; gap: 12px;">';
+            
+            templates.forEach(template => {
+                const isActive = template.is_active;
+                html += `
+                    <div class="template-card" style="padding: 16px; background: rgba(30, 30, 50, 0.5); border-radius: 8px; border: 1px solid ${isActive ? 'rgba(124, 58, 237, 0.3)' : 'rgba(107, 114, 128, 0.3)'}; ${!isActive ? 'opacity: 0.7;' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: start; gap: 16px;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 24px;">${template.icon || '🎮'}</span>
+                                    <h4 style="margin: 0; color: #f8fafc;">${escapeHtml(template.name)}</h4>
+                                    <span style="padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; ${isActive ? 'background: rgba(34, 197, 94, 0.2); color: #22c55e;' : 'background: rgba(107, 114, 128, 0.2); color: #9ca3af;'}">
+                                        ${isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                                ${template.description ? `<p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">${escapeHtml(template.description)}</p>` : ''}
+                                <div style="display: flex; gap: 16px; color: #cbd5e1; font-size: 13px; flex-wrap: wrap;">
+                                    <span>💾 ${template.ram_mb}MB RAM</span>
+                                    <span>⚡ ${template.cpu_percent}% CPU</span>
+                                    <span>📁 ${template.storage_mb}MB Storage</span>
+                                    <span>🎯 Egg: ${template.egg_name || 'ID ' + template.egg_id}</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                                <button onclick="toggleTemplate(${template.id})" class="btn ${isActive ? 'btn-secondary' : 'btn-primary'}" style="padding: 6px 12px; font-size: 12px;">
+                                    ${isActive ? 'Disable' : 'Enable'}
+                                </button>
+                                <button onclick="deleteTemplate(${template.id})" class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // Add template form handler
+        document.getElementById('addTemplateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('templateName').value.trim(),
+                description: document.getElementById('templateDescription').value.trim(),
+                egg_id: document.getElementById('templateEgg').value,
+                ram_mb: parseInt(document.getElementById('templateRam').value) || 1024,
+                cpu_percent: parseInt(document.getElementById('templateCpu').value) || 100,
+                storage_mb: parseInt(document.getElementById('templateStorage').value) || 5120,
+                icon: document.getElementById('templateIcon').value.trim() || '🎮'
+            };
+            
+            if (!formData.name || !formData.egg_id) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/api/templates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Template created successfully!', 'success');
+                    document.getElementById('addTemplateForm').reset();
+                    document.getElementById('templateIcon').value = '🎮';
+                    loadTemplates();
+                } else {
+                    showNotification(data.message || 'Failed to create template', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating template:', error);
+                showNotification('Error creating template', 'error');
+            }
+        });
+        
+        // Toggle template active status
+        async function toggleTemplate(templateId) {
+            try {
+                const response = await fetch(`/admin/api/templates/${templateId}/toggle`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    loadTemplates();
+                } else {
+                    showNotification(data.message || 'Failed to toggle template', 'error');
+                }
+            } catch (error) {
+                console.error('Error toggling template:', error);
+                showNotification('Error toggling template', 'error');
+            }
+        }
+        
+        // Delete template
+        async function deleteTemplate(templateId) {
+            if (!confirm('Are you sure you want to delete this template?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/api/templates/${templateId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Template deleted successfully', 'success');
+                    loadTemplates();
+                } else {
+                    showNotification(data.message || 'Failed to delete template', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting template:', error);
+                showNotification('Error deleting template', 'error');
+            }
+        }
         
     </script>
     <style>

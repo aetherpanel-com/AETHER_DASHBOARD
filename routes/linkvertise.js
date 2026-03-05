@@ -46,8 +46,9 @@ router.get('/api/links', requireAuth, async (req, res) => {
             }
         });
         
-        // Mark which links are completed and calculate cooldown
-        const now = new Date();
+        // BUGFIX #12: Mark which links are completed and calculate cooldown
+        // Use Date.now() for consistent UTC milliseconds comparison
+        const nowMs = Date.now();
         const linksWithStatus = activeLinks.map(link => {
             const linkId = link.id.toString();
             const lastCompletion = completionMap[linkId];
@@ -55,15 +56,12 @@ router.get('/api/links', requireAuth, async (req, res) => {
             let isOnCooldown = false;
             
             if (lastCompletion) {
-                // SQLite stores dates as 'YYYY-MM-DD HH:MM:SS' format
-                // Parse it correctly to avoid timezone issues by converting to ISO format
-                const lastCompletionTime = new Date(lastCompletion.replace(' ', 'T') + 'Z');
-                const secondsSinceCompletion = Math.floor((now - lastCompletionTime) / 1000);
+                // SQLite CURRENT_TIMESTAMP stores in UTC as 'YYYY-MM-DD HH:MM:SS' format
+                // Parse it as UTC by appending 'Z' to the ISO-formatted string
+                const lastCompletionTime = new Date(lastCompletion.replace(' ', 'T') + 'Z').getTime();
+                const secondsSinceCompletion = Math.floor((nowMs - lastCompletionTime) / 1000);
                 cooldownRemaining = Math.max(0, cooldownSeconds - secondsSinceCompletion);
                 isOnCooldown = cooldownRemaining > 0;
-                
-                // Debug logging
-                console.log(`Link ${linkId}: lastCompletion="${lastCompletion}", completionTime="${lastCompletionTime.toISOString()}", now="${now.toISOString()}", secondsSince=${secondsSinceCompletion}, cooldownSeconds=${cooldownSeconds}, remaining=${cooldownRemaining}, onCooldown=${isOnCooldown}`);
             }
             
             return {
@@ -111,10 +109,11 @@ router.post('/api/complete', requireAuth, async (req, res) => {
         );
         
         if (lastCompletion) {
-            // Parse SQLite timestamp correctly to avoid timezone issues
-            const lastCompletionTime = new Date(lastCompletion.completed_at.replace(' ', 'T') + 'Z');
-            const now = new Date();
-            const secondsSinceCompletion = Math.floor((now - lastCompletionTime) / 1000);
+            // BUGFIX #12: Parse SQLite timestamp correctly to avoid timezone issues
+            // SQLite CURRENT_TIMESTAMP stores in UTC, use Date.now() for consistent UTC comparison
+            const lastCompletionTime = new Date(lastCompletion.completed_at.replace(' ', 'T') + 'Z').getTime();
+            const nowMs = Date.now();
+            const secondsSinceCompletion = Math.floor((nowMs - lastCompletionTime) / 1000);
             const remainingSeconds = cooldownSeconds - secondsSinceCompletion;
             
             if (remainingSeconds > 0) {

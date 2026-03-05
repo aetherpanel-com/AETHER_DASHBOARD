@@ -154,9 +154,11 @@ async function makeRequest(method, endpoint, data = null, timeoutMs = 30000) {
     }
 }
 
-// Get all servers
+// Get all servers (with pagination support)
 async function getAllServers() {
-    return await makeRequest('GET', '/application/servers');
+    // Request up to 100 servers per page to reduce API calls
+    // For very large deployments, full pagination would be needed
+    return await makeRequest('GET', '/application/servers?per_page=100');
 }
 
 // Get server by ID
@@ -278,9 +280,12 @@ async function getServerDetails(serverId) {
     return await makeRequest('GET', `/application/servers/${serverId}?include=allocations,user,subusers`);
 }
 
-// Get server resources/usage
-async function getServerResources(serverId) {
-    return await makeRequest('GET', `/application/servers/${serverId}/resources`);
+// BUGFIX #6: Get server resources/usage (real-time stats)
+// The Application API does NOT have a /resources endpoint
+// Real-time resource usage is only available via the Client API
+// NOTE: Requires server IDENTIFIER (8-char string), not internal numeric ID
+async function getServerResources(serverIdentifier) {
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/resources`);
 }
 
 // Create a new server (with extended timeout for server creation)
@@ -440,8 +445,10 @@ async function updateServerBuild(serverId, limits) {
         const primaryAllocation = await getPrimaryAllocation(serverId);
         
         // Build update payload with ALL required fields including allocation
+        // BUGFIX #4: Include oom_disabled field - required by Pterodactyl API
         const updateData = {
             allocation: primaryAllocation.id, // Always include allocation ID
+            oom_disabled: server.oom_disabled !== undefined ? server.oom_disabled : false, // Preserve existing or default to false
             limits: {
                 memory: limits.memory,
                 swap: limits.swap !== undefined ? limits.swap : (currentLimits.swap || 0),
@@ -472,15 +479,242 @@ async function updateServerBuild(serverId, limits) {
     }
 }
 
-// Send power signal to server (start, stop, restart, kill)
-async function sendServerPowerSignal(serverId, signal) {
+// BUGFIX #5: Send power signal to server (start, stop, restart, kill)
+// Power signals use the CLIENT API (not Application API) and require the server IDENTIFIER (not internal ID)
+// The Application API does not have a /power endpoint - it only has /suspend and /unsuspend
+async function sendServerPowerSignal(serverIdentifier, signal) {
     // signal should be: 'start', 'stop', 'restart', 'kill'
-    return await makeRequest('POST', `/application/servers/${serverId}/power`, { signal });
+    // serverIdentifier should be the 8-char identifier (e.g., 'a1b2c3d4'), NOT the internal numeric ID
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/power`, { signal });
 }
 
 // Restart server (convenience wrapper for power signal)
-async function restartServer(serverId) {
-    return await sendServerPowerSignal(serverId, 'restart');
+// NOTE: Requires server IDENTIFIER, not internal ID
+async function restartServer(serverIdentifier) {
+    return await sendServerPowerSignal(serverIdentifier, 'restart');
+}
+
+// ============================================
+// FEATURE 4: Send command to server console
+// ============================================
+async function sendServerCommand(serverIdentifier, command) {
+    // Uses Client API to send a command to the server console
+    // serverIdentifier should be the 8-char identifier (e.g., 'a1b2c3d4')
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/command`, { command });
+}
+
+// ============================================
+// FEATURE 5: File Manager
+// ============================================
+
+// List files in a directory
+async function listFiles(serverIdentifier, directory = '/') {
+    // Encode the directory path for URL
+    const encodedDir = encodeURIComponent(directory);
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/files/list?directory=${encodedDir}`);
+}
+
+// Get file contents
+async function getFileContents(serverIdentifier, filePath) {
+    const encodedPath = encodeURIComponent(filePath);
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/files/contents?file=${encodedPath}`);
+}
+
+// Write file contents
+// Note: Pterodactyl expects raw text body for file writes, not JSON
+async function writeFile(serverIdentifier, filePath, content) {
+    try {
+        const pterodactylConfig = await getConfig();
+        
+        if (!pterodactylConfig.url || !pterodactylConfig.apiKey) {
+            return { success: false, error: 'Pterodactyl not configured' };
+        }
+        
+        const encodedPath = encodeURIComponent(filePath);
+        const url = `${pterodactylConfig.url}/api/client/servers/${serverIdentifier}/files/write?file=${encodedPath}`;
+        
+        const response = await axios.post(url, content, {
+            headers: {
+                'Authorization': `Bearer ${pterodactylConfig.apiKey}`,
+                'Content-Type': 'text/plain',
+                'Accept': 'application/json'
+            },
+            timeout: 30000
+        });
+        
+        return { success: true, data: response.data };
+    } catch (error) {
+        console.error('Error writing file:', error.response?.data || error.message);
+        return { 
+            success: false, 
+            error: error.response?.data?.errors?.[0]?.detail || error.message 
+        };
+    }
+}
+
+// Create directory
+async function createDirectory(serverIdentifier, name, root = '/') {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/files/create-folder`, {
+        root: root,
+        name: name
+    });
+}
+
+// Delete files/folders
+async function deleteFiles(serverIdentifier, root, files) {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/files/delete`, {
+        root: root,
+        files: files
+    });
+}
+
+// Rename file/folder
+async function renameFile(serverIdentifier, root, from, to) {
+    return await makeRequest('PUT', `/client/servers/${serverIdentifier}/files/rename`, {
+        root: root,
+        files: [{ from: from, to: to }]
+    });
+}
+
+// Compress files
+async function compressFiles(serverIdentifier, root, files) {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/files/compress`, {
+        root: root,
+        files: files
+    });
+}
+
+// Decompress file
+async function decompressFile(serverIdentifier, root, file) {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/files/decompress`, {
+        root: root,
+        file: file
+    });
+}
+
+// ============================================
+// FEATURE 6: Backup System
+// ============================================
+
+// List backups for a server
+async function listBackups(serverIdentifier) {
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/backups`);
+}
+
+// Create a new backup
+async function createBackup(serverIdentifier, name = null, isLocked = false) {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/backups`, {
+        name: name,
+        is_locked: isLocked
+    });
+}
+
+// Get backup details
+async function getBackup(serverIdentifier, backupUuid) {
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/backups/${backupUuid}`);
+}
+
+// Get backup download URL
+async function getBackupDownloadUrl(serverIdentifier, backupUuid) {
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/backups/${backupUuid}/download`);
+}
+
+// Delete a backup
+async function deleteBackup(serverIdentifier, backupUuid) {
+    return await makeRequest('DELETE', `/client/servers/${serverIdentifier}/backups/${backupUuid}`);
+}
+
+// Restore from a backup
+async function restoreBackup(serverIdentifier, backupUuid, truncate = false) {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/backups/${backupUuid}/restore`, {
+        truncate: truncate
+    });
+}
+
+// ============================================
+// FEATURE 7: Scheduled Tasks (Schedules)
+// ============================================
+
+// List all schedules
+async function listSchedules(serverIdentifier) {
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/schedules`);
+}
+
+// Get schedule details
+async function getSchedule(serverIdentifier, scheduleId) {
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/schedules/${scheduleId}`);
+}
+
+// Create a schedule
+async function createSchedule(serverIdentifier, name, minute, hour, dayOfMonth, month, dayOfWeek, isActive = true, onlyWhenOnline = true) {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/schedules`, {
+        name: name,
+        is_active: isActive,
+        minute: minute,
+        hour: hour,
+        day_of_month: dayOfMonth,
+        month: month,
+        day_of_week: dayOfWeek,
+        only_when_online: onlyWhenOnline
+    });
+}
+
+// Update a schedule
+async function updateSchedule(serverIdentifier, scheduleId, data) {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/schedules/${scheduleId}`, data);
+}
+
+// Delete a schedule
+async function deleteSchedule(serverIdentifier, scheduleId) {
+    return await makeRequest('DELETE', `/client/servers/${serverIdentifier}/schedules/${scheduleId}`);
+}
+
+// Execute a schedule now
+async function executeSchedule(serverIdentifier, scheduleId) {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/schedules/${scheduleId}/execute`);
+}
+
+// Create a task for a schedule
+async function createScheduleTask(serverIdentifier, scheduleId, action, payload, timeOffset = 0) {
+    // action: 'command', 'power', or 'backup'
+    // payload: for command = the command string, for power = 'start', 'stop', 'restart', 'kill'
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/schedules/${scheduleId}/tasks`, {
+        action: action,
+        payload: payload,
+        time_offset: timeOffset
+    });
+}
+
+// Delete a task from a schedule
+async function deleteScheduleTask(serverIdentifier, scheduleId, taskId) {
+    return await makeRequest('DELETE', `/client/servers/${serverIdentifier}/schedules/${scheduleId}/tasks/${taskId}`);
+}
+
+// ============================================
+// FEATURE 8: Database Management
+// ============================================
+
+// List databases for a server
+async function listDatabases(serverIdentifier) {
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/databases`);
+}
+
+// Create a database
+async function createDatabase(serverIdentifier, database, remote = '%') {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/databases`, {
+        database: database,
+        remote: remote
+    });
+}
+
+// Rotate database password
+async function rotateDatabasePassword(serverIdentifier, databaseId) {
+    return await makeRequest('POST', `/client/servers/${serverIdentifier}/databases/${databaseId}/rotate-password`);
+}
+
+// Delete a database
+async function deleteDatabase(serverIdentifier, databaseId) {
+    return await makeRequest('DELETE', `/client/servers/${serverIdentifier}/databases/${databaseId}`);
 }
 
 // Suspend server
@@ -498,9 +732,10 @@ async function deleteServer(serverId) {
     return await makeRequest('DELETE', `/application/servers/${serverId}`);
 }
 
-// Get all users
+// Get all users (with pagination support)
 async function getAllUsers() {
-    return await makeRequest('GET', '/application/users');
+    // Request up to 100 users per page to reduce API calls
+    return await makeRequest('GET', '/application/users?per_page=100');
 }
 
 // Get user by ID
@@ -514,9 +749,17 @@ async function createUser(userData) {
     return await makeRequest('POST', '/application/users', userData);
 }
 
-// Get server statistics (real-time)
-async function getServerStats(serverId) {
-    return await makeRequest('GET', `/application/servers/${serverId}/resources`);
+// BUGFIX #13: Delete user from Pterodactyl
+async function deleteUser(userId) {
+    return await makeRequest('DELETE', `/application/users/${userId}`);
+}
+
+// BUGFIX #6: Get server statistics (real-time)
+// The Application API does NOT have a /resources endpoint
+// Real-time stats are only available via the Client API
+// NOTE: Requires server IDENTIFIER (8-char string), not internal numeric ID
+async function getServerStats(serverIdentifier) {
+    return await makeRequest('GET', `/client/servers/${serverIdentifier}/resources`);
 }
 
 // Get all nests
@@ -622,17 +865,44 @@ async function getAllAllocations() {
 }
 
 // Create user in Pterodactyl
+// userData should include: email, username, first_name, last_name, password
+// Optionally include external_id for linking with dashboard user ID
 async function createPterodactylUser(userData) {
-    // userData should include: email, username, first_name, last_name, password
     return await makeRequest('POST', '/application/users', userData);
 }
 
-// Get user by email
+// Get user by external ID (useful for linking dashboard users to Pterodactyl)
+async function getPterodactylUserByExternalId(externalId) {
+    try {
+        const result = await makeRequest('GET', `/application/users/external/${externalId}`);
+        if (result.success && result.data) {
+            return {
+                success: true,
+                data: result.data.attributes || result.data
+            };
+        }
+        return {
+            success: false,
+            error: 'User not found'
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// Get user by email (using API filter for efficiency)
 async function getPterodactylUserByEmail(email) {
     try {
-        const result = await makeRequest('GET', '/application/users');
-        if (result.success && result.data.data) {
-            const user = result.data.data.find(u => u.attributes.email === email);
+        // Use Pterodactyl's filter parameter for efficient lookup
+        const encodedEmail = encodeURIComponent(email);
+        const result = await makeRequest('GET', `/application/users?filter[email]=${encodedEmail}`);
+        
+        if (result.success && result.data.data && result.data.data.length > 0) {
+            // Find exact match (filter is partial match)
+            const user = result.data.data.find(u => u.attributes.email.toLowerCase() === email.toLowerCase());
             if (user) {
                 return {
                     success: true,
@@ -716,6 +986,7 @@ module.exports = {
     updateServerResources,
     updateServerBuild,
     sendServerPowerSignal,
+    sendServerCommand,
     restartServer,
     getPrimaryAllocation,
     extractPublicAddress,
@@ -725,6 +996,7 @@ module.exports = {
     getAllUsers,
     getUser,
     createUser,
+    deleteUser,
     getServerStats,
     isConfigured,
     testConnection,
@@ -739,5 +1011,36 @@ module.exports = {
     getAllocationsForNode,
     getAllAllocations,
     createPterodactylUser,
-    getPterodactylUserByEmail
+    getPterodactylUserByEmail,
+    getPterodactylUserByExternalId,
+    // File Manager (Feature 5)
+    listFiles,
+    getFileContents,
+    writeFile,
+    createDirectory,
+    deleteFiles,
+    renameFile,
+    compressFiles,
+    decompressFile,
+    // Backup System (Feature 6)
+    listBackups,
+    createBackup,
+    getBackup,
+    getBackupDownloadUrl,
+    deleteBackup,
+    restoreBackup,
+    // Scheduled Tasks (Feature 7)
+    listSchedules,
+    getSchedule,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
+    executeSchedule,
+    createScheduleTask,
+    deleteScheduleTask,
+    // Database Management (Feature 8)
+    listDatabases,
+    createDatabase,
+    rotateDatabasePassword,
+    deleteDatabase
 };

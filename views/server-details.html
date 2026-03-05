@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/assets/defaults/aether-dashboard-favicon.ico">
+    <title>Server Details - Aether Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <style>
+        /* Stats Cards Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: rgba(30, 30, 50, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 4px;
+        }
+        
+        .stat-card .stat-label {
+            color: #94a3b8;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card.cpu { border-left: 4px solid #7c3aed; }
+        .stat-card.ram { border-left: 4px solid #22c55e; }
+        .stat-card.disk { border-left: 4px solid #f59e0b; }
+        .stat-card.network { border-left: 4px solid #3b82f6; }
+        
+        /* Progress Bars */
+        .progress-bar {
+            background: rgba(10, 14, 39, 0.5);
+            border-radius: 8px;
+            height: 12px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-bar .progress-fill {
+            height: 100%;
+            border-radius: 8px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-fill.cpu { background: linear-gradient(90deg, #7c3aed, #a855f7); }
+        .progress-fill.ram { background: linear-gradient(90deg, #22c55e, #4ade80); }
+        .progress-fill.disk { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        
+        /* Chart Container */
+        .chart-container {
+            background: rgba(30, 30, 50, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .chart-container h3 {
+            color: #f8fafc;
+            margin: 0 0 16px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .chart-canvas-wrapper {
+            position: relative;
+            height: 200px;
+        }
+        
+        /* Server Info Header */
+        .server-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .server-header .server-info h2 {
+            color: #f8fafc;
+            margin: 0 0 8px 0;
+        }
+        
+        .server-header .server-info .server-address {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        
+        .server-header .server-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        /* Live indicator */
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            border-radius: 20px;
+            font-size: 11px;
+            color: #22c55e;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .live-indicator .dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.9); }
+        }
+        
+        /* Uptime display */
+        .uptime-display {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="/assets/defaults/aether-dashboard-logo.png" alt="Aether Dashboard" class="dashboard-logo">
+                <h2>Aether Dashboard</h2>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item" data-page="dashboard">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="/servers" class="nav-item active" data-page="servers">
+                    <span class="nav-icon">🖥️</span>
+                    <span class="nav-text">Manage Servers</span>
+                </a>
+                <a href="/servers/create" class="nav-item" data-page="create-server">
+                    <span class="nav-icon">➕</span>
+                    <span class="nav-text">Create Server</span>
+                </a>
+                <a href="/linkvertise" class="nav-item" data-page="linkvertise">
+                    <span class="nav-icon">💰</span>
+                    <span class="nav-text">Linkvertise</span>
+                </a>
+                <a href="/servers/store" class="nav-item" data-page="store">
+                    <span class="nav-icon">🛒</span>
+                    <span class="nav-text">Resource Store</span>
+                </a>
+                <a href="/dashboard/profile" class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Profile</span>
+                </a>
+                <a href="/dashboard/settings" class="nav-item" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Settings</span>
+                </a>
+                <a href="/admin" class="nav-item admin-only" data-page="admin" style="display: none;">
+                    <span class="nav-icon">🛡️</span>
+                    <span class="nav-text">Admin Panel</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="/auth/logout" class="btn btn-secondary" style="width: 100%;">Logout</a>
+            </div>
+        </aside>
+        
+        <!-- Sidebar Overlay (for mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+                    <h1>Server Details</h1>
+                </div>
+                <div class="header-right">
+                    <div class="coin-balance">
+                        <span class="coin-icon">🪙</span>
+                        <span id="coinAmount">0</span> Coins
+                    </div>
+                </div>
+            </header>
+            
+            <div class="dashboard-content">
+                <!-- Loading State -->
+                <div id="loadingState">
+                    <div class="card" style="text-align: center; padding: 60px;">
+                        <div class="spinner" style="margin: 0 auto 20px;"></div>
+                        <p style="color: #94a3b8;">Loading server details...</p>
+                    </div>
+                </div>
+                
+                <!-- Server Details -->
+                <div id="serverDetails" style="display: none;">
+                    <!-- Server Header -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <div class="server-header">
+                            <div class="server-info">
+                                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <h2 id="serverName">Server Name</h2>
+                                    <span id="statusBadge" class="live-indicator">
+                                        <span class="dot"></span>
+                                        <span id="statusText">Online</span>
+                                    </span>
+                                </div>
+                                <p class="server-address" id="serverAddress">Loading address...</p>
+                                <p class="uptime-display" id="uptimeDisplay">Uptime: Calculating...</p>
+                            </div>
+                            <div class="server-actions">
+                                <button id="btnStart" class="btn power-btn power-start" onclick="sendPowerAction('start')">
+                                    ▶ Start
+                                </button>
+                                <button id="btnStop" class="btn power-btn power-stop" onclick="sendPowerAction('stop')">
+                                    ⏹ Stop
+                                </button>
+                                <button id="btnRestart" class="btn power-btn power-restart" onclick="sendPowerAction('restart')">
+                                    🔄 Restart
+                                </button>
+                                <a id="panelLink" href="#" target="_blank" class="btn btn-primary">
+                                    Open in Panel
+                                </a>
+                                <a href="/servers" class="btn btn-secondary">
+                                    ← Back to Servers
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Live Stats Cards -->
+                    <div class="stats-grid">
+                        <div class="stat-card cpu">
+                            <div class="stat-value" id="cpuValue">0%</div>
+                            <div class="stat-label">CPU Usage</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill cpu" id="cpuProgress" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="stat-card ram">
+                            <div class="stat-value" id="ramValue">0 MB</div>
+                            <div class="stat-label">Memory Usage</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ram" id="ramProgress" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="stat-card disk">
+                            <div class="stat-value" id="diskValue">0 MB</div>
+                            <div class="stat-label">Disk Usage</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill disk" id="diskProgress" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="stat-card network">
+                            <div class="stat-value" id="networkValue">0 KB/s</div>
+                            <div class="stat-label">Network I/O</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 16px;">
+                        <div class="chart-container">
+                            <h3>📊 CPU Usage History</h3>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="cpuChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>💾 Memory Usage History</h3>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="ramChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Database Management -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">🗃️ Databases</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <p style="color: #94a3b8; margin: 0; font-size: 13px;">
+                                Create and manage MySQL databases for your server.
+                            </p>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="showCreateDatabaseDialog()" class="btn btn-primary" style="padding: 8px 16px; font-size: 12px;">
+                                    ➕ Create Database
+                                </button>
+                                <button onclick="loadDatabases()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="databaseList" style="background: rgba(10, 14, 39, 0.5); border-radius: 8px; border: 1px solid rgba(124, 58, 237, 0.2);">
+                            <p style="color: #94a3b8; padding: 20px; text-align: center;">Loading databases...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Scheduled Tasks -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">⏰ Scheduled Tasks</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <p style="color: #94a3b8; margin: 0; font-size: 13px;">
+                                Automate server tasks like restarts, commands, and backups.
+                            </p>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="showCreateScheduleDialog()" class="btn btn-primary" style="padding: 8px 16px; font-size: 12px;">
+                                    ➕ Create Schedule
+                                </button>
+                                <button onclick="loadSchedules()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="scheduleList" style="background: rgba(10, 14, 39, 0.5); border-radius: 8px; border: 1px solid rgba(124, 58, 237, 0.2);">
+                            <p style="color: #94a3b8; padding: 20px; text-align: center;">Loading schedules...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Backup System -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">💾 Backups</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <p style="color: #94a3b8; margin: 0; font-size: 13px;">
+                                Create and manage server backups. Backups include all server files.
+                            </p>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="createBackup()" class="btn btn-primary" style="padding: 8px 16px; font-size: 12px;">
+                                    ➕ Create Backup
+                                </button>
+                                <button onclick="loadBackups()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="backupList" style="background: rgba(10, 14, 39, 0.5); border-radius: 8px; border: 1px solid rgba(124, 58, 237, 0.2);">
+                            <p style="color: #94a3b8; padding: 20px; text-align: center;">Loading backups...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- File Manager -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">📁 File Manager</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <button onclick="navigateUp()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" id="btnUp">
+                                    ⬆️ Up
+                                </button>
+                                <span style="color: #94a3b8; font-family: 'Fira Code', monospace; font-size: 12px;" id="currentPath">/</span>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="showNewFolderDialog()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                                    📁 New Folder
+                                </button>
+                                <button onclick="refreshFiles()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="fileList" style="max-height: 300px; overflow-y: auto; background: rgba(10, 14, 39, 0.5); border-radius: 8px; border: 1px solid rgba(124, 58, 237, 0.2);">
+                            <p style="color: #94a3b8; padding: 20px; text-align: center;">Loading files...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Console Command Sender -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">💻 Console Command</div>
+                        <p style="color: #94a3b8; margin-bottom: 16px; font-size: 13px;">
+                            Send commands directly to your server console. Server must be online to send commands.
+                        </p>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                            <input type="text" id="commandInput" placeholder="Enter command (e.g., help, list, say Hello)" 
+                                   style="flex: 1; padding: 12px; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px; color: #f8fafc; font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px;"
+                                   onkeypress="if(event.key === 'Enter') sendCommand()">
+                            <button onclick="sendCommand()" class="btn btn-primary" style="padding: 12px 24px;">
+                                Send
+                            </button>
+                        </div>
+                        <div id="commandHistory" style="max-height: 150px; overflow-y: auto; font-family: 'Fira Code', 'Consolas', monospace; font-size: 12px;">
+                            <!-- Command history will appear here -->
+                        </div>
+                        <p style="color: #6b7280; font-size: 11px; margin-top: 8px;">
+                            💡 Tip: For full console access with real-time output, use the "Open in Panel" button above.
+                        </p>
+                    </div>
+                    
+                    <!-- Server Limits -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">Server Limits</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 16px;">
+                            <div>
+                                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Max RAM</div>
+                                <div style="color: #f8fafc; font-size: 18px; font-weight: 600;" id="maxRam">-</div>
+                            </div>
+                            <div>
+                                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Max CPU</div>
+                                <div style="color: #f8fafc; font-size: 18px; font-weight: 600;" id="maxCpu">-</div>
+                            </div>
+                            <div>
+                                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Max Storage</div>
+                                <div style="color: #f8fafc; font-size: 18px; font-weight: 600;" id="maxStorage">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Error State -->
+                <div id="errorState" style="display: none;">
+                    <div class="card" style="text-align: center; padding: 60px;">
+                        <p style="font-size: 48px; margin-bottom: 16px;">❌</p>
+                        <h3 style="color: #f8fafc;">Server Not Found</h3>
+                        <p style="color: #94a3b8; margin-bottom: 20px;">The server you're looking for doesn't exist or you don't have permission to view it.</p>
+                        <a href="/servers" class="btn btn-primary">Back to Servers</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/js/main.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Server ID from URL
+        const serverId = window.location.pathname.split('/').pop();
+        let serverData = null;
+        let panelUrl = null;
+        let cpuChart = null;
+        let ramChart = null;
+        let statsHistory = {
+            cpu: [],
+            ram: [],
+            labels: []
+        };
+        const MAX_HISTORY = 30; // Keep last 30 data points
+        let refreshInterval = null;
+        let previousNetworkRx = 0;
+        let previousNetworkTx = 0;
+        let lastNetworkUpdate = Date.now();
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initMobileMenu();
+            loadPanelUrl();
+            loadServerDetails();
+            initCharts();
+            
+            // Start auto-refresh
+            refreshInterval = setInterval(refreshStats, 5000);
+        });
+        
+        async function loadPanelUrl() {
+            try {
+                const response = await fetch('/servers/api/panel-url');
+                const data = await response.json();
+                if (data.success && data.panel_url) {
+                    panelUrl = data.panel_url;
+                }
+            } catch (error) {
+                console.error('Error loading panel URL:', error);
+            }
+        }
+        
+        async function loadServerDetails() {
+            try {
+                const response = await fetch(`/servers/api/details/${serverId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    serverData = data.server;
+                    displayServerInfo();
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('serverDetails').style.display = 'block';
+                    
+                    // Load initial stats
+                    refreshStats();
+                    
+                    // Load files
+                    loadFiles('/');
+                    
+                    // Load backups
+                    loadBackups();
+                    
+                    // Load schedules
+                    loadSchedules();
+                    
+                    // Load databases
+                    loadDatabases();
+                } else {
+                    showError();
+                }
+            } catch (error) {
+                console.error('Error loading server details:', error);
+                showError();
+            }
+        }
+        
+        function displayServerInfo() {
+            document.getElementById('serverName').textContent = serverData.name;
+            document.getElementById('serverAddress').textContent = serverData.public_address 
+                ? `🌐 ${serverData.public_address}` 
+                : 'Address not available';
+            
+            // Set limits
+            document.getElementById('maxRam').textContent = `${Math.round(serverData.ram / 1024)}GB`;
+            document.getElementById('maxCpu').textContent = `${serverData.cpu}%`;
+            document.getElementById('maxStorage').textContent = `${Math.round(serverData.storage / 1024)}GB`;
+            
+            // Set panel link
+            if (serverData.pterodactyl_identifier && panelUrl) {
+                document.getElementById('panelLink').href = `${panelUrl}/server/${serverData.pterodactyl_identifier}`;
+            } else {
+                document.getElementById('panelLink').style.display = 'none';
+            }
+        }
+        
+        async function refreshStats() {
+            if (!serverData || !serverData.pterodactyl_identifier) {
+                updateStatusBadge('unknown');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/servers/api/status/${serverId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateStatusBadge(data.status);
+                    
+                    if (data.resources) {
+                        updateStats(data.resources);
+                    }
+                }
+            } catch (error) {
+                console.error('Error refreshing stats:', error);
+            }
+        }
+        
+        function updateStatusBadge(status) {
+            const badge = document.getElementById('statusBadge');
+            const text = document.getElementById('statusText');
+            
+            const statusMap = {
+                'running': { text: 'Online', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.2)', border: 'rgba(34, 197, 94, 0.4)' },
+                'online': { text: 'Online', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.2)', border: 'rgba(34, 197, 94, 0.4)' },
+                'offline': { text: 'Offline', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.2)', border: 'rgba(107, 114, 128, 0.4)' },
+                'starting': { text: 'Starting', color: '#eab308', bg: 'rgba(234, 179, 8, 0.2)', border: 'rgba(234, 179, 8, 0.4)' },
+                'stopping': { text: 'Stopping', color: '#f97316', bg: 'rgba(249, 115, 22, 0.2)', border: 'rgba(249, 115, 22, 0.4)' },
+                'unknown': { text: 'Unknown', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)', border: 'rgba(107, 114, 128, 0.2)' }
+            };
+            
+            const info = statusMap[status] || statusMap['unknown'];
+            text.textContent = info.text;
+            badge.style.background = info.bg;
+            badge.style.borderColor = info.border;
+            badge.style.color = info.color;
+            badge.querySelector('.dot').style.background = info.color;
+        }
+        
+        function updateStats(resources) {
+            // CPU
+            const cpuPercent = Math.min(resources.cpu_absolute || 0, 100);
+            document.getElementById('cpuValue').textContent = `${cpuPercent.toFixed(1)}%`;
+            document.getElementById('cpuProgress').style.width = `${cpuPercent}%`;
+            
+            // RAM
+            const ramBytes = resources.memory_bytes || 0;
+            const ramMB = ramBytes / 1024 / 1024;
+            const ramMaxMB = serverData.ram;
+            const ramPercent = Math.min((ramMB / ramMaxMB) * 100, 100);
+            
+            document.getElementById('ramValue').textContent = ramMB >= 1024 
+                ? `${(ramMB / 1024).toFixed(2)} GB` 
+                : `${Math.round(ramMB)} MB`;
+            document.getElementById('ramProgress').style.width = `${ramPercent}%`;
+            
+            // Disk
+            const diskBytes = resources.disk_bytes || 0;
+            const diskMB = diskBytes / 1024 / 1024;
+            const diskMaxMB = serverData.storage;
+            const diskPercent = Math.min((diskMB / diskMaxMB) * 100, 100);
+            
+            document.getElementById('diskValue').textContent = diskMB >= 1024 
+                ? `${(diskMB / 1024).toFixed(2)} GB` 
+                : `${Math.round(diskMB)} MB`;
+            document.getElementById('diskProgress').style.width = `${diskPercent}%`;
+            
+            // Network
+            const now = Date.now();
+            const timeDiff = (now - lastNetworkUpdate) / 1000;
+            const rxDiff = Math.max(0, (resources.network_rx_bytes || 0) - previousNetworkRx);
+            const txDiff = Math.max(0, (resources.network_tx_bytes || 0) - previousNetworkTx);
+            const totalBytesPerSec = (rxDiff + txDiff) / timeDiff;
+            
+            if (totalBytesPerSec >= 1048576) {
+                document.getElementById('networkValue').textContent = `${(totalBytesPerSec / 1048576).toFixed(2)} MB/s`;
+            } else if (totalBytesPerSec >= 1024) {
+                document.getElementById('networkValue').textContent = `${(totalBytesPerSec / 1024).toFixed(2)} KB/s`;
+            } else {
+                document.getElementById('networkValue').textContent = `${Math.round(totalBytesPerSec)} B/s`;
+            }
+            
+            previousNetworkRx = resources.network_rx_bytes || 0;
+            previousNetworkTx = resources.network_tx_bytes || 0;
+            lastNetworkUpdate = now;
+            
+            // Uptime
+            if (resources.uptime) {
+                const uptimeSeconds = resources.uptime / 1000;
+                document.getElementById('uptimeDisplay').textContent = `Uptime: ${formatUptime(uptimeSeconds)}`;
+            }
+            
+            // Update charts
+            updateCharts(cpuPercent, ramPercent);
+            
+            // ============================================
+            // FEATURE 10: Usage Alerts
+            // ============================================
+            checkUsageAlerts(cpuPercent, ramPercent, diskPercent);
+        }
+        
+        // Alert state to prevent spam
+        const alertState = {
+            cpuAlerted: false,
+            ramAlerted: false,
+            diskAlerted: false
+        };
+        
+        function checkUsageAlerts(cpuPercent, ramPercent, diskPercent) {
+            const CPU_THRESHOLD = 90;
+            const RAM_THRESHOLD = 90;
+            const DISK_THRESHOLD = 95;
+            
+            // CPU Alert
+            if (cpuPercent >= CPU_THRESHOLD && !alertState.cpuAlerted) {
+                alertState.cpuAlerted = true;
+                showUsageAlert('cpu', cpuPercent);
+            } else if (cpuPercent < CPU_THRESHOLD - 10) {
+                alertState.cpuAlerted = false;
+            }
+            
+            // RAM Alert
+            if (ramPercent >= RAM_THRESHOLD && !alertState.ramAlerted) {
+                alertState.ramAlerted = true;
+                showUsageAlert('ram', ramPercent);
+            } else if (ramPercent < RAM_THRESHOLD - 10) {
+                alertState.ramAlerted = false;
+            }
+            
+            // Disk Alert
+            if (diskPercent >= DISK_THRESHOLD && !alertState.diskAlerted) {
+                alertState.diskAlerted = true;
+                showUsageAlert('disk', diskPercent);
+            } else if (diskPercent < DISK_THRESHOLD - 5) {
+                alertState.diskAlerted = false;
+            }
+        }
+        
+        function showUsageAlert(type, percent) {
+            const messages = {
+                cpu: `⚠️ High CPU usage: ${percent.toFixed(1)}%! Your server may be lagging.`,
+                ram: `⚠️ High memory usage: ${percent.toFixed(1)}%! Consider upgrading RAM.`,
+                disk: `⚠️ Disk almost full: ${percent.toFixed(1)}%! Clean up files or increase storage.`
+            };
+            
+            showNotification(messages[type], 'error');
+        }
+        
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            
+            if (days > 0) {
+                return `${days}d ${hours}h ${minutes}m`;
+            } else if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else {
+                return `${minutes}m`;
+            }
+        }
+        
+        function initCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 500 },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: 'rgba(124, 58, 237, 0.1)' },
+                        ticks: { color: '#94a3b8', callback: v => v + '%' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            };
+            
+            cpuChart = new Chart(document.getElementById('cpuChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        borderColor: '#7c3aed',
+                        backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: chartOptions
+            });
+            
+            ramChart = new Chart(document.getElementById('ramChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: chartOptions
+            });
+        }
+        
+        function updateCharts(cpuPercent, ramPercent) {
+            const now = new Date().toLocaleTimeString();
+            
+            // Add new data
+            statsHistory.labels.push(now);
+            statsHistory.cpu.push(cpuPercent);
+            statsHistory.ram.push(ramPercent);
+            
+            // Limit history
+            if (statsHistory.labels.length > MAX_HISTORY) {
+                statsHistory.labels.shift();
+                statsHistory.cpu.shift();
+                statsHistory.ram.shift();
+            }
+            
+            // Update charts
+            cpuChart.data.labels = statsHistory.labels;
+            cpuChart.data.datasets[0].data = statsHistory.cpu;
+            cpuChart.update('none');
+            
+            ramChart.data.labels = statsHistory.labels;
+            ramChart.data.datasets[0].data = statsHistory.ram;
+            ramChart.update('none');
+        }
+        
+        async function sendPowerAction(action) {
+            const buttons = document.querySelectorAll('.power-btn');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            try {
+                const response = await fetch(`/servers/api/power/${serverId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    // Refresh status after a delay
+                    setTimeout(refreshStats, 2000);
+                    setTimeout(refreshStats, 5000);
+                } else {
+                    showNotification(data.message || 'Failed to send power action', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending power action:', error);
+                showNotification('Error sending power action', 'error');
+            } finally {
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+        
+        function showError() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+        }
+        
+        // ============================================
+        // FEATURE 8: Database Management
+        // ============================================
+        
+        async function loadDatabases() {
+            const databaseList = document.getElementById('databaseList');
+            databaseList.innerHTML = '<p style="color: #94a3b8; padding: 20px; text-align: center;"><span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px;"></span> Loading...</p>';
+            
+            try {
+                const response = await fetch(`/servers/api/databases/${serverId}/list`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderDatabases(data.databases);
+                } else {
+                    databaseList.innerHTML = `<p style="color: #ef4444; padding: 20px; text-align: center;">${data.message || 'Failed to load databases'}</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading databases:', error);
+                databaseList.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">Error loading databases</p>';
+            }
+        }
+        
+        function renderDatabases(databases) {
+            const databaseList = document.getElementById('databaseList');
+            
+            if (!databases || databases.length === 0) {
+                databaseList.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                        <p style="font-size: 32px; margin-bottom: 8px;">🗃️</p>
+                        <p>No databases. Create one to store data for your server!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div style="display: grid; gap: 8px; padding: 8px;">';
+            
+            databases.forEach(db => {
+                const attrs = db.attributes || db;
+                const host = attrs.host?.address || 'Unknown';
+                const port = attrs.host?.port || '3306';
+                
+                html += `
+                    <div style="background: rgba(30, 30, 50, 0.5); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 8px; padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 8px;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 18px;">🗃️</span>
+                                    <span style="color: #f8fafc; font-weight: 500; font-family: 'Fira Code', monospace;">${escapeHtml(attrs.name)}</span>
+                                </div>
+                                <div style="color: #94a3b8; font-size: 12px; margin-top: 8px; display: grid; gap: 4px;">
+                                    <div><strong>Host:</strong> <code style="background: rgba(124, 58, 237, 0.1); padding: 1px 4px; border-radius: 3px;">${escapeHtml(host)}:${port}</code></div>
+                                    <div><strong>Username:</strong> <code style="background: rgba(124, 58, 237, 0.1); padding: 1px 4px; border-radius: 3px;">${escapeHtml(attrs.username)}</code></div>
+                                    <div><strong>Remote:</strong> ${escapeHtml(attrs.connections_from || '%')}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button onclick="rotateDatabasePassword('${attrs.id}')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" title="Generate new password">
+                                    🔑 Rotate
+                                </button>
+                                <button onclick="deleteDatabase('${attrs.id}')" class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            databaseList.innerHTML = html;
+        }
+        
+        function showCreateDatabaseDialog() {
+            const name = prompt('Enter database name (letters, numbers, underscores only):');
+            if (!name || !name.trim()) return;
+            
+            const dbName = name.trim();
+            if (!/^[a-zA-Z0-9_]+$/.test(dbName)) {
+                showNotification('Database name can only contain letters, numbers, and underscores', 'error');
+                return;
+            }
+            
+            createDatabaseFn(dbName);
+        }
+        
+        async function createDatabaseFn(database) {
+            try {
+                const response = await fetch(`/servers/api/databases/${serverId}/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ database })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Database created! Connection details are shown below.', 'success');
+                    loadDatabases();
+                } else {
+                    showNotification(data.message || 'Failed to create database', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating database:', error);
+                showNotification('Error creating database', 'error');
+            }
+        }
+        
+        async function rotateDatabasePassword(databaseId) {
+            if (!confirm('Generate a new password for this database? Make sure to update your server configuration!')) return;
+            
+            try {
+                const response = await fetch(`/servers/api/databases/${serverId}/${databaseId}/rotate`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Password rotated! Check the panel for the new password.', 'success');
+                    loadDatabases();
+                } else {
+                    showNotification(data.message || 'Failed to rotate password', 'error');
+                }
+            } catch (error) {
+                console.error('Error rotating password:', error);
+                showNotification('Error rotating password', 'error');
+            }
+        }
+        
+        async function deleteDatabase(databaseId) {
+            if (!confirm('Delete this database? This will permanently delete all data!')) return;
+            
+            try {
+                const response = await fetch(`/servers/api/databases/${serverId}/${databaseId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Database deleted', 'success');
+                    loadDatabases();
+                } else {
+                    showNotification(data.message || 'Failed to delete database', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting database:', error);
+                showNotification('Error deleting database', 'error');
+            }
+        }
+        
+        // ============================================
+        // FEATURE 7: Scheduled Tasks
+        // ============================================
+        
+        async function loadSchedules() {
+            const scheduleList = document.getElementById('scheduleList');
+            scheduleList.innerHTML = '<p style="color: #94a3b8; padding: 20px; text-align: center;"><span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px;"></span> Loading...</p>';
+            
+            try {
+                const response = await fetch(`/servers/api/schedules/${serverId}/list`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderSchedules(data.schedules);
+                } else {
+                    scheduleList.innerHTML = `<p style="color: #ef4444; padding: 20px; text-align: center;">${data.message || 'Failed to load schedules'}</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading schedules:', error);
+                scheduleList.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">Error loading schedules</p>';
+            }
+        }
+        
+        function renderSchedules(schedules) {
+            const scheduleList = document.getElementById('scheduleList');
+            
+            if (!schedules || schedules.length === 0) {
+                scheduleList.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                        <p style="font-size: 32px; margin-bottom: 8px;">⏰</p>
+                        <p>No scheduled tasks. Create one to automate server operations!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div style="display: grid; gap: 8px; padding: 8px;">';
+            
+            schedules.forEach(schedule => {
+                const attrs = schedule.attributes || schedule;
+                const isActive = attrs.is_active;
+                const lastRun = attrs.last_run_at ? new Date(attrs.last_run_at).toLocaleString() : 'Never';
+                const nextRun = attrs.next_run_at ? new Date(attrs.next_run_at).toLocaleString() : 'Not scheduled';
+                const tasks = attrs.relationships?.tasks?.data || [];
+                
+                const cronString = `${attrs.cron?.minute || '*'} ${attrs.cron?.hour || '*'} ${attrs.cron?.day_of_month || '*'} ${attrs.cron?.month || '*'} ${attrs.cron?.day_of_week || '*'}`;
+                
+                html += `
+                    <div style="background: rgba(30, 30, 50, 0.5); border: 1px solid ${isActive ? 'rgba(34, 197, 94, 0.3)' : 'rgba(107, 114, 128, 0.3)'}; border-radius: 8px; padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 8px;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 18px;">⏰</span>
+                                    <span style="color: #f8fafc; font-weight: 500;">${escapeHtml(attrs.name)}</span>
+                                    <span style="background: ${isActive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(107, 114, 128, 0.2)'}; color: ${isActive ? '#22c55e' : '#9ca3af'}; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                                        ${isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                                <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">
+                                    <code style="background: rgba(124, 58, 237, 0.1); padding: 2px 6px; border-radius: 4px;">${cronString}</code>
+                                </div>
+                                <div style="color: #6b7280; font-size: 11px; margin-top: 4px;">
+                                    Last run: ${lastRun} • Next: ${nextRun}
+                                </div>
+                                ${tasks.length > 0 ? `
+                                    <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">
+                                        ${tasks.length} task(s): ${tasks.map(t => t.attributes?.action || 'unknown').join(', ')}
+                                    </div>
+                                ` : '<div style="color: #6b7280; font-size: 11px; margin-top: 4px;">No tasks configured</div>'}
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button onclick="executeScheduleNow(${attrs.id})" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" title="Run Now">
+                                    ▶️ Run
+                                </button>
+                                <button onclick="deleteSchedule(${attrs.id})" class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            scheduleList.innerHTML = html;
+        }
+        
+        function showCreateScheduleDialog() {
+            const modal = document.createElement('div');
+            modal.id = 'scheduleModal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+            modal.innerHTML = `
+                <div style="background: rgba(30, 30, 50, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; width: 100%; max-width: 500px; padding: 20px;">
+                    <h3 style="margin: 0 0 16px 0; color: #f8fafc;">Create Schedule</h3>
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Schedule Name</label>
+                        <input type="text" id="scheduleName" placeholder="e.g., Daily Restart" style="width: 100%; padding: 8px 12px; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; color: #f8fafc;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px;">
+                        <div>
+                            <label style="display: block; color: #94a3b8; font-size: 10px; margin-bottom: 4px;">Minute</label>
+                            <input type="text" id="scheduleMinute" value="0" placeholder="*" style="width: 100%; padding: 6px; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; color: #f8fafc; font-size: 12px;">
+                        </div>
+                        <div>
+                            <label style="display: block; color: #94a3b8; font-size: 10px; margin-bottom: 4px;">Hour</label>
+                            <input type="text" id="scheduleHour" value="6" placeholder="*" style="width: 100%; padding: 6px; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; color: #f8fafc; font-size: 12px;">
+                        </div>
+                        <div>
+                            <label style="display: block; color: #94a3b8; font-size: 10px; margin-bottom: 4px;">Day</label>
+                            <input type="text" id="scheduleDay" value="*" placeholder="*" style="width: 100%; padding: 6px; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; color: #f8fafc; font-size: 12px;">
+                        </div>
+                        <div>
+                            <label style="display: block; color: #94a3b8; font-size: 10px; margin-bottom: 4px;">Month</label>
+                            <input type="text" id="scheduleMonth" value="*" placeholder="*" style="width: 100%; padding: 6px; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; color: #f8fafc; font-size: 12px;">
+                        </div>
+                        <div>
+                            <label style="display: block; color: #94a3b8; font-size: 10px; margin-bottom: 4px;">Weekday</label>
+                            <input type="text" id="scheduleWeekday" value="*" placeholder="*" style="width: 100%; padding: 6px; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; color: #f8fafc; font-size: 12px;">
+                        </div>
+                    </div>
+                    <p style="color: #6b7280; font-size: 11px; margin-bottom: 16px;">
+                        Use cron syntax: * = every, 0-59 for minute, 0-23 for hour, 1-31 for day, 1-12 for month, 0-6 for weekday (0=Sunday)
+                    </p>
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button onclick="closeScheduleModal()" class="btn btn-secondary">Cancel</button>
+                        <button onclick="createSchedule()" class="btn btn-primary">Create</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function closeScheduleModal() {
+            const modal = document.getElementById('scheduleModal');
+            if (modal) modal.remove();
+        }
+        
+        async function createSchedule() {
+            const name = document.getElementById('scheduleName').value.trim();
+            const minute = document.getElementById('scheduleMinute').value.trim() || '*';
+            const hour = document.getElementById('scheduleHour').value.trim() || '*';
+            const day_of_month = document.getElementById('scheduleDay').value.trim() || '*';
+            const month = document.getElementById('scheduleMonth').value.trim() || '*';
+            const day_of_week = document.getElementById('scheduleWeekday').value.trim() || '*';
+            
+            if (!name) {
+                showNotification('Please enter a schedule name', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/servers/api/schedules/${serverId}/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, minute, hour, day_of_month, month, day_of_week })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Schedule created! Now add tasks to it in the Pterodactyl panel.', 'success');
+                    closeScheduleModal();
+                    loadSchedules();
+                } else {
+                    showNotification(data.message || 'Failed to create schedule', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating schedule:', error);
+                showNotification('Error creating schedule', 'error');
+            }
+        }
+        
+        async function executeScheduleNow(scheduleId) {
+            if (!confirm('Run this schedule now?')) return;
+            
+            try {
+                const response = await fetch(`/servers/api/schedules/${serverId}/${scheduleId}/execute`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Schedule executed!', 'success');
+                    loadSchedules();
+                } else {
+                    showNotification(data.message || 'Failed to execute schedule', 'error');
+                }
+            } catch (error) {
+                console.error('Error executing schedule:', error);
+                showNotification('Error executing schedule', 'error');
+            }
+        }
+        
+        async function deleteSchedule(scheduleId) {
+            if (!confirm('Delete this schedule?')) return;
+            
+            try {
+                const response = await fetch(`/servers/api/schedules/${serverId}/${scheduleId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Schedule deleted', 'success');
+                    loadSchedules();
+                } else {
+                    showNotification(data.message || 'Failed to delete schedule', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting schedule:', error);
+                showNotification('Error deleting schedule', 'error');
+            }
+        }
+        
+        // ============================================
+        // FEATURE 6: Backup System
+        // ============================================
+        
+        async function loadBackups() {
+            const backupList = document.getElementById('backupList');
+            backupList.innerHTML = '<p style="color: #94a3b8; padding: 20px; text-align: center;"><span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px;"></span> Loading...</p>';
+            
+            try {
+                const response = await fetch(`/servers/api/backups/${serverId}/list`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderBackups(data.backups);
+                } else {
+                    backupList.innerHTML = `<p style="color: #ef4444; padding: 20px; text-align: center;">${data.message || 'Failed to load backups'}</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading backups:', error);
+                backupList.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">Error loading backups</p>';
+            }
+        }
+        
+        function renderBackups(backups) {
+            const backupList = document.getElementById('backupList');
+            
+            if (!backups || backups.length === 0) {
+                backupList.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                        <p style="font-size: 32px; margin-bottom: 8px;">📦</p>
+                        <p>No backups yet. Create your first backup!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div style="display: grid; gap: 8px; padding: 8px;">';
+            
+            backups.forEach(backup => {
+                const attrs = backup.attributes || backup;
+                const isCompleted = attrs.is_successful || attrs.completed_at;
+                const isPending = !isCompleted && !attrs.is_successful;
+                const isLocked = attrs.is_locked;
+                const size = formatFileSize(attrs.bytes || 0);
+                const created = attrs.created_at ? new Date(attrs.created_at).toLocaleString() : 'Unknown';
+                
+                const statusColor = isCompleted ? '#22c55e' : (isPending ? '#eab308' : '#ef4444');
+                const statusText = isCompleted ? 'Completed' : (isPending ? 'In Progress' : 'Failed');
+                
+                html += `
+                    <div style="background: rgba(30, 30, 50, 0.5); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 8px; padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 18px;">${isLocked ? '🔒' : '💾'}</span>
+                                    <span style="color: #f8fafc; font-weight: 500;">${escapeHtml(attrs.name || 'Backup')}</span>
+                                    <span style="background: rgba(${isCompleted ? '34, 197, 94' : '234, 179, 8'}, 0.2); color: ${statusColor}; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">
+                                        ${statusText}
+                                    </span>
+                                </div>
+                                <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">
+                                    Created: ${created} • Size: ${size}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                ${isCompleted ? `
+                                    <button onclick="downloadBackup('${attrs.uuid}')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">
+                                        ⬇️ Download
+                                    </button>
+                                    <button onclick="restoreBackup('${attrs.uuid}')" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;">
+                                        🔄 Restore
+                                    </button>
+                                ` : ''}
+                                ${!isLocked ? `
+                                    <button onclick="deleteBackup('${attrs.uuid}')" class="btn btn-danger" style="padding: 4px 10px; font-size: 11px;">
+                                        🗑️
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            backupList.innerHTML = html;
+        }
+        
+        async function createBackup() {
+            const name = prompt('Enter backup name (optional):');
+            if (name === null) return; // User cancelled
+            
+            showNotification('Creating backup...', 'info');
+            
+            try {
+                const response = await fetch(`/servers/api/backups/${serverId}/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name || null })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Backup creation started! This may take a few minutes.', 'success');
+                    // Refresh after a delay
+                    setTimeout(loadBackups, 2000);
+                } else {
+                    showNotification(data.message || 'Failed to create backup', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating backup:', error);
+                showNotification('Error creating backup', 'error');
+            }
+        }
+        
+        async function downloadBackup(backupUuid) {
+            try {
+                const response = await fetch(`/servers/api/backups/${serverId}/${backupUuid}/download`);
+                const data = await response.json();
+                
+                if (data.success && data.url) {
+                    window.open(data.url, '_blank');
+                } else {
+                    showNotification(data.message || 'Failed to get download URL', 'error');
+                }
+            } catch (error) {
+                console.error('Error downloading backup:', error);
+                showNotification('Error downloading backup', 'error');
+            }
+        }
+        
+        async function restoreBackup(backupUuid) {
+            const truncate = confirm('Do you want to delete all existing files before restoring?\n\nClick OK to delete files first (clean restore)\nClick Cancel to merge with existing files');
+            
+            if (!confirm('Are you sure you want to restore this backup? The server should be stopped first.')) {
+                return;
+            }
+            
+            showNotification('Starting backup restoration...', 'info');
+            
+            try {
+                const response = await fetch(`/servers/api/backups/${serverId}/${backupUuid}/restore`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ truncate: truncate })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Backup restoration started!', 'success');
+                } else {
+                    showNotification(data.message || 'Failed to restore backup', 'error');
+                }
+            } catch (error) {
+                console.error('Error restoring backup:', error);
+                showNotification('Error restoring backup', 'error');
+            }
+        }
+        
+        async function deleteBackup(backupUuid) {
+            if (!confirm('Are you sure you want to delete this backup? This cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/servers/api/backups/${serverId}/${backupUuid}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Backup deleted', 'success');
+                    loadBackups();
+                } else {
+                    showNotification(data.message || 'Failed to delete backup', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting backup:', error);
+                showNotification('Error deleting backup', 'error');
+            }
+        }
+        
+        // ============================================
+        // FEATURE 5: File Manager
+        // ============================================
+        
+        let currentDirectory = '/';
+        
+        async function loadFiles(directory = '/') {
+            currentDirectory = directory;
+            document.getElementById('currentPath').textContent = directory;
+            document.getElementById('btnUp').disabled = (directory === '/');
+            
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '<p style="color: #94a3b8; padding: 20px; text-align: center;"><span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px;"></span> Loading...</p>';
+            
+            try {
+                const response = await fetch(`/servers/api/files/${serverId}/list?directory=${encodeURIComponent(directory)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderFiles(data.files);
+                } else {
+                    fileList.innerHTML = `<p style="color: #ef4444; padding: 20px; text-align: center;">${data.message || 'Failed to load files'}</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading files:', error);
+                fileList.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">Error loading files</p>';
+            }
+        }
+        
+        function renderFiles(files) {
+            const fileList = document.getElementById('fileList');
+            
+            if (!files || files.length === 0) {
+                fileList.innerHTML = '<p style="color: #94a3b8; padding: 20px; text-align: center;">📂 This folder is empty</p>';
+                return;
+            }
+            
+            // Sort: folders first, then files, alphabetically
+            files.sort((a, b) => {
+                const aAttrs = a.attributes || a;
+                const bAttrs = b.attributes || b;
+                if (aAttrs.is_file === bAttrs.is_file) {
+                    return (aAttrs.name || '').localeCompare(bAttrs.name || '');
+                }
+                return aAttrs.is_file ? 1 : -1;
+            });
+            
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<thead><tr style="background: rgba(124, 58, 237, 0.1); color: #94a3b8; font-size: 11px; text-transform: uppercase;">';
+            html += '<th style="padding: 8px 12px; text-align: left;">Name</th>';
+            html += '<th style="padding: 8px 12px; text-align: right; width: 80px;">Size</th>';
+            html += '<th style="padding: 8px 12px; text-align: right; width: 120px;">Modified</th>';
+            html += '<th style="padding: 8px 12px; text-align: center; width: 80px;">Actions</th>';
+            html += '</tr></thead><tbody>';
+            
+            files.forEach(file => {
+                const attrs = file.attributes || file;
+                const isDir = !attrs.is_file;
+                const icon = isDir ? '📁' : getFileIcon(attrs.name);
+                const size = isDir ? '-' : formatFileSize(attrs.size);
+                const modified = attrs.modified_at ? new Date(attrs.modified_at).toLocaleDateString() : '-';
+                
+                html += `<tr class="file-row" style="border-bottom: 1px solid rgba(124, 58, 237, 0.1); cursor: pointer;" 
+                            onmouseover="this.style.background='rgba(124, 58, 237, 0.1)'" 
+                            onmouseout="this.style.background='transparent'">`;
+                html += `<td style="padding: 8px 12px;" onclick="${isDir ? `navigateTo('${escapeJs(attrs.name)}')` : `viewFile('${escapeJs(attrs.name)}')`}">
+                            <span style="margin-right: 8px;">${icon}</span>
+                            <span style="color: #f8fafc;">${escapeHtml(attrs.name)}</span>
+                         </td>`;
+                html += `<td style="padding: 8px 12px; text-align: right; color: #94a3b8; font-size: 12px;">${size}</td>`;
+                html += `<td style="padding: 8px 12px; text-align: right; color: #94a3b8; font-size: 12px;">${modified}</td>`;
+                html += `<td style="padding: 8px 12px; text-align: center;">
+                            <button onclick="event.stopPropagation(); deleteFile('${escapeJs(attrs.name)}')" 
+                                    style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 10px;">
+                                🗑️
+                            </button>
+                         </td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            fileList.innerHTML = html;
+        }
+        
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'txt': '📄', 'log': '📄', 'md': '📝',
+                'yml': '⚙️', 'yaml': '⚙️', 'json': '⚙️', 'xml': '⚙️', 'properties': '⚙️', 'toml': '⚙️',
+                'jar': '☕', 'java': '☕',
+                'js': '🟨', 'ts': '🔷', 'py': '🐍', 'sh': '🐚', 'bat': '🖥️',
+                'zip': '📦', 'tar': '📦', 'gz': '📦', 'rar': '📦', '7z': '📦',
+                'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️', 'gif': '🖼️', 'ico': '🖼️',
+                'sql': '🗃️', 'db': '🗃️'
+            };
+            return icons[ext] || '📄';
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        function navigateTo(folderName) {
+            let newPath = currentDirectory;
+            if (newPath === '/') {
+                newPath = '/' + folderName;
+            } else {
+                newPath = newPath + '/' + folderName;
+            }
+            loadFiles(newPath);
+        }
+        
+        function navigateUp() {
+            if (currentDirectory === '/') return;
+            const parts = currentDirectory.split('/').filter(p => p);
+            parts.pop();
+            const newPath = '/' + parts.join('/');
+            loadFiles(newPath || '/');
+        }
+        
+        function refreshFiles() {
+            loadFiles(currentDirectory);
+        }
+        
+        async function viewFile(filename) {
+            const filePath = currentDirectory === '/' ? '/' + filename : currentDirectory + '/' + filename;
+            
+            // Check if file is too large or binary
+            const ext = filename.split('.').pop().toLowerCase();
+            const binaryExts = ['jar', 'zip', 'tar', 'gz', 'rar', '7z', 'png', 'jpg', 'jpeg', 'gif', 'ico', 'exe', 'dll', 'so'];
+            
+            if (binaryExts.includes(ext)) {
+                showNotification('Binary files cannot be viewed directly', 'error');
+                return;
+            }
+            
+            try {
+                showNotification('Loading file...', 'info');
+                const response = await fetch(`/servers/api/files/${serverId}/contents?file=${encodeURIComponent(filePath)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFileEditor(filename, filePath, data.content);
+                } else {
+                    showNotification(data.message || 'Failed to load file', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading file:', error);
+                showNotification('Error loading file', 'error');
+            }
+        }
+        
+        function showFileEditor(filename, filePath, content) {
+            // Create modal for file editor
+            const modal = document.createElement('div');
+            modal.id = 'fileEditorModal';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+            modal.innerHTML = `
+                <div style="background: rgba(30, 30, 50, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+                    <div style="padding: 16px 20px; border-bottom: 1px solid rgba(124, 58, 237, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; color: #f8fafc;">${escapeHtml(filename)}</h3>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="saveFile('${escapeJs(filePath)}')" class="btn btn-primary" style="padding: 6px 16px;">Save</button>
+                            <button onclick="closeFileEditor()" class="btn btn-secondary" style="padding: 6px 16px;">Close</button>
+                        </div>
+                    </div>
+                    <textarea id="fileEditorContent" style="flex: 1; min-height: 400px; padding: 16px; background: rgba(10, 14, 39, 0.8); border: none; color: #f8fafc; font-family: 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.5; resize: none;">${escapeHtml(content || '')}</textarea>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Focus editor
+            document.getElementById('fileEditorContent').focus();
+        }
+        
+        function closeFileEditor() {
+            const modal = document.getElementById('fileEditorModal');
+            if (modal) modal.remove();
+        }
+        
+        async function saveFile(filePath) {
+            const content = document.getElementById('fileEditorContent').value;
+            
+            try {
+                const response = await fetch(`/servers/api/files/${serverId}/write`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file: filePath, content })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('File saved successfully!', 'success');
+                    closeFileEditor();
+                } else {
+                    showNotification(data.message || 'Failed to save file', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving file:', error);
+                showNotification('Error saving file', 'error');
+            }
+        }
+        
+        async function deleteFile(filename) {
+            if (!confirm(`Are you sure you want to delete "${filename}"?`)) return;
+            
+            try {
+                const response = await fetch(`/servers/api/files/${serverId}/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        files: [filename],
+                        root: currentDirectory
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Deleted successfully', 'success');
+                    refreshFiles();
+                } else {
+                    showNotification(data.message || 'Failed to delete', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting:', error);
+                showNotification('Error deleting', 'error');
+            }
+        }
+        
+        function showNewFolderDialog() {
+            const name = prompt('Enter folder name:');
+            if (!name || !name.trim()) return;
+            
+            createFolder(name.trim());
+        }
+        
+        async function createFolder(name) {
+            try {
+                const response = await fetch(`/servers/api/files/${serverId}/create-folder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: name,
+                        root: currentDirectory
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Folder created!', 'success');
+                    refreshFiles();
+                } else {
+                    showNotification(data.message || 'Failed to create folder', 'error');
+                }
+            } catch (error) {
+                console.error('Error creating folder:', error);
+                showNotification('Error creating folder', 'error');
+            }
+        }
+        
+        function escapeJs(str) {
+            return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+        
+        // ============================================
+        // FEATURE 4: Console Command Sender
+        // ============================================
+        
+        const commandHistory = [];
+        
+        async function sendCommand() {
+            const input = document.getElementById('commandInput');
+            const command = input.value.trim();
+            
+            if (!command) {
+                showNotification('Please enter a command', 'error');
+                return;
+            }
+            
+            // Add to UI history
+            addCommandToHistory(command, 'pending');
+            input.value = '';
+            input.focus();
+            
+            try {
+                const response = await fetch(`/servers/api/command/${serverId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateLastCommandStatus('success');
+                    showNotification('Command sent!', 'success');
+                } else {
+                    updateLastCommandStatus('error', data.message);
+                    showNotification(data.message || 'Failed to send command', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending command:', error);
+                updateLastCommandStatus('error', 'Connection error');
+                showNotification('Error sending command', 'error');
+            }
+        }
+        
+        function addCommandToHistory(command, status) {
+            const history = document.getElementById('commandHistory');
+            const time = new Date().toLocaleTimeString();
+            
+            const entry = document.createElement('div');
+            entry.id = 'cmd-' + Date.now();
+            entry.className = 'command-entry';
+            entry.style.cssText = 'padding: 6px 10px; margin-bottom: 4px; background: rgba(10, 14, 39, 0.5); border-radius: 4px; border-left: 3px solid #7c3aed;';
+            entry.innerHTML = `
+                <span style="color: #6b7280; font-size: 10px;">[${time}]</span>
+                <span style="color: #7c3aed; margin: 0 4px;">$</span>
+                <span style="color: #f8fafc;">${escapeHtml(command)}</span>
+                <span class="cmd-status" style="float: right; font-size: 10px; color: #eab308;">⏳ sending...</span>
+            `;
+            
+            history.insertBefore(entry, history.firstChild);
+            commandHistory.push({ id: entry.id, command, status });
+            
+            // Limit history
+            while (history.children.length > 20) {
+                history.removeChild(history.lastChild);
+            }
+        }
+        
+        function updateLastCommandStatus(status, message) {
+            const history = document.getElementById('commandHistory');
+            const lastEntry = history.firstChild;
+            
+            if (lastEntry) {
+                const statusSpan = lastEntry.querySelector('.cmd-status');
+                if (statusSpan) {
+                    if (status === 'success') {
+                        statusSpan.style.color = '#22c55e';
+                        statusSpan.textContent = '✓ sent';
+                    } else {
+                        statusSpan.style.color = '#ef4444';
+                        statusSpan.textContent = '✗ ' + (message || 'failed');
+                    }
+                }
+            }
+        }
+        
+        // Clean up on page leave
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+        
+        // Helper function
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+    
+    <style>
+        /* Power Button Styles */
+        .power-btn {
+            font-size: 12px !important;
+            padding: 8px 14px !important;
+            border-radius: 6px !important;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .power-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .power-start {
+            background: rgba(34, 197, 94, 0.2) !important;
+            color: #22c55e !important;
+            border-color: rgba(34, 197, 94, 0.4) !important;
+        }
+        .power-start:hover:not(:disabled) {
+            background: rgba(34, 197, 94, 0.4) !important;
+        }
+        .power-stop {
+            background: rgba(234, 179, 8, 0.2) !important;
+            color: #eab308 !important;
+            border-color: rgba(234, 179, 8, 0.4) !important;
+        }
+        .power-stop:hover:not(:disabled) {
+            background: rgba(234, 179, 8, 0.4) !important;
+        }
+        .power-restart {
+            background: rgba(59, 130, 246, 0.2) !important;
+            color: #3b82f6 !important;
+            border-color: rgba(59, 130, 246, 0.4) !important;
+        }
+        .power-restart:hover:not(:disabled) {
+            background: rgba(59, 130, 246, 0.4) !important;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(124, 58, 237, 0.3);
+            border-top-color: #7c3aed;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .server-header {
+                flex-direction: column;
+            }
+            .server-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</body>
+</html>

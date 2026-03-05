@@ -85,14 +85,16 @@ router.post('/login', sanitizeBody, validateLogin, async (req, res) => {
             });
         }
 
-        // Create session (don't store password in session)
+        // BUGFIX #15: Create session with ALL user fields (don't store password in session)
         req.session.user = {
             id: user.id,
             username: user.username,
             email: user.email,
             coins: user.coins,
             is_admin: user.is_admin === 1,
-            discord_id: user.discord_id
+            discord_id: user.discord_id,
+            pterodactyl_user_id: user.pterodactyl_user_id,
+            server_slots: user.server_slots || 1
         };
 
         res.json({ 
@@ -202,7 +204,7 @@ router.post('/signup', sanitizeBody, validateSignup, async (req, res) => {
             // Don't fail signup if Pterodactyl creation fails
         }
 
-        // Create session
+        // BUGFIX #15: Create session with ALL user fields
         req.session.user = {
             id: userId,
             username: username,
@@ -210,7 +212,8 @@ router.post('/signup', sanitizeBody, validateSignup, async (req, res) => {
             coins: 0,
             is_admin: false,
             discord_id: null,
-            pterodactyl_user_id: pterodactylUserId
+            pterodactyl_user_id: pterodactylUserId,
+            server_slots: 1  // Default for new users
         };
 
         res.json({ 
@@ -273,7 +276,7 @@ router.get('/discord/callback',
             }
             
             // Regular login/signup flow
-            // Create session
+            // BUGFIX #15: Create session with ALL user fields
             req.session.user = {
                 id: req.user.id,
                 username: req.user.username,
@@ -281,7 +284,8 @@ router.get('/discord/callback',
                 coins: req.user.coins,
                 is_admin: req.user.is_admin === 1,
                 discord_id: req.user.discord_id,
-                pterodactyl_user_id: req.user.pterodactyl_user_id
+                pterodactyl_user_id: req.user.pterodactyl_user_id,
+                server_slots: req.user.server_slots || 1
             };
             
             res.redirect('/dashboard');

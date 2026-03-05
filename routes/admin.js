@@ -129,7 +129,45 @@ router.delete('/api/users/:id', requireAdmin, async (req, res) => {
             });
         }
         
-        // Delete user (cascade will delete servers)
+        // BUGFIX #13: Get user info before deletion (for Pterodactyl cleanup)
+        const user = await get('SELECT * FROM users WHERE id = ?', [userId]);
+        
+        if (!user) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'User not found' 
+            });
+        }
+        
+        // BUGFIX #13: Delete user's servers from Pterodactyl first
+        const pterodactyl = require('../config/pterodactyl');
+        if (await pterodactyl.isConfigured()) {
+            // Get all servers owned by this user
+            const userServers = await query('SELECT pterodactyl_id FROM servers WHERE user_id = ? AND pterodactyl_id IS NOT NULL', [userId]);
+            
+            for (const server of userServers) {
+                try {
+                    await pterodactyl.deleteServer(server.pterodactyl_id);
+                    console.log(`Deleted Pterodactyl server ${server.pterodactyl_id} for user ${userId}`);
+                } catch (serverError) {
+                    console.error(`Error deleting Pterodactyl server ${server.pterodactyl_id}:`, serverError);
+                    // Continue with deletion even if server deletion fails
+                }
+            }
+            
+            // BUGFIX #13: Delete user from Pterodactyl if they have a pterodactyl_user_id
+            if (user.pterodactyl_user_id) {
+                try {
+                    await pterodactyl.deleteUser(user.pterodactyl_user_id);
+                    console.log(`Deleted Pterodactyl user ${user.pterodactyl_user_id} for dashboard user ${userId}`);
+                } catch (pterodactylError) {
+                    console.error(`Error deleting Pterodactyl user ${user.pterodactyl_user_id}:`, pterodactylError);
+                    // Continue with local deletion even if Pterodactyl deletion fails
+                }
+            }
+        }
+        
+        // Delete user from local database (cascade will delete servers)
         await run('DELETE FROM users WHERE id = ?', [userId]);
         
         res.json({ success: true, message: 'User deleted successfully' });
@@ -823,22 +861,16 @@ router.post('/api/panel/disconnect', requireAdmin, async (req, res) => {
     try {
         const { run, query } = require('../config/database');
         
-        // Get all servers that will be deleted (to return resources to users)
+        // BUGFIX #14: Count servers to be deleted (for informational message)
+        // We do NOT need to "return resources" because:
+        // - purchased_ram/cpu/storage stores TOTAL purchased resources
+        // - "used" resources are calculated dynamically from the servers table
+        // - When we delete servers, the "used" count automatically decreases
+        // - Available = Purchased - Used, so available automatically increases
+        // The old code was DOUBLING resources by adding them back to purchased_*
         const serversToDelete = await query(
-            'SELECT user_id, ram, cpu, storage FROM servers WHERE pterodactyl_id IS NOT NULL'
+            'SELECT id FROM servers WHERE pterodactyl_id IS NOT NULL'
         );
-        
-        // Return resources to users before deleting servers
-        for (const server of serversToDelete) {
-            await run(
-                `UPDATE users 
-                 SET purchased_ram = purchased_ram + ?, 
-                     purchased_cpu = purchased_cpu + ?, 
-                     purchased_storage = purchased_storage + ? 
-                 WHERE id = ?`,
-                [server.ram, server.cpu, server.storage, server.user_id]
-            );
-        }
         
         // Delete all Pterodactyl-related configuration and cached data
         await run('DELETE FROM pterodactyl_config');
@@ -847,6 +879,7 @@ router.post('/api/panel/disconnect', requireAdmin, async (req, res) => {
         await run('DELETE FROM pterodactyl_settings');
         
         // Delete all servers that were created through Pterodactyl
+        // Resources are automatically "returned" because used resources are calculated dynamically
         await run('DELETE FROM servers WHERE pterodactyl_id IS NOT NULL');
         
         // Clear the config cache in pterodactyl module
@@ -856,7 +889,7 @@ router.post('/api/panel/disconnect', requireAdmin, async (req, res) => {
         const deletedCount = serversToDelete.length;
         res.json({ 
             success: true, 
-            message: `Pterodactyl panel disconnected successfully. ${deletedCount} server(s) deleted and resources returned to users. All configuration and cached data has been removed.` 
+            message: `Pterodactyl panel disconnected successfully. ${deletedCount} server(s) deleted. Resources are now available for new servers. All configuration and cached data has been removed.` 
         });
     } catch (error) {
         console.error('Error disconnecting panel:', error);
@@ -934,12 +967,16 @@ router.post('/api/panel/eggs/sync', requireAdmin, async (req, res) => {
         let synced = 0;
         const errors = [];
         
+        // BUGFIX #7: Ensure egg_ids are all integers for consistent comparison
+        const normalizedEggIds = egg_ids.map(id => parseInt(id, 10));
+        
         // Sync only selected eggs to database
         for (const egg of eggs) {
-            const eggId = egg.id || egg.egg_id || egg.attributes?.id;
+            // BUGFIX #7: Parse eggId as integer to avoid type mismatch with includes()
+            const eggId = parseInt(egg.id || egg.egg_id || egg.attributes?.id, 10);
             
-            // Verify this egg is in the selected list
-            if (!egg_ids.includes(eggId)) {
+            // Verify this egg is in the selected list (both are now integers)
+            if (!normalizedEggIds.includes(eggId)) {
                 continue;
             }
             
@@ -1060,13 +1097,24 @@ router.post('/api/panel/allocations/sync', requireAdmin, async (req, res) => {
         
         const allocations = allocationsResult.data || [];
         let synced = 0;
+        let removed = 0;
         
-        // Sync allocations to database
+        // BUGFIX #2: Clear all existing allocations first, then re-add only unassigned ones
+        // This ensures allocations that have been assigned to servers are removed from the pool
+        try {
+            const existingCount = await get('SELECT COUNT(*) as count FROM pterodactyl_allocations');
+            removed = existingCount?.count || 0;
+            await run('DELETE FROM pterodactyl_allocations');
+        } catch (error) {
+            console.error('Error clearing existing allocations:', error);
+        }
+        
+        // Sync allocations to database (only unassigned ones come from getAllAllocations)
         for (const allocation of allocations) {
             try {
                 const allocAttrs = allocation.attributes || allocation;
                 await run(`
-                    INSERT OR REPLACE INTO pterodactyl_allocations 
+                    INSERT INTO pterodactyl_allocations 
                     (allocation_id, ip, ip_alias, port, node_id, priority, is_active, created_at)
                     VALUES (?, ?, ?, ?, ?, 0, 1, CURRENT_TIMESTAMP)
                 `, [
@@ -1084,8 +1132,9 @@ router.post('/api/panel/allocations/sync', requireAdmin, async (req, res) => {
         
         res.json({ 
             success: true, 
-            message: `Successfully synced ${synced} allocations`,
+            message: `Successfully synced ${synced} allocations (cleared ${removed} old entries)`,
             synced: synced,
+            removed: removed,
             total: allocations.length
         });
     } catch (error) {
@@ -1287,6 +1336,140 @@ router.post('/api/branding/reset', requireAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error resetting branding:', error);
         res.status(500).json({ success: false, message: 'Error resetting branding' });
+    }
+});
+
+// ============================================
+// FEATURE 2: Server Templates Management
+// ============================================
+
+// Get all server templates
+router.get('/api/templates', requireAdmin, async (req, res) => {
+    try {
+        const templates = await query('SELECT * FROM server_templates ORDER BY display_order ASC, created_at DESC');
+        res.json({ success: true, templates: templates || [] });
+    } catch (error) {
+        console.error('Error fetching templates:', error);
+        res.status(500).json({ success: false, message: 'Error fetching templates' });
+    }
+});
+
+// Create a new server template
+router.post('/api/templates', requireAdmin, async (req, res) => {
+    try {
+        const { name, description, egg_id, ram_mb, cpu_percent, storage_mb, icon, display_order } = req.body;
+        
+        // Validate required fields
+        if (!name || !egg_id) {
+            return res.status(400).json({ success: false, message: 'Name and egg are required' });
+        }
+        
+        // Validate numeric values
+        const ramValue = parseInt(ram_mb) || 1024;
+        const cpuValue = parseInt(cpu_percent) || 100;
+        const storageValue = parseInt(storage_mb) || 5120;
+        const orderValue = parseInt(display_order) || 0;
+        
+        const result = await run(
+            `INSERT INTO server_templates (name, description, egg_id, ram_mb, cpu_percent, storage_mb, icon, display_order) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name.trim(), description?.trim() || '', parseInt(egg_id), ramValue, cpuValue, storageValue, icon || '🎮', orderValue]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: 'Template created successfully',
+            template_id: result.lastID
+        });
+    } catch (error) {
+        console.error('Error creating template:', error);
+        res.status(500).json({ success: false, message: 'Error creating template' });
+    }
+});
+
+// Update a server template
+router.put('/api/templates/:id', requireAdmin, async (req, res) => {
+    try {
+        const templateId = req.params.id;
+        const { name, description, egg_id, ram_mb, cpu_percent, storage_mb, is_active, icon, display_order } = req.body;
+        
+        // Check if template exists
+        const template = await get('SELECT * FROM server_templates WHERE id = ?', [templateId]);
+        if (!template) {
+            return res.status(404).json({ success: false, message: 'Template not found' });
+        }
+        
+        // Build update query dynamically
+        const updates = [];
+        const values = [];
+        
+        if (name !== undefined) { updates.push('name = ?'); values.push(name.trim()); }
+        if (description !== undefined) { updates.push('description = ?'); values.push(description.trim()); }
+        if (egg_id !== undefined) { updates.push('egg_id = ?'); values.push(parseInt(egg_id)); }
+        if (ram_mb !== undefined) { updates.push('ram_mb = ?'); values.push(parseInt(ram_mb)); }
+        if (cpu_percent !== undefined) { updates.push('cpu_percent = ?'); values.push(parseInt(cpu_percent)); }
+        if (storage_mb !== undefined) { updates.push('storage_mb = ?'); values.push(parseInt(storage_mb)); }
+        if (is_active !== undefined) { updates.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+        if (icon !== undefined) { updates.push('icon = ?'); values.push(icon); }
+        if (display_order !== undefined) { updates.push('display_order = ?'); values.push(parseInt(display_order)); }
+        
+        updates.push('updated_at = CURRENT_TIMESTAMP');
+        values.push(templateId);
+        
+        await run(
+            `UPDATE server_templates SET ${updates.join(', ')} WHERE id = ?`,
+            values
+        );
+        
+        res.json({ success: true, message: 'Template updated successfully' });
+    } catch (error) {
+        console.error('Error updating template:', error);
+        res.status(500).json({ success: false, message: 'Error updating template' });
+    }
+});
+
+// Delete a server template
+router.delete('/api/templates/:id', requireAdmin, async (req, res) => {
+    try {
+        const templateId = req.params.id;
+        
+        // Check if template exists
+        const template = await get('SELECT * FROM server_templates WHERE id = ?', [templateId]);
+        if (!template) {
+            return res.status(404).json({ success: false, message: 'Template not found' });
+        }
+        
+        await run('DELETE FROM server_templates WHERE id = ?', [templateId]);
+        
+        res.json({ success: true, message: 'Template deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        res.status(500).json({ success: false, message: 'Error deleting template' });
+    }
+});
+
+// Toggle template active status
+router.post('/api/templates/:id/toggle', requireAdmin, async (req, res) => {
+    try {
+        const templateId = req.params.id;
+        
+        // Get current status
+        const template = await get('SELECT * FROM server_templates WHERE id = ?', [templateId]);
+        if (!template) {
+            return res.status(404).json({ success: false, message: 'Template not found' });
+        }
+        
+        const newStatus = template.is_active ? 0 : 1;
+        await run('UPDATE server_templates SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newStatus, templateId]);
+        
+        res.json({ 
+            success: true, 
+            message: `Template ${newStatus ? 'activated' : 'deactivated'} successfully`,
+            is_active: newStatus
+        });
+    } catch (error) {
+        console.error('Error toggling template:', error);
+        res.status(500).json({ success: false, message: 'Error toggling template status' });
     }
 });
 
