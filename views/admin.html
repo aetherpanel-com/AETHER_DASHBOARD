@@ -1486,7 +1486,13 @@
                 
                 if (data.success) {
                     displayAllocations(data.allocations);
-                    showNotification(`Found ${data.allocations.length} allocations. Click "Sync to Database" to save them.`, 'success');
+                    if (data.allocations.length > 0) {
+                        showNotification(`Found ${data.allocations.length} allocations. Syncing to database...`, 'info');
+                        // Auto-sync after fetching
+                        setTimeout(() => syncAllocations(), 500);
+                    } else {
+                        showNotification('No unassigned allocations found in Pterodactyl.', 'warning');
+                    }
                 } else {
                     showNotification(data.message || 'Failed to fetch allocations', 'error');
                 }
@@ -1553,24 +1559,22 @@
         }
         
         async function syncAllocations() {
-            if (!window.currentAllocations) {
-                showNotification('Please fetch allocations first', 'error');
-                return;
-            }
-            
+            // Allow sync even without fetching first (will fetch fresh from Pterodactyl)
             try {
                 showNotification('Syncing allocations to database...', 'info');
                 const response = await fetch('/admin/api/panel/allocations/sync', { method: 'POST' });
                 const data = await response.json();
                 
                 if (data.success) {
-                    showNotification(`Successfully synced ${data.synced} allocations to database`, 'success');
-                    loadCachedAllocations();
+                    showNotification(`Successfully synced ${data.synced} allocations to database (cleared ${data.removed} old entries)`, 'success');
+                    // Reload cached allocations to show the updated list
+                    setTimeout(() => loadCachedAllocations(), 500);
                 } else {
                     showNotification(data.message || 'Failed to sync allocations', 'error');
+                    console.error('Sync failed:', data);
                 }
             } catch (error) {
-                showNotification('Error syncing allocations', 'error');
+                showNotification('Error syncing allocations: ' + error.message, 'error');
                 console.error('Sync allocations error:', error);
             }
         }

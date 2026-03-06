@@ -4,7 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { query, get, run } = require('../config/database');
+const { query, get, run, transaction } = require('../config/database');
 const pterodactyl = require('../config/pterodactyl');
 
 // Middleware to check if user is logged in
@@ -150,63 +150,77 @@ router.post('/api/create', requireAuth, async (req, res) => {
             });
         }
         
-        // Get user and check available resources
-        const user = await get('SELECT id, server_slots, purchased_ram, purchased_cpu, purchased_storage, pterodactyl_user_id FROM users WHERE id = ?', 
-            [req.session.user.id]);
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'User not found' 
-            });
-        }
-        
-        // Check server slots
-        const userServerCount = await get('SELECT COUNT(*) as count FROM servers WHERE user_id = ?', [req.session.user.id]);
-        const availableSlots = user.server_slots || 1;
-        
-        if (userServerCount.count >= availableSlots) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `You've reached your server limit (${availableSlots} slot${availableSlots > 1 ? 's' : ''}). Purchase more slots from the Resource Store to create additional servers.` 
-            });
-        }
-        
-        // Calculate used resources
-        const usedResources = await get(`
-            SELECT 
-                SUM(ram) as used_ram,
-                SUM(cpu) as used_cpu,
-                SUM(storage) as used_storage
-            FROM servers 
-            WHERE user_id = ?
-        `, [req.session.user.id]);
-        
-        const availableRam = (user.purchased_ram || 0) - (usedResources.used_ram || 0);
-        const availableCpu = (user.purchased_cpu || 0) - (usedResources.used_cpu || 0);
-        const availableStorage = (user.purchased_storage || 0) - (usedResources.used_storage || 0);
-        
-        // Check if user has enough resources
-        if (availableRam < ram) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Insufficient RAM. You have ${Math.round(availableRam / 1024)}GB available but need ${ramGB}GB.` 
-            });
-        }
-        if (availableCpu < cpu) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Insufficient CPU. You have ${availableCpu}% available but need ${cpu}%.` 
-            });
-        }
-        if (availableStorage < storage) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Insufficient Storage. You have ${Math.round(availableStorage / 1024)}GB available but need ${storageGB}GB.` 
-            });
-        }
-        
+        // BUGFIX: Use transaction to atomically check resources and reserve them
+        // This prevents race conditions where multiple concurrent requests could oversell resources
         let pterodactyl_id = null;
         let claimedAllocationId = null;  // BUGFIX #16: Track claimed allocation for cleanup on error
+        let serverRecordId = null; // Track server record ID for rollback if Pterodactyl fails
+        
+        // Atomically check resources and insert server record
+        await transaction(async () => {
+            // Get user and check available resources (within transaction for consistency)
+            const user = await get('SELECT id, server_slots, purchased_ram, purchased_cpu, purchased_storage, pterodactyl_user_id FROM users WHERE id = ?', 
+                [req.session.user.id]);
+            if (!user) {
+                throw new Error('User not found');
+            }
+            
+            // Check server slots (re-check within transaction)
+            const userServerCount = await get('SELECT COUNT(*) as count FROM servers WHERE user_id = ?', [req.session.user.id]);
+            const availableSlots = user.server_slots || 1;
+            
+            if (userServerCount.count >= availableSlots) {
+                throw new Error(`You've reached your server limit (${availableSlots} slot${availableSlots > 1 ? 's' : ''}). Purchase more slots from the Resource Store to create additional servers.`);
+            }
+            
+            // Calculate used resources (re-check within transaction)
+            const usedResources = await get(`
+                SELECT 
+                    COALESCE(SUM(ram), 0) as used_ram,
+                    COALESCE(SUM(cpu), 0) as used_cpu,
+                    COALESCE(SUM(storage), 0) as used_storage
+                FROM servers 
+                WHERE user_id = ?
+            `, [req.session.user.id]);
+            
+            const availableRam = (user.purchased_ram || 0) - (usedResources.used_ram || 0);
+            const availableCpu = (user.purchased_cpu || 0) - (usedResources.used_cpu || 0);
+            const availableStorage = (user.purchased_storage || 0) - (usedResources.used_storage || 0);
+            
+            // Check if user has enough resources
+            if (availableRam < ram) {
+                throw new Error(`Insufficient RAM. You have ${Math.round(availableRam / 1024)}GB available but need ${ramGB}GB.`);
+            }
+            if (availableCpu < cpu) {
+                throw new Error(`Insufficient CPU. You have ${availableCpu}% available but need ${cpu}%.`);
+            }
+            if (availableStorage < storage) {
+                throw new Error(`Insufficient Storage. You have ${Math.round(availableStorage / 1024)}GB available but need ${storageGB}GB.`);
+            }
+            
+            // Insert a placeholder server record to reserve resources atomically
+            // This prevents race conditions - resources are reserved immediately
+            // If Pterodactyl creation fails later, we'll delete this placeholder
+            const result = await run(
+                `INSERT INTO servers (user_id, pterodactyl_id, name, ram, cpu, storage) 
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [req.session.user.id, null, name, ram, cpu, storage]
+            );
+            serverRecordId = result.lastID;
+        }).catch(async (error) => {
+            // Transaction failed - return error
+            if (!res.headersSent) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: error.message || 'Failed to reserve resources for server creation' 
+                });
+            }
+        });
+        
+        // If transaction failed, we already returned, so exit
+        if (res.headersSent) {
+            return;
+        }
         
         // If Pterodactyl is configured, create server there
         if (await pterodactyl.isConfigured()) {
@@ -214,6 +228,14 @@ router.post('/api/create', requireAuth, async (req, res) => {
                 // Get egg information
                 const egg = await get('SELECT * FROM pterodactyl_eggs WHERE egg_id = ? AND is_active = 1', [egg_id]);
                 if (!egg) {
+                    // Delete placeholder server record since validation failed
+                    if (serverRecordId) {
+                        try {
+                            await run('DELETE FROM servers WHERE id = ?', [serverRecordId]);
+                        } catch (deleteError) {
+                            console.error('Failed to delete placeholder server record:', deleteError);
+                        }
+                    }
                     return res.status(400).json({ 
                         success: false, 
                         message: 'Selected game type (egg) not found. Please contact an administrator.' 
@@ -238,6 +260,14 @@ router.post('/api/create', requireAuth, async (req, res) => {
                 `);
                 
                 if (!allocation) {
+                    // Delete placeholder server record since no allocation available
+                    if (serverRecordId) {
+                        try {
+                            await run('DELETE FROM servers WHERE id = ?', [serverRecordId]);
+                        } catch (deleteError) {
+                            console.error('Failed to delete placeholder server record:', deleteError);
+                        }
+                    }
                     return res.status(400).json({ 
                         success: false, 
                         message: 'No available server allocations. Please contact an administrator.' 
@@ -253,6 +283,14 @@ router.post('/api/create', requireAuth, async (req, res) => {
                 
                 // If no rows were updated, another request claimed this allocation
                 if (claimResult.changes === 0) {
+                    // Delete placeholder server record since allocation was claimed by another request
+                    if (serverRecordId) {
+                        try {
+                            await run('DELETE FROM servers WHERE id = ?', [serverRecordId]);
+                        } catch (deleteError) {
+                            console.error('Failed to delete placeholder server record:', deleteError);
+                        }
+                    }
                     return res.status(409).json({ 
                         success: false, 
                         message: 'Server allocation was claimed by another request. Please try again.' 
@@ -298,6 +336,21 @@ router.post('/api/create', requireAuth, async (req, res) => {
                 const pterodactylUserId = pterodactylUser?.pterodactyl_user_id;
                 
                 if (!pterodactylUserId) {
+                    // Delete placeholder server record and release allocation
+                    if (serverRecordId) {
+                        try {
+                            await run('DELETE FROM servers WHERE id = ?', [serverRecordId]);
+                        } catch (deleteError) {
+                            console.error('Failed to delete placeholder server record:', deleteError);
+                        }
+                    }
+                    if (claimedAllocationId) {
+                        try {
+                            await run('UPDATE pterodactyl_allocations SET is_active = 1 WHERE id = ?', [claimedAllocationId]);
+                        } catch (releaseError) {
+                            console.error('Failed to release allocation:', releaseError);
+                        }
+                    }
                     return res.status(400).json({ 
                         success: false, 
                         message: 'Pterodactyl user not found. Please contact an administrator.' 
@@ -346,6 +399,16 @@ router.post('/api/create', requireAuth, async (req, res) => {
                     
                     console.error('Pterodactyl server creation failed:', errorMessage);
                     
+                    // BUGFIX: Delete the placeholder server record to release reserved resources
+                    if (serverRecordId) {
+                        try {
+                            await run('DELETE FROM servers WHERE id = ?', [serverRecordId]);
+                            console.log(`Deleted placeholder server record ${serverRecordId} after Pterodactyl creation failure`);
+                        } catch (deleteError) {
+                            console.error('Failed to delete placeholder server record:', deleteError);
+                        }
+                    }
+                    
                     // BUGFIX #16: Release the allocation back to the pool since server creation failed
                     try {
                         await run('UPDATE pterodactyl_allocations SET is_active = 1 WHERE id = ?', [allocation.id]);
@@ -388,11 +451,13 @@ router.post('/api/create', requireAuth, async (req, res) => {
                     }
                 }
                 
-                // Store server in our database with public_address and identifier
-                const result = await run(
-                    `INSERT INTO servers (user_id, pterodactyl_id, pterodactyl_identifier, name, ram, cpu, storage, public_address) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [req.session.user.id, pterodactyl_id, pterodactyl_identifier, name, ram, cpu, storage, publicAddress]
+                // Update the placeholder server record with Pterodactyl details
+                // The server record was already inserted in the transaction above to reserve resources
+                await run(
+                    `UPDATE servers 
+                     SET pterodactyl_id = ?, pterodactyl_identifier = ?, public_address = ? 
+                     WHERE id = ?`,
+                    [pterodactyl_id, pterodactyl_identifier, publicAddress, serverRecordId]
                 );
                 
                 // BUGFIX #1: Remove the used allocation from the database
@@ -405,14 +470,14 @@ router.post('/api/create', requireAuth, async (req, res) => {
                     console.error('Warning: Failed to remove allocation from database:', allocError);
                 }
                 
-                console.log(`Server created successfully: ID ${result.lastID}, Pterodactyl ID ${pterodactyl_id}`);
+                console.log(`Server created successfully: ID ${serverRecordId}, Pterodactyl ID ${pterodactyl_id}`);
                 
                 if (!res.headersSent) {
                     res.json({ 
                         success: true, 
                         message: 'Server created successfully',
                         server: {
-                            id: result.lastID,
+                            id: serverRecordId,
                             name,
                             ram,
                             cpu,
@@ -427,6 +492,16 @@ router.post('/api/create', requireAuth, async (req, res) => {
             } catch (error) {
                 console.error('Error creating server in Pterodactyl:', error);
                 console.error('Error stack:', error.stack);
+                
+                // BUGFIX: Delete the placeholder server record to release reserved resources
+                if (serverRecordId) {
+                    try {
+                        await run('DELETE FROM servers WHERE id = ?', [serverRecordId]);
+                        console.log(`Deleted placeholder server record ${serverRecordId} after Pterodactyl creation error`);
+                    } catch (deleteError) {
+                        console.error('Failed to delete placeholder server record:', deleteError);
+                    }
+                }
                 
                 // BUGFIX #16: Release the claimed allocation if we had one
                 if (claimedAllocationId) {
@@ -447,28 +522,23 @@ router.post('/api/create', requireAuth, async (req, res) => {
                 }
                 return;
             }
-        }
-        
-        // Store server in our database (if Pterodactyl is not configured)
-        const result = await run(
-            `INSERT INTO servers (user_id, pterodactyl_id, name, ram, cpu, storage) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [req.session.user.id, pterodactyl_id, name, ram, cpu, storage]
-        );
-        
-        if (!res.headersSent) {
-            res.json({ 
-                success: true, 
-                message: 'Server created successfully',
-                server: {
-                    id: result.lastID,
-                    name,
-                    ram,
-                    cpu,
-                    storage,
-                    pterodactyl_id
-                }
-            });
+        } else {
+            // Pterodactyl is not configured - server record was already inserted in transaction
+            // Just return success response
+            if (!res.headersSent) {
+                res.json({ 
+                    success: true, 
+                    message: 'Server created successfully',
+                    server: {
+                        id: serverRecordId,
+                        name,
+                        ram,
+                        cpu,
+                        storage,
+                        pterodactyl_id: null
+                    }
+                });
+            }
         }
     } catch (error) {
         console.error('Error creating server:', error);
@@ -797,7 +867,12 @@ router.post('/api/files/:id/write', requireAuth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'File path is required' });
         }
         
-        const result = await pterodactyl.writeFile(server.pterodactyl_identifier, file, content || '');
+        const result = await pterodactyl.writeFile(
+            server.pterodactyl_identifier, 
+            file, 
+            content || '',
+            req.session.user.pterodactyl_user_id || null
+        );
         
         if (!result.success) {
             return res.status(500).json({ success: false, message: result.error || 'Failed to write file' });
@@ -807,6 +882,98 @@ router.post('/api/files/:id/write', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error writing file:', error);
         res.status(500).json({ success: false, message: 'Error writing file' });
+    }
+});
+
+// Accept Minecraft EULA
+router.post('/api/eula/:id/accept', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        
+        if (!server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server identifier not available' });
+        }
+        
+        const serverIdentifier = server.pterodactyl_identifier;
+        
+        // Try to read eula.txt file
+        const eulaFile = await pterodactyl.getFileContents(serverIdentifier, '/eula.txt', req.session.user.pterodactyl_user_id || null);
+        
+        let eulaContent = '';
+        let needsUpdate = false;
+        
+        if (eulaFile.success && eulaFile.data) {
+            // File exists, check if EULA is already accepted
+            const content = typeof eulaFile.data === 'string' ? eulaFile.data : String(eulaFile.data);
+            
+            if (content.includes('eula=true')) {
+                return res.json({ 
+                    success: true, 
+                    message: 'EULA already accepted',
+                    alreadyAccepted: true
+                });
+            }
+            
+            // Replace eula=false with eula=true
+            eulaContent = content.replace(/eula\s*=\s*false/gi, 'eula=true');
+            
+            // If no eula=false found but eula=true also not found, append it
+            if (!eulaContent.includes('eula=true')) {
+                const lines = eulaContent.split('\n');
+                let insertIndex = lines.length;
+                
+                // Find the last comment line or empty line
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    if (lines[i].trim().startsWith('#') || lines[i].trim() === '') {
+                        insertIndex = i + 1;
+                        break;
+                    }
+                }
+                
+                lines.splice(insertIndex, 0, 'eula=true');
+                eulaContent = lines.join('\n');
+            }
+            
+            needsUpdate = true;
+        } else {
+            // File doesn't exist, create it with eula=true
+            eulaContent = `#By changing the setting below to TRUE you are indicating your agreement to our EULA (https://aka.ms/MinecraftEULA).
+#${new Date().toISOString()}
+eula=true
+`;
+            needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+            // Write the EULA file
+            const writeResult = await pterodactyl.writeFile(
+                serverIdentifier, 
+                '/eula.txt', 
+                eulaContent, 
+                req.session.user.pterodactyl_user_id || null
+            );
+            
+            if (!writeResult.success) {
+                return res.status(500).json({ 
+                    success: false, 
+                    message: writeResult.error || 'Failed to write EULA file' 
+                });
+            }
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'EULA accepted successfully' 
+        });
+    } catch (error) {
+        console.error('Error accepting EULA:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: error.message || 'Error accepting EULA' 
+        });
     }
 });
 
@@ -1530,55 +1697,95 @@ router.post('/api/purchase-resource', requireAuth, async (req, res) => {
                 break;
         }
         
-        // Check if user has enough coins
-        const user = await get('SELECT coins, purchased_ram, purchased_cpu, purchased_storage FROM users WHERE id = ?', 
-            [req.session.user.id]);
-        if (!user || user.coins < coinsSpent) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Insufficient coins. You need ${coinsSpent} coins but only have ${user?.coins || 0}` 
-            });
-        }
-        
-        // Update user's purchased resources
-        // Note: Database stores RAM and Storage in MB, but frontend sends GB
-        let updateQuery = '';
-        let updateParams = [];
+        // BUGFIX: Use transaction to atomically check coins, deduct coins, and add resources
+        // This prevents race conditions where multiple concurrent requests could overspend coins
         let resourceAmountMB = 0; // For recording purchase
+        let updatedUser = null;
         
+        // Determine resource amount in MB (for recording)
         switch(resource_type) {
             case 'ram':
                 // Convert GB to MB for database storage (purchased_ram stores in MB)
                 resourceAmountMB = amount * 1024;
-                updateQuery = 'UPDATE users SET purchased_ram = purchased_ram + ?, coins = coins - ? WHERE id = ?';
-                updateParams = [resourceAmountMB, coinsSpent, req.session.user.id];
                 break;
             case 'cpu':
                 // CPU is stored as percentage (0-100)
-                updateQuery = 'UPDATE users SET purchased_cpu = purchased_cpu + ?, coins = coins - ? WHERE id = ?';
-                updateParams = [amount, coinsSpent, req.session.user.id];
                 resourceAmountMB = amount; // For recording, but it's actually percentage
                 break;
             case 'storage':
                 // Convert GB to MB for database storage (purchased_storage stores in MB)
                 resourceAmountMB = amount * 1024;
-                updateQuery = 'UPDATE users SET purchased_storage = purchased_storage + ?, coins = coins - ? WHERE id = ?';
-                updateParams = [resourceAmountMB, coinsSpent, req.session.user.id];
                 break;
         }
         
-        await run(updateQuery, updateParams);
+        // Atomically check coins, deduct coins, and add resources in a transaction
+        await transaction(async () => {
+            // Re-check user coins within transaction (for consistency)
+            const user = await get('SELECT coins, purchased_ram, purchased_cpu, purchased_storage FROM users WHERE id = ?', 
+                [req.session.user.id]);
+            
+            if (!user) {
+                throw new Error('User not found');
+            }
+            
+            if (user.coins < coinsSpent) {
+                throw new Error(`Insufficient coins. You need ${coinsSpent} coins but only have ${user.coins}`);
+            }
+            
+            // Update user's purchased resources and deduct coins atomically
+            // Use WHERE clause to ensure coins are still sufficient at update time
+            let updateQuery = '';
+            let updateParams = [];
+            
+            switch(resource_type) {
+                case 'ram':
+                    // Convert GB to MB for database storage (purchased_ram stores in MB)
+                    updateQuery = 'UPDATE users SET purchased_ram = purchased_ram + ?, coins = coins - ? WHERE id = ? AND coins >= ?';
+                    updateParams = [resourceAmountMB, coinsSpent, req.session.user.id, coinsSpent];
+                    break;
+                case 'cpu':
+                    // CPU is stored as percentage (0-100)
+                    updateQuery = 'UPDATE users SET purchased_cpu = purchased_cpu + ?, coins = coins - ? WHERE id = ? AND coins >= ?';
+                    updateParams = [amount, coinsSpent, req.session.user.id, coinsSpent];
+                    break;
+                case 'storage':
+                    // Convert GB to MB for database storage (purchased_storage stores in MB)
+                    updateQuery = 'UPDATE users SET purchased_storage = purchased_storage + ?, coins = coins - ? WHERE id = ? AND coins >= ?';
+                    updateParams = [resourceAmountMB, coinsSpent, req.session.user.id, coinsSpent];
+                    break;
+            }
+            
+            const updateResult = await run(updateQuery, updateParams);
+            
+            // If no rows were updated, coins were insufficient (another request may have spent them)
+            if (updateResult.changes === 0) {
+                throw new Error(`Insufficient coins. Another transaction may have spent your coins. Please refresh and try again.`);
+            }
+            
+            // Record purchase within the same transaction
+            await run(
+                `INSERT INTO resource_purchases (user_id, server_id, resource_type, amount, coins_spent) 
+                 VALUES (?, ?, ?, ?, ?)`,
+                [req.session.user.id, null, resource_type, resourceAmountMB, coinsSpent]
+            );
+            
+            // Get updated user data within transaction
+            updatedUser = await get('SELECT coins, purchased_ram, purchased_cpu, purchased_storage FROM users WHERE id = ?', 
+                [req.session.user.id]);
+        }).catch((error) => {
+            // Transaction failed - return error
+            if (!res.headersSent) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: error.message || 'Failed to purchase resource' 
+                });
+            }
+        });
         
-        // Record purchase (server_id is now NULL since resources are purchased, not assigned to a server yet)
-        await run(
-            `INSERT INTO resource_purchases (user_id, server_id, resource_type, amount, coins_spent) 
-             VALUES (?, ?, ?, ?, ?)`,
-            [req.session.user.id, null, resource_type, resourceAmountMB, coinsSpent]
-        );
-        
-        // Get updated user data
-        const updatedUser = await get('SELECT coins, purchased_ram, purchased_cpu, purchased_storage FROM users WHERE id = ?', 
-            [req.session.user.id]);
+        // If transaction failed, we already returned, so exit
+        if (res.headersSent || !updatedUser) {
+            return;
+        }
         
         // Update session
         req.session.user.coins = updatedUser.coins;
@@ -1617,37 +1824,61 @@ router.post('/api/purchase-slot', requireAuth, async (req, res) => {
         
         const slotPrice = prices.server_slot_price;
         
-        // Get user's current coin balance
-        const user = await get('SELECT coins, server_slots FROM users WHERE id = ?', [req.session.user.id]);
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'User not found' 
-            });
+        // BUGFIX: Use transaction to atomically check coins, deduct coins, add slot, and record purchase
+        // This prevents race conditions where multiple concurrent requests could overspend coins
+        // or where the purchase record insertion fails after coins are deducted
+        let updatedUser = null;
+        
+        // Atomically check coins, deduct coins, add slot, and record purchase in a transaction
+        await transaction(async () => {
+            // Re-check user coins within transaction (for consistency)
+            const user = await get('SELECT coins, server_slots FROM users WHERE id = ?', [req.session.user.id]);
+            
+            if (!user) {
+                throw new Error('User not found');
+            }
+            
+            if (user.coins < slotPrice) {
+                throw new Error(`Insufficient coins. You need ${slotPrice} coins to purchase a server slot. You currently have ${user.coins} coins.`);
+            }
+            
+            // Deduct coins and add server slot atomically
+            // Use WHERE clause to ensure coins are still sufficient at update time
+            const updateResult = await run(
+                'UPDATE users SET coins = coins - ?, server_slots = server_slots + 1 WHERE id = ? AND coins >= ?',
+                [slotPrice, req.session.user.id, slotPrice]
+            );
+            
+            // If no rows were updated, coins were insufficient (another request may have spent them)
+            if (updateResult.changes === 0) {
+                throw new Error(`Insufficient coins. Another transaction may have spent your coins. Please refresh and try again.`);
+            }
+            
+            // Record the purchase within the same transaction
+            // If this fails, the entire transaction will rollback (coins won't be deducted)
+            await run(
+                'INSERT INTO server_slot_purchases (user_id, coins_spent) VALUES (?, ?)',
+                [req.session.user.id, slotPrice]
+            );
+            
+            // Get updated user data within transaction
+            updatedUser = await get('SELECT coins, server_slots FROM users WHERE id = ?', [req.session.user.id]);
+        }).catch((error) => {
+            // Transaction failed - return error
+            if (!res.headersSent) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: error.message || 'Failed to purchase server slot' 
+                });
+            }
+        });
+        
+        // If transaction failed, we already returned, so exit
+        if (res.headersSent || !updatedUser) {
+            return;
         }
-        
-        // Check if user has enough coins
-        if (user.coins < slotPrice) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Insufficient coins. You need ${slotPrice} coins to purchase a server slot. You currently have ${user.coins} coins.` 
-            });
-        }
-        
-        // Deduct coins and add server slot
-        await run(
-            'UPDATE users SET coins = coins - ?, server_slots = server_slots + 1 WHERE id = ?',
-            [slotPrice, req.session.user.id]
-        );
-        
-        // Record the purchase
-        await run(
-            'INSERT INTO server_slot_purchases (user_id, coins_spent) VALUES (?, ?)',
-            [req.session.user.id, slotPrice]
-        );
         
         // Update session
-        const updatedUser = await get('SELECT coins, server_slots FROM users WHERE id = ?', [req.session.user.id]);
         req.session.user.coins = updatedUser.coins;
         req.session.user.server_slots = updatedUser.server_slots;
         
@@ -1901,28 +2132,36 @@ router.post('/api/create-from-template', requireAuth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Failed to claim allocation' });
         }
         
-        // Parse environment variables
+        // BUGFIX: Parse environment variables properly (same logic as regular server creation)
+        // Handle various formats from Pterodactyl API and database storage
         let environment = {};
         if (egg.environment_variables) {
             try {
-                let envVars = egg.environment_variables;
-                if (typeof envVars === 'string') {
-                    envVars = JSON.parse(envVars);
-                }
+                const envVars = typeof egg.environment_variables === 'string' 
+                    ? JSON.parse(egg.environment_variables) 
+                    : egg.environment_variables;
                 
                 if (Array.isArray(envVars)) {
-                    envVars.forEach(v => {
-                        if (v.env_variable) {
-                            environment[v.env_variable] = v.default_value ?? '';
+                    // Format: [{attributes: {env_variable, default_value}}, ...]
+                    envVars.forEach(variable => {
+                        const attr = variable.attributes || variable;
+                        if (attr.env_variable) {
+                            // Use default_value if available, otherwise empty string
+                            // This ensures required variables are always included
+                            environment[attr.env_variable] = attr.default_value ?? '';
                         }
                     });
-                } else if (typeof envVars === 'object') {
-                    for (const [key, value] of Object.entries(envVars)) {
-                        environment[key] = value ?? '';
-                    }
+                } else if (typeof envVars === 'object' && envVars !== null) {
+                    // Format: {ENV_VAR: "value", ...} (already parsed object)
+                    Object.entries(envVars).forEach(([key, value]) => {
+                        if (typeof key === 'string' && key.length > 0) {
+                            environment[key] = value ?? '';
+                        }
+                    });
                 }
-            } catch (e) {
-                console.error('Error parsing environment variables:', e);
+            } catch (error) {
+                console.error('Error parsing environment variables:', error);
+                // If parsing fails, try to use egg startup defaults or leave empty
             }
         }
         

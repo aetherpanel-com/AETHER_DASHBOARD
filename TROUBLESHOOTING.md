@@ -496,7 +496,7 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.3.1
+**Last Updated:** Version 1.3.2
 
 **Made with ❤️ for free hosting providers**
 

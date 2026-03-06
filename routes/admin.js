@@ -6,7 +6,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs').promises;
 const multer = require('multer');
-const { query, get, run } = require('../config/database');
+const { query, get, run, transaction } = require('../config/database');
 
 // Configure multer for file uploads (configure once, use multiple times)
 const uploadPath = path.join(__dirname, '../public/assets/branding');
@@ -266,35 +266,58 @@ router.post('/api/coins', requireAdmin, async (req, res) => {
         // Convert to integer (round to nearest whole number)
         const amountInt = Math.round(amountNum);
         
-        // Get user by username
-        const user = await get('SELECT id, coins, username FROM users WHERE username = ?', [username.trim()]);
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: `User "${username}" not found` 
+        // BUGFIX: Use transaction to atomically read and update coins
+        // This prevents race conditions when multiple admins update the same user simultaneously
+        // or when a user makes purchases while an admin is updating their coins
+        let updatedUser = null;
+        let oldBalance = null;
+        
+        await transaction(async () => {
+            // Get user by username within transaction (for consistency)
+            const user = await get('SELECT id, coins, username FROM users WHERE username = ?', [username.trim()]);
+            if (!user) {
+                throw new Error(`User "${username}" not found`);
+            }
+            
+            // Store old balance for response message
+            oldBalance = user.coins;
+            
+            // Calculate new balance based on current balance within transaction
+            // This ensures we're working with the latest balance, even if user made purchases
+            const newBalance = Math.max(0, user.coins + amountInt); // Don't allow negative balance
+            
+            console.log('Updating coins:', { 
+                userId: user.id, 
+                username: user.username, 
+                oldBalance: oldBalance, 
+                amount: amountInt, 
+                newBalance 
             });
-        }
-        
-        // Add amount to existing balance (amount can be positive or negative)
-        const newBalance = Math.max(0, user.coins + amountInt); // Don't allow negative balance
-        
-        console.log('Updating coins:', { 
-            userId: user.id, 
-            username: user.username, 
-            oldBalance: user.coins, 
-            amount: amountInt, 
-            newBalance 
+            
+            // Update coins atomically within transaction
+            await run('UPDATE users SET coins = ? WHERE id = ?', [newBalance, user.id]);
+            
+            // Get updated user data within transaction
+            updatedUser = await get('SELECT coins, username FROM users WHERE id = ?', [user.id]);
+        }).catch((error) => {
+            // Transaction failed - return error
+            if (!res.headersSent) {
+                const statusCode = error.message.includes('not found') ? 404 : 500;
+                return res.status(statusCode).json({ 
+                    success: false, 
+                    message: error.message || 'Error updating coins'
+                });
+            }
         });
         
-        // Update coins
-        await run('UPDATE users SET coins = ? WHERE id = ?', [newBalance, user.id]);
-        
-        // Verify update
-        const updatedUser = await get('SELECT coins FROM users WHERE id = ?', [user.id]);
+        // If transaction failed, we already returned, so exit
+        if (res.headersSent || !updatedUser) {
+            return;
+        }
         
         res.json({ 
             success: true, 
-            message: `Coins updated successfully for user "${user.username}". Balance: ${user.coins} + ${amountInt >= 0 ? '+' : ''}${amountInt} = ${updatedUser.coins}`,
+            message: `Coins updated successfully for user "${updatedUser.username}". Balance: ${oldBalance} + ${amountInt >= 0 ? '+' : ''}${amountInt} = ${updatedUser.coins}`,
             new_balance: updatedUser.coins
         });
     } catch (error) {
@@ -1396,23 +1419,35 @@ router.post('/api/panel/allocations/sync', requireAdmin, async (req, res) => {
         }
         
         // Sync allocations to database (only unassigned ones come from getAllAllocations)
+        console.log(`[DEBUG] Syncing ${allocations.length} allocations to database...`);
         for (const allocation of allocations) {
             try {
                 const allocAttrs = allocation.attributes || allocation;
+                // Allocation ID is in attributes.id, not allocation.id (when coming from Pterodactyl API)
+                const allocationId = allocAttrs.id || allocation.id;
+                const nodeId = allocation.node_id || allocAttrs.node_id;
+                
+                console.log(`[DEBUG] Syncing allocation:`, { allocationId, ip: allocAttrs.ip, port: allocAttrs.port, nodeId });
+                
                 await run(`
                     INSERT INTO pterodactyl_allocations 
                     (allocation_id, ip, ip_alias, port, node_id, priority, is_active, created_at)
                     VALUES (?, ?, ?, ?, ?, 0, 1, CURRENT_TIMESTAMP)
                 `, [
-                    allocation.id || allocAttrs.id,
+                    allocationId,
                     allocAttrs.ip,
                     allocAttrs.ip_alias || null,
                     allocAttrs.port,
-                    allocation.node_id || allocAttrs.node_id
+                    nodeId
                 ]);
                 synced++;
             } catch (error) {
-                console.error(`Error syncing allocation ${allocation.id || allocation.attributes?.id}:`, error);
+                const allocationId = allocation.id || allocation.attributes?.id || 'unknown';
+                console.error(`Error syncing allocation ${allocationId}:`, error);
+                // If it's a duplicate key error, that's okay - allocation already exists
+                if (error.message && (error.message.includes('UNIQUE constraint') || error.message.includes('UNIQUE'))) {
+                    console.log(`[INFO] Allocation ${allocationId} already exists, skipping`);
+                }
             }
         }
         

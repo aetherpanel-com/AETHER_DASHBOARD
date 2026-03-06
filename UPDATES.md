@@ -146,7 +146,58 @@ pm2 restart aether-dashboard
 
 ## 📝 Version Changelog
 
-### Version 1.3.1 (Latest) 🎉
+### Version 1.3.2 (Latest) 🎉
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+**🔧 This release focuses on automatic EULA acceptance, allocation management fixes, and improved file operations reliability.**
+
+**New Features:**
+
+| Feature | Description |
+|---------|-------------|
+| ✅ **Automatic EULA Acceptance** | Minecraft EULA is now automatically accepted in the background when server details page loads or when server starts. Runs silently without user interaction. |
+| 🔄 **Smart Retry Logic** | EULA acceptance includes intelligent retry mechanism (up to 3 attempts with 5-second delays) for cases where eula.txt hasn't been generated yet. |
+| 📊 **Status Change Detection** | Automatically detects when server transitions from offline to starting and triggers EULA acceptance. |
+
+**Bug Fixes:**
+
+| Bug | Description |
+|-----|-------------|
+| 🐛 **Allocation Fetching** | Fixed allocation sync endpoint to correctly extract allocation IDs from Pterodactyl API response structure. |
+| 🐛 **Allocation Auto-Sync** | "Fetch from Pterodactyl" button now automatically syncs allocations to database after fetching. |
+| 🐛 **File Write Operations** | Fixed `writeFile` function to always use Client API key for `/client/servers/` endpoints, preventing 403 errors. |
+| 🐛 **Coins Display** | Fixed coins showing as 0 in server details page by ensuring user data is loaded on page mount. |
+| 🐛 **EULA File Operations** | Improved error handling for EULA file read/write operations with better 404 detection and content type handling. |
+
+**Improvements:**
+
+- 🤖 **Background Automation** - EULA acceptance runs automatically without user interaction
+- 🔇 **Silent Operation** - All EULA operations run silently (console logs only, no user notifications)
+- 🔄 **Better Retry Logic** - Intelligent retry mechanism for file operations
+- 📝 **Enhanced Logging** - Better debug logging for EULA and file operations
+- 🎯 **Status Monitoring** - Automatic detection of server state changes
+- 🔧 **Error Handling** - Improved error detection and handling for file operations
+
+**How to Update:**
+
+```bash
+# GitHub method (recommended)
+cd AETHER_PANEL
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+Or via SFTP: Download latest version, replace files (keep database.db and .env), run `npm install`, restart dashboard.
+
+**⚠️ Important:** Always backup `database.db` and `.env` before updating!
+
+---
+
+### Version 1.3.1 🎉
 
 **Release Date:** March 2026
 
@@ -528,7 +579,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.3.1
+**Last Updated:** Version 1.3.2
 
 **Made with ❤️ for free hosting providers**
 

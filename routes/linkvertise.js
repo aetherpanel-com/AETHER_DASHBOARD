@@ -93,9 +93,6 @@ router.get('/api/links', requireAuth, async (req, res) => {
             };
         });
         
-        console.log(`Cooldown config: ${cooldownSeconds} seconds`); // Debug
-        console.log(`Links with status:`, linksWithStatus); // Debug
-        
         res.json({ success: true, links: linksWithStatus });
     } catch (error) {
         console.error('Error fetching links:', error);

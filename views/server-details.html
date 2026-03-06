@@ -492,6 +492,7 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initMobileMenu();
+            loadUserData(); // Load user coins and data
             loadPanelUrl();
             loadServerDetails();
             initCharts();
@@ -525,6 +526,14 @@
                     
                     // Load initial stats
                     refreshStats();
+                    
+                    // Initialize server status for EULA detection
+                    previousServerStatus = null;
+                    eulaAcceptanceAttempted = false;
+                    eulaRetryCount = 0;
+                    
+                    // Attempt automatic EULA acceptance on page load
+                    autoAcceptEULA();
                     
                     // Load files
                     loadFiles('/');
@@ -576,7 +585,11 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    updateStatusBadge(data.status);
+                    const currentStatus = data.status;
+                    updateStatusBadge(currentStatus);
+                    
+                    // Check for server status change to trigger EULA acceptance
+                    checkServerStatusChange(currentStatus);
                     
                     if (data.resources) {
                         updateStats(data.resources);
@@ -852,6 +865,94 @@
             } finally {
                 buttons.forEach(btn => btn.disabled = false);
             }
+        }
+        
+        // Automatic EULA acceptance - runs silently in background
+        let previousServerStatus = null;
+        let eulaAcceptanceAttempted = false;
+        let eulaRetryCount = 0;
+        const MAX_EULA_RETRIES = 3;
+        const EULA_RETRY_DELAY = 5000; // 5 seconds
+        
+        async function autoAcceptEULA() {
+            // Prevent multiple simultaneous attempts
+            if (eulaAcceptanceAttempted) {
+                return;
+            }
+            
+            try {
+                // Wait 3-5 seconds for server to generate eula.txt
+                await new Promise(resolve => setTimeout(resolve, 4000));
+                
+                // Try to accept EULA with retries
+                await attemptEULAAcceptance();
+            } catch (error) {
+                // Silent error handling - only log to console
+                console.log('[EULA] Auto-acceptance skipped:', error.message);
+            }
+        }
+        
+        async function attemptEULAAcceptance(retryCount = 0) {
+            try {
+                const response = await fetch(`/servers/api/eula/${serverId}/accept`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (data.alreadyAccepted) {
+                        console.log('[EULA] Already accepted');
+                    } else {
+                        console.log('[EULA] Accepted successfully');
+                    }
+                    eulaAcceptanceAttempted = true;
+                    eulaRetryCount = 0;
+                } else {
+                    // Check if it's a "file not found" error and retry
+                    const isFileNotFound = data.message && (
+                        data.message.includes('not found') || 
+                        data.message.includes('404') ||
+                        data.message.includes('File not found')
+                    );
+                    
+                    if (isFileNotFound && retryCount < MAX_EULA_RETRIES) {
+                        console.log(`[EULA] File not found, retrying (${retryCount + 1}/${MAX_EULA_RETRIES})...`);
+                        eulaRetryCount = retryCount + 1;
+                        setTimeout(() => attemptEULAAcceptance(retryCount + 1), EULA_RETRY_DELAY);
+                    } else {
+                        console.log('[EULA] Acceptance failed:', data.message);
+                        eulaAcceptanceAttempted = true;
+                    }
+                }
+            } catch (error) {
+                // Silent error handling - only log to console
+                console.log('[EULA] Error during acceptance:', error.message);
+                
+                // Retry on network errors if we haven't exceeded max retries
+                if (retryCount < MAX_EULA_RETRIES) {
+                    eulaRetryCount = retryCount + 1;
+                    setTimeout(() => attemptEULAAcceptance(retryCount + 1), EULA_RETRY_DELAY);
+                } else {
+                    eulaAcceptanceAttempted = true;
+                }
+            }
+        }
+        
+        function checkServerStatusChange(newStatus) {
+            // Detect server state change from offline/stopped to starting
+            const wasOffline = previousServerStatus === 'offline' || previousServerStatus === 'stopping' || previousServerStatus === null;
+            const isStarting = newStatus === 'starting';
+            
+            if (wasOffline && isStarting && !eulaAcceptanceAttempted) {
+                console.log('[EULA] Server starting detected, attempting auto-acceptance...');
+                eulaAcceptanceAttempted = false;
+                eulaRetryCount = 0;
+                autoAcceptEULA();
+            }
+            
+            previousServerStatus = newStatus;
         }
         
         function showError() {

@@ -155,8 +155,6 @@
                 const response = await fetch('/linkvertise/api/links');
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('Links API Response:', data); // Debug: Check what we're receiving
-                    console.log('Links with cooldown:', data.links?.filter(l => l.on_cooldown)); // Debug: Check cooldown status
                     displayLinks(data.links || []);
                 }
             } catch (error) {
@@ -175,8 +173,6 @@
                 return;
             }
             
-            console.log('Displaying links:', links); // Debug: See all link data
-            
             let html = '<div style="display: grid; gap: 16px;">';
             const linksOnCooldown = []; // Store links that need timers
             
@@ -184,8 +180,6 @@
                 const isOnCooldown = link.on_cooldown === true; // Use strict equality
                 const cooldownRemaining = parseInt(link.cooldown_remaining) || 0;
                 const hasCompletedBefore = link.completed || false;
-                
-                console.log(`Link ${link.id}: on_cooldown=${isOnCooldown}, remaining=${cooldownRemaining}, completed=${link.completed}`); // Debug
                 
                 const escapedUrl = escapeHtml(link.url);
                 const escapedTitle = escapeHtml(link.title || 'Link #' + link.id);
@@ -235,22 +229,15 @@
                 });
             });
             
-            console.log('Links on cooldown:', linksOnCooldown); // Debug
-            
             // Now start timers AFTER DOM elements exist
             if (linksOnCooldown.length > 0) {
                 linksOnCooldown.forEach(linkInfo => {
-                    console.log(`Starting timer for link ${linkInfo.id} with ${linkInfo.remaining} seconds remaining`); // Debug
                     startCooldownTimer(linkInfo.id, linkInfo.remaining, linkInfo.cooldownSeconds);
                 });
-            } else {
-                console.log('No links on cooldown - timers not started'); // Debug
             }
         }
         
         function startCooldownTimer(linkId, remainingSeconds, cooldownSeconds) {
-            console.log(`startCooldownTimer called: linkId=${linkId}, remaining=${remainingSeconds}, cooldown=${cooldownSeconds}`); // Debug
-            
             // Clear existing timer if any
             if (cooldownTimers[linkId]) {
                 clearInterval(cooldownTimers[linkId]);
@@ -260,23 +247,19 @@
             const cooldownElement = document.getElementById(`cooldown-${linkId}`);
             const buttonElement = document.getElementById(`btn-${linkId}`);
             
-            console.log(`Timer elements found: cooldownElement=${!!cooldownElement}, buttonElement=${!!buttonElement}`); // Debug
-            
             if (!cooldownElement) {
-                console.error(`Cooldown element not found for link ${linkId}!`); // Debug
+                console.error(`Cooldown element not found for link ${linkId}!`);
                 return;
             }
             
             cooldownTimers[linkId] = setInterval(() => {
                 remaining--;
-                console.log(`Timer tick for link ${linkId}: ${remaining} seconds remaining`); // Debug
                 
                 if (cooldownElement) {
                     if (remaining > 0) {
                         cooldownElement.innerHTML = `⏱️ Available in <strong>${remaining}</strong> second${remaining !== 1 ? 's' : ''}`;
                     } else {
                         cooldownElement.innerHTML = '';
-                        console.log(`Cooldown expired for link ${linkId}, reloading links...`); // Debug
                         // Reload links to update status
                         loadLinks();
                     }
@@ -285,7 +268,6 @@
                 if (remaining <= 0) {
                     clearInterval(cooldownTimers[linkId]);
                     delete cooldownTimers[linkId];
-                    console.log(`Timer cleared for link ${linkId}`); // Debug
                 }
             }, 1000);
         }

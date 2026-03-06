@@ -9,6 +9,7 @@ const { decrypt } = require('./encryption');
 let configCache = {
     url: null,
     apiKey: null,
+    client_api_key: null,
     lastChecked: null
 };
 
@@ -23,28 +24,33 @@ async function getConfig() {
         (now - configCache.lastChecked) < CACHE_EXPIRY) {
         return {
             url: configCache.url,
-            apiKey: configCache.apiKey
+            apiKey: configCache.apiKey,
+            client_api_key: configCache.client_api_key
         };
     }
     
     try {
-        // Try database first
-        const dbConfig = await get('SELECT panel_url, api_key FROM pterodactyl_config ORDER BY id DESC LIMIT 1');
+        // Try database first - include client_api_key
+        const dbConfig = await get('SELECT panel_url, api_key, client_api_key FROM pterodactyl_config ORDER BY id DESC LIMIT 1');
         
         if (dbConfig && dbConfig.panel_url && dbConfig.api_key) {
-            // Decrypt API key
+            // Decrypt API key (Application API key is encrypted)
             const decryptedKey = decrypt(dbConfig.api_key);
+            // Client API key is stored plain (not encrypted) in database
+            const clientApiKey = dbConfig.client_api_key || '';
             
             // Update cache
             configCache = {
                 url: dbConfig.panel_url,
                 apiKey: decryptedKey,
+                client_api_key: clientApiKey,
                 lastChecked: now
             };
             
             return {
                 url: dbConfig.panel_url,
-                apiKey: decryptedKey
+                apiKey: decryptedKey,
+                client_api_key: clientApiKey
             };
         }
     } catch (error) {
@@ -54,17 +60,20 @@ async function getConfig() {
     // Fallback to .env
     const envUrl = process.env.PTERODACTYL_URL || '';
     const envKey = process.env.PTERODACTYL_API_KEY || '';
+    const envClientKey = process.env.PTERODACTYL_CLIENT_API_KEY || '';
     
     // Update cache
     configCache = {
         url: envUrl,
         apiKey: envKey,
+        client_api_key: envClientKey,
         lastChecked: now
     };
     
     return {
         url: envUrl,
-        apiKey: envKey
+        apiKey: envKey,
+        client_api_key: envClientKey
     };
 }
 
@@ -73,6 +82,7 @@ function clearConfigCache() {
     configCache = {
         url: null,
         apiKey: null,
+        client_api_key: null,
         lastChecked: null
     };
 }
@@ -251,29 +261,16 @@ async function makeClientRequest(method, endpoint, data = null, pterodactylUserI
             data: response.data
         };
     } catch (error) {
-        console.error('[DEBUG] makeClientRequest error:', {
-            endpoint,
-            method,
-            errorCode: error.code,
-            status: error.response?.status,
-            errorData: error.response?.data,
-            errorMessage: error.message
-        });
-
-        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-            return {
-                success: false,
-                error: 'Request timeout: Pterodactyl Client API did not respond in time.'
-            };
-        }
-
-        // Handle 409 Conflict - Server is likely still installing/not ready
+        // Handle 409 Conflict first (before logging) - these are expected during server installation
+        // Log as warning instead of error to reduce production log noise
         if (error.response?.status === 409) {
             // Check if it's a resources endpoint (server not ready) or power endpoint
             const isResourcesEndpoint = endpoint.includes('/resources');
             const isPowerEndpoint = endpoint.includes('/power');
             
             if (isResourcesEndpoint || isPowerEndpoint) {
+                // Log as warning since this is expected behavior during server installation
+                console.warn(`[INFO] Server not ready yet (409) for ${method} ${endpoint} - this is normal during installation`);
                 return {
                     success: false,
                     error: 'Server is still installing or not ready yet. Please wait a moment and try again.',
@@ -290,10 +287,28 @@ async function makeClientRequest(method, endpoint, data = null, pterodactylUserI
                     conflictMessage = detail;
                 }
             }
+            console.warn(`[INFO] Server in transitional state (409) for ${method} ${endpoint}`);
             return {
                 success: false,
                 error: conflictMessage,
                 isTransient: true
+            };
+        }
+
+        // Log other errors as errors (not expected behavior)
+        console.error('[DEBUG] makeClientRequest error:', {
+            endpoint,
+            method,
+            errorCode: error.code,
+            status: error.response?.status,
+            errorData: error.response?.data,
+            errorMessage: error.message
+        });
+
+        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+            return {
+                success: false,
+                error: 'Request timeout: Pterodactyl Client API did not respond in time.'
             };
         }
 
@@ -709,18 +724,46 @@ async function listFiles(serverIdentifier, directory = '/', pterodactylUserId) {
 
 // Get file contents
 async function getFileContents(serverIdentifier, filePath, pterodactylUserId) {
-    const encodedPath = encodeURIComponent(filePath);
-    return await makeClientRequest('GET', `/client/servers/${serverIdentifier}/files/contents?file=${encodedPath}`, null, pterodactylUserId);
+    try {
+        const encodedPath = encodeURIComponent(filePath);
+        const result = await makeClientRequest('GET', `/client/servers/${serverIdentifier}/files/contents?file=${encodedPath}`, null, pterodactylUserId);
+        
+        if (result.success) {
+            // Handle both string and object responses
+            const content = typeof result.data === 'string' ? result.data : (result.data?.content || result.data?.data || JSON.stringify(result.data));
+            return { success: true, data: content };
+        } else {
+            // Check if it's a 404 (file not found) - that's okay, we'll create it
+            if (result.error && (result.error.includes('404') || result.error.includes('not found') || result.error.includes('Not Found'))) {
+                return { success: false, error: 'File not found', notFound: true };
+            }
+            return result;
+        }
+    } catch (error) {
+        // Handle 404 errors gracefully
+        if (error.response?.status === 404 || error.message?.includes('404')) {
+            return { success: false, error: 'File not found', notFound: true };
+        }
+        console.error('Error getting file contents:', error);
+        return { success: false, error: error.message || 'Failed to read file' };
+    }
 }
 
 // Write file contents
 // Note: Pterodactyl expects raw text body for file writes, not JSON
-async function writeFile(serverIdentifier, filePath, content) {
+// Always uses Client API for /client/servers/ endpoints
+async function writeFile(serverIdentifier, filePath, content, pterodactylUserId = null) {
     try {
         const pterodactylConfig = await getConfig();
         
-        if (!pterodactylConfig.url || !pterodactylConfig.apiKey) {
+        if (!pterodactylConfig.url) {
             return { success: false, error: 'Pterodactyl not configured' };
+        }
+        
+        // Client API endpoints always require Client API key
+        const clientApiKey = pterodactylConfig.client_api_key;
+        if (!clientApiKey) {
+            return { success: false, error: 'Client API key not configured. Please configure it in Admin Panel → Panel.' };
         }
         
         const encodedPath = encodeURIComponent(filePath);
@@ -728,7 +771,7 @@ async function writeFile(serverIdentifier, filePath, content) {
         
         const response = await axios.post(url, content, {
             headers: {
-                'Authorization': `Bearer ${pterodactylConfig.apiKey}`,
+                'Authorization': `Bearer ${clientApiKey}`,
                 'Content-Type': 'text/plain',
                 'Accept': 'application/json'
             },

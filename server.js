@@ -55,8 +55,43 @@ app.use((req, res, next) => {
 
 // Session configuration
 // Sessions help us remember if a user is logged in
+// BUGFIX: Security - Ensure SESSION_SECRET is properly configured
+const DEFAULT_SECRET = 'aether-dashboard-secret-key-change-in-production';
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionSecret = process.env.SESSION_SECRET || DEFAULT_SECRET;
+
+// Security check: In production, require a custom SESSION_SECRET
+if (isProduction) {
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === DEFAULT_SECRET) {
+        console.error('❌ SECURITY ERROR: SESSION_SECRET must be set in production!');
+        console.error('   Please set a strong, random SESSION_SECRET in your .env file.');
+        console.error('   Generate one using: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+        console.error('   Server will not start without a secure SESSION_SECRET.');
+        process.exit(1);
+    }
+    
+    // Validate secret strength in production
+    if (sessionSecret.length < 32) {
+        console.error('❌ SECURITY ERROR: SESSION_SECRET must be at least 32 characters long!');
+        console.error('   Current length:', sessionSecret.length);
+        console.error('   Please set a longer, random SESSION_SECRET in your .env file.');
+        process.exit(1);
+    }
+} else {
+    // Development mode: Show warning but allow server to start
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === DEFAULT_SECRET) {
+        console.warn('⚠️  SECURITY WARNING: Using default SESSION_SECRET!');
+        console.warn('   This is insecure and should NOT be used in production!');
+        console.warn('   Please set a strong, random SESSION_SECRET in your .env file.');
+        console.warn('   Generate one using: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+    } else if (sessionSecret.length < 32) {
+        console.warn('⚠️  SECURITY WARNING: SESSION_SECRET should be at least 32 characters long!');
+        console.warn('   Current length:', sessionSecret.length);
+    }
+}
+
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'aether-dashboard-secret-key-change-in-production',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {

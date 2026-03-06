@@ -5,7 +5,10 @@ const crypto = require('crypto');
 
 // Get encryption key from environment variable
 // Use SESSION_SECRET as the encryption key (or generate a hash from it)
+// Note: SESSION_SECRET is validated in server.js - this should only be called if server started successfully
 function getEncryptionKey() {
+    // In production, SESSION_SECRET is required by server.js, so it should exist
+    // In development, use a default but it's not secure
     const secret = process.env.SESSION_SECRET || 'default-secret-key-change-this';
     // Create a 32-byte key from the secret using SHA-256
     return crypto.createHash('sha256').update(secret).digest();
