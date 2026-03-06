@@ -126,6 +126,97 @@ router.get('/api/users', requireAdmin, async (req, res) => {
     }
 });
 
+// API endpoint to update user
+router.put('/api/users/:id', requireAdmin, async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { username, email, is_admin } = req.body;
+        const { get, run, query } = require('../config/database');
+        
+        // Validate input
+        if (!username || !email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Username and email are required'
+            });
+        }
+        
+        // Get current user data
+        const currentUser = await get('SELECT * FROM users WHERE id = ?', [userId]);
+        if (!currentUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        
+        // Check if username is already taken by another user
+        const existingUsername = await get(
+            'SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ?',
+            [username, userId]
+        );
+        if (existingUsername) {
+            return res.status(400).json({
+                success: false,
+                message: 'Username is already taken'
+            });
+        }
+        
+        // Check if email is already taken by another user
+        const existingEmail = await get(
+            'SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ?',
+            [email, userId]
+        );
+        if (existingEmail) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is already taken'
+            });
+        }
+        
+        // Handle admin status change
+        const newIsAdmin = is_admin ? 1 : 0;
+        const wasAdmin = currentUser.is_admin === 1;
+        const willBeAdmin = newIsAdmin === 1;
+        
+        // Safety check: Prevent removing admin status if it's the last admin
+        if (wasAdmin && !willBeAdmin) {
+            const adminCount = await get('SELECT COUNT(*) as count FROM users WHERE is_admin = 1');
+            if (adminCount.count <= 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot remove admin status: This is the only admin account. At least one admin must exist.'
+                });
+            }
+        }
+        
+        // Prevent user from removing their own admin status
+        if (wasAdmin && !willBeAdmin && parseInt(userId) === req.session.user.id) {
+            return res.status(400).json({
+                success: false,
+                message: 'You cannot remove admin status from your own account'
+            });
+        }
+        
+        // Update user
+        await run(
+            'UPDATE users SET username = ?, email = ?, is_admin = ? WHERE id = ?',
+            [username, email.toLowerCase(), newIsAdmin, userId]
+        );
+        
+        res.json({
+            success: true,
+            message: 'User updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating user'
+        });
+    }
+});
+
 // API endpoint to delete user
 router.delete('/api/users/:id', requireAdmin, async (req, res) => {
     try {
@@ -920,11 +1011,6 @@ router.post('/api/panel/sync-users', requireAdmin, async (req, res) => {
 
 // Import users FROM Pterodactyl panel TO dashboard (with SSE progress)
 router.get('/api/panel/import-users', requireAdmin, async (req, res) => {
-    // #region agent log
-    console.log('[DEBUG] Import endpoint called');
-    fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:import-users:start',message:'Import endpoint called',data:{},timestamp:Date.now(),hypothesisId:'B'})}).catch((e)=>console.error('[DEBUG] Fetch error:',e));
-    // #endregion
-    
     // Set up Server-Sent Events
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -937,24 +1023,15 @@ router.get('/api/panel/import-users', requireAdmin, async (req, res) => {
             const sseData = `data: ${JSON.stringify({ percent, message, status })}\n\n`;
             console.log('[DEBUG] Sending SSE:', { percent, status, message: message.substring(0, 50) });
             res.write(sseData);
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:sendProgress',message:'SSE sent',data:{percent,status,msgPreview:message.substring(0,50)},timestamp:Date.now(),hypothesisId:'B,E'})}).catch((e)=>console.error('[DEBUG] Fetch error:',e));
-            // #endregion
         } catch (writeError) {
             console.error('[DEBUG] Error writing SSE data:', writeError);
             console.error('[DEBUG] Write error details:', { message: writeError.message, code: writeError.code });
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:sendProgress:error',message:'SSE write failed',data:{error:writeError.message},timestamp:Date.now(),hypothesisId:'B'})}).catch((e)=>console.error('[DEBUG] Fetch error:',e));
-            // #endregion
         }
     };
     
     // Handle client disconnect
     req.on('close', () => {
         console.log('[Import Users] Client disconnected');
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:import-users:clientClose',message:'Client disconnected',data:{},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         if (!res.headersSent) {
             res.end();
         }
@@ -984,16 +1061,9 @@ router.get('/api/panel/import-users', requireAdmin, async (req, res) => {
         } catch (fetchError) {
             console.error('[DEBUG] Error fetching users:', fetchError);
             console.error('[DEBUG] Error stack:', fetchError.stack);
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:import-users:fetchError',message:'Failed to fetch users',data:{error:fetchError.message},timestamp:Date.now(),hypothesisId:'A'})}).catch((e)=>console.error('[DEBUG] Fetch error:',e));
-            // #endregion
             sendProgress(0, `Failed to fetch users: ${fetchError.message}`, 'error');
             return res.end();
         }
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:import-users:usersFetched',message:'Users fetched from Pterodactyl',data:{count:pterodactylUsers?.length||0,isArray:Array.isArray(pterodactylUsers)},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         
         if (!pterodactylUsers || pterodactylUsers.length === 0) {
             sendProgress(100, 'No users found in Pterodactyl panel', 'complete');
@@ -1020,12 +1090,6 @@ router.get('/api/panel/import-users', requireAdmin, async (req, res) => {
             const userObj = pterodactylUsers[i];
             const pteroUser = userObj.attributes || userObj;
             const percent = Math.round(10 + ((i + 1) / totalUsers) * 85); // Progress from 10% to 95%
-            
-            // #region agent log
-            if (i === 0) {
-                fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:import-users:firstUser',message:'First user structure',data:{userObjKeys:Object.keys(userObj),pteroUserKeys:Object.keys(pteroUser),email:pteroUser.email,id:pteroUser.id,userObjId:userObj.id,hasAttributes:!!userObj.attributes},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
-            }
-            // #endregion
             
             // Validate user data
             if (!pteroUser || !pteroUser.email) {
@@ -1113,9 +1177,6 @@ router.get('/api/panel/import-users', requireAdmin, async (req, res) => {
                 }
             } catch (userError) {
                 console.error(`Error processing user ${pteroUser.email}:`, userError);
-                // #region agent log
-                fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:import-users:userError',message:'Error processing user',data:{email:pteroUser.email,error:userError.message,stack:userError.stack?.substring(0,200)},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
-                // #endregion
                 failed++;
                 const errorMsg = userError.message || 'Unknown error';
                 sendProgress(percent, `Failed: ${pteroUser.email} - ${errorMsg}`);
@@ -1124,9 +1185,6 @@ router.get('/api/panel/import-users', requireAdmin, async (req, res) => {
         
         // Send completion message
         const summary = `Migration complete: ${imported} imported, ${linked} linked, ${skipped} skipped, ${failed} failed`;
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:import-users:complete',message:'Import complete',data:{imported,linked,skipped,failed},timestamp:Date.now(),hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         sendProgress(100, summary, 'complete');
         
         // Also log to console
@@ -1134,9 +1192,6 @@ router.get('/api/panel/import-users', requireAdmin, async (req, res) => {
         
     } catch (error) {
         console.error('Error importing users from Pterodactyl:', error);
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.js:import-users:mainError',message:'Main catch error',data:{error:error.message,stack:error.stack?.substring(0,200)},timestamp:Date.now(),hypothesisId:'A,B'})}).catch(()=>{});
-        // #endregion
         const errorMsg = error.message || 'Unknown error occurred';
         sendProgress(0, `Error: ${errorMsg}`, 'error');
     } finally {
@@ -1150,6 +1205,7 @@ router.get('/api/panel/import-users', requireAdmin, async (req, res) => {
 router.post('/api/panel/disconnect', requireAdmin, async (req, res) => {
     try {
         const { run, query } = require('../config/database');
+        const { removeAdmins = false } = req.body; // Get option from request body
         
         // BUGFIX #14: Count servers to be deleted (for informational message)
         // We do NOT need to "return resources" because:
@@ -1161,7 +1217,25 @@ router.post('/api/panel/disconnect', requireAdmin, async (req, res) => {
         const serversToDelete = await query(
             'SELECT id FROM servers WHERE pterodactyl_id IS NOT NULL'
         );
+
+        // VALIDATION: Check user removal requirements BEFORE deleting config
+        // This prevents the panel from appearing disconnected if validation fails
+        if (removeAdmins) {
+            // User chose to remove ALL imported users (including admins)
+            // Safety check: Ensure at least one non-imported admin exists
+            const nonImportedAdmins = await query('SELECT id FROM users WHERE is_admin = 1 AND pterodactyl_user_id IS NULL');
+            
+            if (nonImportedAdmins.length === 0) {
+                // No non-imported admins exist - prevent lockout
+                // DON'T delete config if validation fails
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Cannot remove all imported admins: No non-imported admin accounts exist. This would cause a lockout. Please keep at least one admin account or create a non-imported admin first.' 
+                });
+            }
+        }
         
+        // Only proceed with deletion if validation passed
         // Delete all Pterodactyl-related configuration and cached data
         await run('DELETE FROM pterodactyl_config');
         await run('DELETE FROM pterodactyl_eggs');
@@ -1172,23 +1246,28 @@ router.post('/api/panel/disconnect', requireAdmin, async (req, res) => {
         // Resources are automatically "returned" because used resources are calculated dynamically
         await run('DELETE FROM servers WHERE pterodactyl_id IS NOT NULL');
 
-        // Clean up Pterodactyl-linked users
-        // Strategy:
-        // - Preserve at least one admin account to avoid lockout.
-        // - Prefer to delete users that were imported from Pterodactyl (have a pterodactyl_user_id),
-        //   including admin accounts, as long as there is at least one non-imported admin left.
-        const adminUsers = await query('SELECT id, pterodactyl_user_id FROM users WHERE is_admin = 1');
-        const importedAdmins = adminUsers.filter(u => u.pterodactyl_user_id !== null && u.pterodactyl_user_id !== undefined);
-        const nonImportedAdmins = adminUsers.filter(u => !u.pterodactyl_user_id);
-
-        if (nonImportedAdmins.length === 0) {
-            // All admins are imported from Pterodactyl – to avoid lockout, keep them but clear linkage
-            await run('UPDATE users SET pterodactyl_user_id = NULL WHERE is_admin = 1');
-            // Still remove non-admin imported users
-            await run('DELETE FROM users WHERE is_admin = 0 AND pterodactyl_user_id IS NOT NULL');
-        } else {
-            // We have at least one non-imported admin; safe to delete all imported users (including admins)
+        // Clean up Pterodactyl-linked users based on user's choice
+        if (removeAdmins) {
+            // Safe to delete all imported users (including admins) - validation already passed
             await run('DELETE FROM users WHERE pterodactyl_user_id IS NOT NULL');
+        } else {
+            // Default behavior: Remove only non-admin imported users, keep imported admins
+            // Strategy:
+            // - Preserve at least one admin account to avoid lockout.
+            // - Delete users that were imported from Pterodactyl (have a pterodactyl_user_id),
+            //   but keep imported admins if all admins are imported.
+            const adminUsers = await query('SELECT id, pterodactyl_user_id FROM users WHERE is_admin = 1');
+            const nonImportedAdmins = adminUsers.filter(u => !u.pterodactyl_user_id);
+
+            if (nonImportedAdmins.length === 0) {
+                // All admins are imported from Pterodactyl – to avoid lockout, keep them but clear linkage
+                await run('UPDATE users SET pterodactyl_user_id = NULL, client_api_key = NULL WHERE is_admin = 1');
+                // Still remove non-admin imported users
+                await run('DELETE FROM users WHERE is_admin = 0 AND pterodactyl_user_id IS NOT NULL');
+            } else {
+                // We have at least one non-imported admin; safe to delete all imported users (including admins)
+                await run('DELETE FROM users WHERE pterodactyl_user_id IS NOT NULL');
+            }
         }
         
         // Clear the config cache in pterodactyl module
@@ -1196,9 +1275,13 @@ router.post('/api/panel/disconnect', requireAdmin, async (req, res) => {
         pterodactyl.clearConfigCache();
         
         const deletedCount = serversToDelete.length;
+        const userMessage = removeAdmins 
+            ? `Pterodactyl panel disconnected successfully. ${deletedCount} server(s) deleted. All imported users (including admins) have been removed.`
+            : `Pterodactyl panel disconnected successfully. ${deletedCount} server(s) deleted. Imported users removed (admins kept to prevent lockout).`;
+        
         res.json({ 
             success: true, 
-            message: `Pterodactyl panel disconnected successfully. ${deletedCount} server(s) deleted. All Pterodactyl configuration, cached data, and imported users have been removed.` 
+            message: userMessage
         });
     } catch (error) {
         console.error('Error disconnecting panel:', error);

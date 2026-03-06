@@ -146,7 +146,55 @@ pm2 restart aether-dashboard
 
 ## 📝 Version Changelog
 
-### Version 1.3.2 (Latest) 🎉
+### Version 1.3.3 (Latest) 🎉
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+**🔧 This release focuses on user management enhancements, disconnect panel improvements, and UI refresh fixes.**
+
+**New Features:**
+
+| Feature | Description |
+|---------|-------------|
+| ✏️ **Edit User Functionality** | Admins can now edit user details (username, email, admin status) directly from the Users table with a new Edit button and modal dialog. |
+| 🔄 **Disconnect Panel Options** | Added user removal options dialog when disconnecting panel - choose to remove only imported users or all imported users including admins. |
+| 🆔 **Default Admin ID** | Default admin account now uses ID 0 instead of auto-increment for easy identification. |
+
+**Bug Fixes:**
+
+| Bug | Description |
+|-----|-------------|
+| 🐛 **Disconnect Panel Validation** | Fixed critical bug where panel config was deleted before validation, causing inconsistent state. Validation now happens first, preventing panel from appearing disconnected when user removal fails. |
+| 🐛 **Total Users Card Refresh** | Fixed Total Users card not updating immediately after importing users from panel. Now refreshes automatically without page reload. |
+| 🐛 **Debug Logging Cleanup** | Removed all debug logging statements (port 7244 fetch calls) that were causing ECONNREFUSED errors in logs. Cleaner production logs. |
+
+**Improvements:**
+
+- 👥 **User Management** - Edit user details and roles directly from admin panel
+- 🔒 **Safety Checks** - Enhanced validation for user role changes (prevents lockout scenarios)
+- 🎯 **UI Responsiveness** - Stats cards now update automatically after operations
+- 🧹 **Code Cleanup** - Removed unnecessary debug logging for cleaner production environment
+- ⚡ **Better UX** - Disconnect panel now provides clear options for user removal
+
+**How to Update:**
+
+```bash
+# GitHub method (recommended)
+cd AETHER_PANEL
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+Or via SFTP: Download latest version, replace files (keep database.db and .env), run `npm install`, restart dashboard.
+
+**⚠️ Important:** Always backup `database.db` and `.env` before updating!
+
+---
+
+### Version 1.3.2 🎉
 
 **Release Date:** March 2026
 
@@ -579,7 +627,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.3.2
+**Last Updated:** Version 1.3.3
 
 **Made with ❤️ for free hosting providers**
 

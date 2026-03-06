@@ -562,6 +562,34 @@
         <div class="powered-by-watermark">
             Powered by <strong>Aether Dashboard</strong>
         </div>
+        
+        <!-- Edit User Modal -->
+        <div id="editUserModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 10000; align-items: center; justify-content: center;">
+            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                <h3 style="margin: 0 0 20px 0; color: #f1f5f9; font-size: 18px;">Edit User</h3>
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; color: #e2e8f0; font-size: 14px;">Username</label>
+                        <input type="text" id="editUsername" required style="width: 100%; padding: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #f1f5f9; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; color: #e2e8f0; font-size: 14px;">Email</label>
+                        <input type="email" id="editEmail" required style="width: 100%; padding: 8px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: #f1f5f9; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; cursor: pointer; color: #e2e8f0;">
+                            <input type="checkbox" id="editIsAdmin" style="margin-right: 8px; accent-color: #3b82f6;">
+                            <span>Admin Access</span>
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" id="cancelEditUser" style="padding: 8px 16px; background: #334155; border: 1px solid #475569; color: #e2e8f0; border-radius: 4px; cursor: pointer;">Cancel</button>
+                        <button type="submit" style="padding: 8px 16px; background: #3b82f6; border: 1px solid #3b82f6; color: white; border-radius: 4px; cursor: pointer;">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
     
     <script src="/js/main.js"></script>
@@ -575,6 +603,46 @@
             await loadUsers();
             checkAdminAccess();
             loadBrandingSettings();
+            
+            // Edit User Modal Event Listeners
+            document.getElementById('cancelEditUser').addEventListener('click', () => {
+                document.getElementById('editUserModal').style.display = 'none';
+            });
+            
+            document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const userId = document.getElementById('editUserId').value;
+                const username = document.getElementById('editUsername').value.trim();
+                const email = document.getElementById('editEmail').value.trim();
+                const isAdmin = document.getElementById('editIsAdmin').checked ? 1 : 0;
+                
+                if (!username || !email) {
+                    showNotification('Username and email are required', 'error');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/admin/api/users/${userId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email, is_admin: isAdmin })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        showNotification('User updated successfully', 'success');
+                        document.getElementById('editUserModal').style.display = 'none';
+                        await loadUsers();
+                        await loadSystemStats();
+                    } else {
+                        showNotification(data.message || 'Failed to update user', 'error');
+                    }
+                } catch (error) {
+                    showNotification('An error occurred', 'error');
+                    console.error('Error updating user:', error);
+                }
+            });
             
             // Attach coin management form event listener after DOM is loaded
             const coinForm = document.getElementById('coinManagementForm');
@@ -719,6 +787,7 @@
                         <td>${formatNumber(user.coins || 0)}</td>
                         <td>${user.is_admin ? 'Yes' : 'No'}</td>
                         <td>
+                            <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px; margin-right: 4px;" onclick="editUser(${user.id}, '${escapeHtml(user.username).replace(/'/g, "\\'")}', '${escapeHtml(user.email).replace(/'/g, "\\'")}', ${user.is_admin ? 1 : 0})">Edit</button>
                             <button class="btn btn-danger" style="font-size: 12px; padding: 4px 8px;" onclick="deleteUser(${user.id})">Delete</button>
                         </td>
                     </tr>
@@ -770,6 +839,14 @@
             
             html += '</tbody></table></div>';
             container.innerHTML = html;
+        }
+        
+        async function editUser(userId, username, email, isAdmin) {
+            document.getElementById('editUserId').value = userId;
+            document.getElementById('editUsername').value = username;
+            document.getElementById('editEmail').value = email;
+            document.getElementById('editIsAdmin').checked = isAdmin === 1;
+            document.getElementById('editUserModal').style.display = 'flex';
         }
         
         async function deleteUser(userId) {
@@ -1277,53 +1354,130 @@
                 return;
             }
             
-            try {
-                showNotification('Disconnecting panel and removing all data...', 'info');
+            // Show dialog to choose user removal option
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+            `;
+            
+            dialog.innerHTML = `
+                <div style="background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                    <h3 style="margin: 0 0 16px 0; color: #f1f5f9; font-size: 18px;">User Removal Options</h3>
+                    <p style="margin: 0 0 20px 0; color: #cbd5e1; font-size: 14px;">
+                        Choose how to handle imported users when disconnecting:
+                    </p>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: flex; align-items: flex-start; margin-bottom: 12px; cursor: pointer; color: #e2e8f0;">
+                            <input type="radio" name="removeOption" value="users-only" checked style="margin-right: 10px; margin-top: 2px; accent-color: #3b82f6;">
+                            <div>
+                                <strong style="color: #f1f5f9;">Remove only imported users</strong>
+                                <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+                                    Keeps imported admin accounts to prevent lockout
+                                </div>
+                            </div>
+                        </label>
+                        <label style="display: flex; align-items: flex-start; cursor: pointer; color: #e2e8f0;">
+                            <input type="radio" name="removeOption" value="all-users" style="margin-right: 10px; margin-top: 2px; accent-color: #3b82f6;">
+                            <div>
+                                <strong style="color: #f1f5f9;">Remove all imported users (including admins)</strong>
+                                <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+                                    ⚠️ Only safe if you have a non-imported admin account
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button id="cancelDisconnect" style="padding: 8px 16px; background: #334155; border: 1px solid #475569; color: #e2e8f0; border-radius: 4px; cursor: pointer;">
+                            Cancel
+                        </button>
+                        <button id="confirmDisconnect" style="padding: 8px 16px; background: #dc2626; border: 1px solid #dc2626; color: white; border-radius: 4px; cursor: pointer;">
+                            Disconnect
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(dialog);
+            
+            return new Promise((resolve) => {
+                const cancelBtn = dialog.querySelector('#cancelDisconnect');
+                const confirmBtn = dialog.querySelector('#confirmDisconnect');
                 
-                const response = await fetch('/admin/api/panel/disconnect', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                cancelBtn.onclick = () => {
+                    document.body.removeChild(dialog);
+                    resolve(false);
+                };
                 
-                const data = await response.json();
-                if (data.success) {
-                    showNotification('Panel disconnected successfully. All Pterodactyl data has been removed.', 'success');
+                confirmBtn.onclick = async () => {
+                    const selectedOption = dialog.querySelector('input[name="removeOption"]:checked').value;
+                    const removeAdmins = selectedOption === 'all-users';
                     
-                    // Clear the form fields
-                    document.getElementById('panelUrl').value = '';
-                    document.getElementById('panelApiKey').value = '';
+                    document.body.removeChild(dialog);
                     
-                    // Clear eggs and allocations lists
-                    document.getElementById('eggsList').innerHTML = '<p style="color: #cbd5e1;">Click \"Fetch from Pterodactyl\" to load eggs.</p>';
-                    document.getElementById('allocationsList').innerHTML = '<p style=\"color: #cbd5e1;\">Click \"Fetch from Pterodactyl\" to load allocations.</p>';
-                    
-                    // Clear settings form
-                    document.getElementById('defaultNestId').value = '';
-                    document.getElementById('defaultLocationId').value = '';
-                    
-                    // Reload the config to show disconnected status
-                    await loadPanelConfig();
-                    await loadPanelSettings();
+                    try {
+                        showNotification('Disconnecting panel and removing all data...', 'info');
+                        
+                        const response = await fetch('/admin/api/panel/disconnect', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ removeAdmins: removeAdmins })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            const userMessage = removeAdmins 
+                                ? 'Panel disconnected successfully. All imported users (including admins) have been removed.'
+                                : 'Panel disconnected successfully. Imported users removed (admins kept to prevent lockout).';
+                            showNotification(userMessage, 'success');
+                            
+                            // Clear the form fields
+                            document.getElementById('panelUrl').value = '';
+                            document.getElementById('panelApiKey').value = '';
+                            
+                            // Clear eggs and allocations lists
+                            document.getElementById('eggsList').innerHTML = '<p style="color: #cbd5e1;">Click "Fetch from Pterodactyl" to load eggs.</p>';
+                            document.getElementById('allocationsList').innerHTML = '<p style="color: #cbd5e1;">Click "Fetch from Pterodactyl" to load allocations.</p>';
+                            
+                            // Clear settings form
+                            document.getElementById('defaultNestId').value = '';
+                            document.getElementById('defaultLocationId').value = '';
+                            
+                            // Reload the config to show disconnected status
+                            await loadPanelConfig();
+                            await loadPanelSettings();
 
-                    // Refresh system statistics and users list so the UI reflects removed users/servers
-                    await loadSystemStats();
-                    await loadUsers();
-                    
-                    // Re-enable Connect button
-                    const connectBtn = document.getElementById('panelConfigForm')?.querySelector('button[type=\"submit\"]');
-                    if (connectBtn) {
-                        connectBtn.disabled = false;
-                        connectBtn.style.opacity = '1';
-                        connectBtn.style.cursor = 'pointer';
-                        connectBtn.title = '';
+                            // Refresh system statistics and users list so the UI reflects removed users/servers
+                            await loadSystemStats();
+                            await loadUsers();
+                            
+                            // Re-enable Connect button
+                            const connectBtn = document.getElementById('panelConfigForm')?.querySelector('button[type="submit"]');
+                            if (connectBtn) {
+                                connectBtn.disabled = false;
+                                connectBtn.style.opacity = '1';
+                                connectBtn.style.cursor = 'pointer';
+                                connectBtn.title = '';
+                            }
+                        } else {
+                            showNotification(data.message || 'Failed to disconnect panel', 'error');
+                        }
+                    } catch (error) {
+                        showNotification('An error occurred while disconnecting', 'error');
+                        console.error('Disconnect error:', error);
                     }
-                } else {
-                    showNotification(data.message || 'Failed to disconnect panel', 'error');
-                }
-            } catch (error) {
-                showNotification('An error occurred while disconnecting', 'error');
-                console.error('Disconnect error:', error);
-            }
+                    
+                    resolve(true);
+                };
+            });
         }
         
         // Eggs Management Functions
@@ -1735,7 +1889,7 @@
                 console.log('[DEBUG] EventSource connection opened');
             };
             
-            eventSource.onmessage = function(event) {
+            eventSource.onmessage = async function(event) {
                 console.log('[DEBUG] EventSource message received:', event.data);
                 try {
                     const data = JSON.parse(event.data);
@@ -1787,6 +1941,9 @@
                         `;
                         
                         showNotification('User import completed successfully!', 'success');
+                        
+                        // Refresh Total Users card
+                        await loadSystemStats();
                     } else if (data.status === 'error') {
                         eventSource.close();
                         currentEventSource = null;

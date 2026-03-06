@@ -980,16 +980,8 @@ async function getAllUsersPaginated() {
     let page = 1;
     let hasMorePages = true;
     
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pterodactyl.js:getAllUsersPaginated:start',message:'Starting user fetch',data:{page},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     while (hasMorePages) {
         const response = await makeRequest('GET', `/application/users?per_page=100&page=${page}`);
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pterodactyl.js:getAllUsersPaginated:response',message:'API response received',data:{page,success:response?.success,hasData:!!response?.data,dataKeys:response?.data?Object.keys(response.data):[],rawResponseType:typeof response?.data},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         
         // Handle error response
         if (!response || !response.success) {
@@ -1002,10 +994,6 @@ async function getAllUsersPaginated() {
         const pterodactylResponse = response.data;
         
         if (pterodactylResponse && pterodactylResponse.data && Array.isArray(pterodactylResponse.data)) {
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pterodactyl.js:getAllUsersPaginated:usersFound',message:'Users found in response',data:{page,userCount:pterodactylResponse.data.length,sampleUser:pterodactylResponse.data[0]?{hasAttributes:!!pterodactylResponse.data[0].attributes,keys:Object.keys(pterodactylResponse.data[0])}:null},timestamp:Date.now(),hypothesisId:'A,C'})}).catch(()=>{});
-            // #endregion
-            
             allUsers.push(...pterodactylResponse.data);
             
             // Check if there are more pages
@@ -1017,18 +1005,10 @@ async function getAllUsersPaginated() {
                 hasMorePages = false;
             }
         } else {
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pterodactyl.js:getAllUsersPaginated:noData',message:'No data in response',data:{page,pterodactylResponse:pterodactylResponse?Object.keys(pterodactylResponse):null},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
-            
             // No more data or invalid response
             hasMorePages = false;
         }
     }
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/3d7c3224-6c27-42cb-873a-ef2778fb9c27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'pterodactyl.js:getAllUsersPaginated:complete',message:'Fetch complete',data:{totalUsers:allUsers.length},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     return allUsers;
 }

@@ -683,7 +683,7 @@ function createDefaultAdmin() {
                 return;
             }
             
-            // Create admin user
+            // Create admin user with ID 0
             // Default: username: admin, password: admin123 (change this!)
             const defaultPassword = 'admin123';
             bcrypt.hash(defaultPassword, 10, (err, hash) => {
@@ -692,18 +692,31 @@ function createDefaultAdmin() {
                     return;
                 }
                 
+                // Insert admin with explicit ID 0
                 db.run(`
-                    INSERT INTO users (username, email, password, is_admin, coins)
-                    VALUES (?, ?, ?, ?, ?)
-                `, ['admin', 'admin@aether.local', hash, 1, 1000], (err) => {
+                    INSERT INTO users (id, username, email, password, is_admin, coins)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `, [0, 'admin', 'admin@aether.local', hash, 1, 1000], (err) => {
                     if (err) {
                         reject(err);
                         return;
                     }
-                    console.log('✅ Default admin user created');
-                    console.log('⚠️  Username: admin, Password: admin123');
-                    console.log('⚠️  Please change the admin password after first login!');
-                    resolve();
+                    
+                    // Update SQLite sequence to prevent ID conflicts
+                    // Set sequence to 0 so next auto-increment starts at 1
+                    db.run('UPDATE sqlite_sequence SET seq = 0 WHERE name = "users"', (seqErr) => {
+                        if (seqErr) {
+                            // If sqlite_sequence doesn't exist yet, create it
+                            // This happens on first insert with AUTOINCREMENT
+                            // SQLite will create it automatically on next insert, so this is fine
+                            console.log('⚠️  Note: sqlite_sequence will be created on next insert');
+                        }
+                        
+                        console.log('✅ Default admin user created with ID 0');
+                        console.log('⚠️  Username: admin, Password: admin123');
+                        console.log('⚠️  Please change the admin password after first login!');
+                        resolve();
+                    });
                 });
             });
         });
