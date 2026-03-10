@@ -17,7 +17,7 @@
 
 ```bash
 # Connect to your VPS via SSH
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 
 # Create a backup folder
 mkdir -p backups
@@ -45,7 +45,7 @@ cp .env backups/.env-$(date +%Y%m%d-%H%M%S)
 
 **Step 2: Go to your dashboard folder:**
 ```bash
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 ```
 
 **Step 3: Stop the dashboard (optional, but recommended):**
@@ -84,7 +84,7 @@ pm2 restart aether-dashboard
 
 **Step 2: Go to your dashboard folder:**
 ```bash
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 ```
 
 **Step 3: Stop the dashboard:**
@@ -186,7 +186,7 @@ pm2 restart aether-dashboard
 
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard
@@ -234,7 +234,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
 
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard
@@ -285,7 +285,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
 
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard
@@ -339,7 +339,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
 
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard
@@ -409,7 +409,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
 **How to Update:**
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard
@@ -604,7 +604,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
    ```bash
    pwd
    ```
-   Should show: `/root/AETHER_PANEL` or similar
+   Should show: `/root/AETHER_DASHBOARD` or similar
 
 2. **If using GitHub, check your connection:**
    ```bash
