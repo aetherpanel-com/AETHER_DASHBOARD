@@ -1,6 +1,6 @@
 # Aether Dashboard - Free Hosting Revenue Platform
 
-A powerful dashboard for **free hosting providers** to monetize their services through Linkvertise. Your users complete links to earn coins, which they use to purchase server resources (RAM, CPU, Storage) for their game servers.
+A powerful **overlay dashboard** for **free hosting providers** to monetize their services through Linkvertise. Your users complete links to earn coins, which they use to purchase server resources (RAM, CPU, Storage) for their game servers.
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
@@ -11,24 +11,6 @@ A powerful dashboard for **free hosting providers** to monetize their services t
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
 **🔧 Latest Update (v1.3.5):** Enhanced server status management - improved status transitions, synchronization between pages, CPU limit flexibility, and better user experience - See [Changelog](UPDATES.md#version-135-latest-) for details.
-
----
-
-## ✨ What's New in Version 1.3
-
-This major update brings **powerful server management features** that put you ahead of competitors:
-
-| Feature | Description |
-|---------|-------------|
-| ⚡ **Quick Actions** | Start/Stop/Restart servers with one click directly from dashboard |
-| 📦 **Server Templates** | Admins create pre-configured templates for instant server deployment |
-| 📊 **Live Stats Dashboard** | Real-time CPU, RAM, Disk graphs with Chart.js |
-| 💻 **Console Commands** | Send commands to server console without opening Pterodactyl |
-| 📁 **File Manager** | Browse, edit, create, delete files directly from dashboard |
-| 💾 **Backup System** | Create, download, and restore server backups |
-| ⏰ **Scheduled Tasks** | Automate server restarts, commands, and backups |
-| 🗃️ **Database Manager** | Create and manage MySQL databases for your servers |
-| 🚨 **Usage Alerts** | Get notified when CPU/RAM/Disk usage is high |
 
 ---
 
@@ -52,6 +34,109 @@ This major update brings **powerful server management features** that put you ah
 6. **You manage everything** through the admin panel
 
 **Perfect for free hosting businesses!** No complex setup needed.
+
+---
+
+## ✨ What's New in Version 1.3
+
+This major update brings **powerful server management features** that put you ahead of competitors:
+
+| Feature | Description |
+|---------|-------------|
+| ⚡ **Quick Actions** | Start/Stop/Restart servers with one click directly from dashboard |
+| 📦 **Server Templates** | Admins create pre-configured templates for instant server deployment |
+| 📊 **Live Stats Dashboard** | Real-time CPU, RAM, Disk graphs with Chart.js |
+| 💻 **Console Commands** | Send commands to server console without opening Pterodactyl |
+| 📁 **File Manager** | Browse, edit, create, delete files directly from dashboard |
+| 💾 **Backup System** | Create, download, and restore server backups |
+| ⏰ **Scheduled Tasks** | Automate server restarts, commands, and backups |
+| 🗃️ **Database Manager** | Create and manage MySQL databases for your servers |
+| 🚨 **Usage Alerts** | Get notified when CPU/RAM/Disk usage is high |
+
+---
+
+## 🚀 Quick Deployment Guide
+
+**Want to get started fast?** Follow these quick steps. For detailed explanations, see the [Full Installation Guide](#-step-by-step-installation-guide) below.
+
+### Prerequisites
+- A Linux VPS (Ubuntu/Debian recommended)
+- SSH access to your VPS
+- Domain name (optional, but recommended)
+
+### Quick Steps
+
+**1. Connect to your VPS:**
+```bash
+ssh username@your-vps-ip
+```
+
+**2. Update system:**
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+**3. Install Node.js:**
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+**4. Get dashboard code:**
+```bash
+git clone https://github.com/Shaf2665/AETHER_DASHBOARD.git
+cd AETHER_DASHBOARD
+```
+
+**5. Install dependencies:**
+```bash
+npm install
+```
+
+**6. Create configuration file:**
+```bash
+nano .env
+```
+Paste this (change `SESSION_SECRET` to a random 32+ character string):
+```env
+PORT=3000
+NODE_ENV=production
+SESSION_SECRET=your-random-secret-key-at-least-32-characters-long
+USE_HTTPS=false
+```
+Save: `Ctrl + X`, then `Y`, then `Enter`
+
+**7. Install PM2 and start dashboard:**
+```bash
+sudo npm install -g pm2
+pm2 start server.js --name aether-dashboard
+pm2 save
+pm2 startup  # Follow the instructions it gives you
+```
+
+**8. Configure firewall:**
+```bash
+sudo ufw allow 3000/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
+sudo ufw enable
+```
+
+**9. Access your dashboard:**
+Open `http://your-vps-ip:3000` in your browser
+
+**Default Login:**
+- Username: `admin`
+- Password: `admin123`
+- ⚠️ **Change this immediately after first login!**
+
+**✅ Done!** Your dashboard is running! 
+
+**Next Steps:**
+- [Set up Linkvertise for revenue](#-setting-up-revenue-generation-linkvertise)
+- [Configure Pterodactyl integration](#-setting-up-pterodactyl-panel-integration-optional) (optional)
+- [Set up domain & HTTPS](#-setting-up-domain--https-optional-but-recommended) (recommended)
 
 ---
 
@@ -322,10 +407,10 @@ npm --version
 
 5. **In your SSH terminal, navigate to the folder:**
    ```bash
-   cd AETHER_PANEL
+   cd AETHER_DASHBOARD
    ```
    
-   (Replace `AETHER_PANEL` with whatever you named the folder)
+   (Replace `AETHER_DASHBOARD` with whatever you named the folder)
 
 #### Option B: Clone from GitHub (If You Have GitHub)
 
@@ -342,7 +427,6 @@ sudo yum install git -y  # CentOS/RHEL
 ```bash
 git clone https://github.com/Shaf2665/AETHER_DASHBOARD.git
 ```
-
 
 **Step 4.3: Go into the folder**
 ```bash
@@ -1102,7 +1186,7 @@ Before going live, make sure you've completed:
 
 **Quick Update (if installed via GitHub):**
 ```bash
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard

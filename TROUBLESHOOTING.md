@@ -116,7 +116,7 @@ Stop that process
 
 2. **Go to your dashboard folder:**
    ```bash
-   cd AETHER_PANEL
+   cd AETHER_DASHBOARD
    ```
 
 3. **Run the password reset script:**
@@ -170,7 +170,7 @@ If the script doesn't work for some reason, you can delete the database file (âš
 
 1. **Delete the database file:**
    ```bash
-   cd AETHER_PANEL
+   cd AETHER_DASHBOARD
    rm database.db
    ```
 
@@ -252,7 +252,7 @@ If the script doesn't work for some reason, you can delete the database file (âš
 
 **Solution:**
 ```bash
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 npm install
 pm2 restart aether-dashboard
 ```
@@ -297,12 +297,12 @@ pm2 restart aether-dashboard
 
 2. **Fix folder permissions:**
    ```bash
-   chmod 755 AETHER_PANEL
+   chmod 755 AETHER_DASHBOARD
    ```
 
 3. **If using a non-root user, ensure they own the files:**
    ```bash
-   sudo chown -R username:username AETHER_PANEL
+   sudo chown -R username:username AETHER_DASHBOARD
    ```
 
 ---
@@ -465,7 +465,7 @@ top
 
 ```bash
 # Test if database file exists and is readable
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 ls -lh database.db
 file database.db
 ```

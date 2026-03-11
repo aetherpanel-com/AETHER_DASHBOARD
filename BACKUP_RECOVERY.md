@@ -39,7 +39,7 @@ Your `database.db` file contains **ALL** your dashboard data:
 
 **Step 2: Go to your dashboard folder:**
 ```bash
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 ```
 
 **Step 3: Create a backup folder (if it doesn't exist):**
@@ -78,10 +78,10 @@ crontab -e
 **Step 2: Add this line at the end of the file:**
 ```bash
 # Backup database daily at 2 AM
-0 2 * * * cd /root/AETHER_PANEL && mkdir -p backups && cp database.db backups/database-$(date +\%Y\%m\%d-\%H\%M\%S).db && find backups/ -name "database-*.db" -mtime +7 -delete
+0 2 * * * cd /root/AETHER_DASHBOARD && mkdir -p backups && cp database.db backups/database-$(date +\%Y\%m\%d-\%H\%M\%S).db && find backups/ -name "database-*.db" -mtime +7 -delete
 ```
 
-**Replace `/root/AETHER_PANEL` with your actual dashboard path!**
+**Replace `/root/AETHER_DASHBOARD` with your actual dashboard path!**
 
 **What this does:**
 - Runs every day at 2 AM
@@ -111,7 +111,7 @@ nano backup-database.sh
 # Database backup script for Aether Dashboard
 
 # Change to dashboard directory
-cd /root/AETHER_PANEL
+cd /root/AETHER_DASHBOARD
 
 # Create backups folder if it doesn't exist
 mkdir -p backups
@@ -125,7 +125,7 @@ find backups/ -name "database-*.db" -mtime +7 -delete
 echo "✅ Backup created successfully!"
 ```
 
-**Replace `/root/AETHER_PANEL` with your actual dashboard path!**
+**Replace `/root/AETHER_DASHBOARD` with your actual dashboard path!**
 
 **Step 3: Make it executable:**
 ```bash
@@ -141,7 +141,7 @@ chmod +x backup-database.sh
 ```bash
 crontab -e
 # Add this line:
-0 2 * * * /root/AETHER_PANEL/backup-database.sh
+0 2 * * * /root/AETHER_DASHBOARD/backup-database.sh
 ```
 
 ---
@@ -150,7 +150,7 @@ crontab -e
 
 **See all your backups:**
 ```bash
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 ls -lh backups/
 ```
 
@@ -185,7 +185,7 @@ pm2 stop aether-dashboard
 
 **See what backups you have:**
 ```bash
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 ls -la backups/
 ```
 
@@ -319,7 +319,7 @@ cp .env backups/.env-$(date +%Y%m%d-%H%M%S)
 **Step 1: Connect to your VPS with FileZilla**
 
 **Step 2: Navigate to:**
-- Remote: `/root/AETHER_PANEL/backups/`
+- Remote: `/root/AETHER_DASHBOARD/backups/`
 - Local: Your computer's backup folder
 
 **Step 3: Download backup files:**
@@ -331,7 +331,7 @@ cp .env backups/.env-$(date +%Y%m%d-%H%M%S)
 
 **From your computer:**
 ```bash
-scp username@your-vps-ip:/root/AETHER_PANEL/backups/database-*.db /path/to/local/backups/
+scp username@your-vps-ip:/root/AETHER_DASHBOARD/backups/database-*.db /path/to/local/backups/
 ```
 
 **Replace:**
@@ -371,7 +371,7 @@ chmod 644 database.db
 ### "Cannot restore backup - file not found"
 
 **Check:**
-1. Are you in the right folder? `pwd` should show `/root/AETHER_PANEL`
+1. Are you in the right folder? `pwd` should show `/root/AETHER_DASHBOARD`
 2. List backups: `ls -la backups/`
 3. Check filename spelling (case-sensitive!)
 
@@ -381,7 +381,7 @@ chmod 644 database.db
 
 ### Create Backup
 ```bash
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 mkdir -p backups
 cp database.db backups/database-$(date +%Y%m%d-%H%M%S).db
 ```
@@ -401,7 +401,7 @@ pm2 restart aether-dashboard
 ### Automatic Daily Backup (Cron)
 ```bash
 crontab -e
-# Add: 0 2 * * * cd /root/AETHER_PANEL && mkdir -p backups && cp database.db backups/database-$(date +\%Y\%m\%d-\%H\%M\%S).db && find backups/ -name "database-*.db" -mtime +7 -delete
+# Add: 0 2 * * * cd /root/AETHER_DASHBOARD && mkdir -p backups && cp database.db backups/database-$(date +\%Y\%m\%d-\%H\%M\%S).db && find backups/ -name "database-*.db" -mtime +7 -delete
 ```
 
 ---

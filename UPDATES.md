@@ -248,7 +248,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
 
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard
@@ -296,7 +296,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
 
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard
@@ -347,7 +347,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
 
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard
@@ -401,7 +401,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
 
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard
@@ -471,7 +471,7 @@ Or via SFTP: Download latest version, replace files (keep database.db and .env),
 **How to Update:**
 ```bash
 # GitHub method (recommended)
-cd AETHER_PANEL
+cd AETHER_DASHBOARD
 git pull origin main
 npm install
 pm2 restart aether-dashboard

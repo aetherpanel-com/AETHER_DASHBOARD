@@ -80,7 +80,7 @@ async function resetAdminPassword() {
         console.error('❌ Error resetting password:', error.message);
         console.error('');
         console.error('Troubleshooting:');
-        console.error('  1. Make sure you are in the AETHER_PANEL directory');
+        console.error('  1. Make sure you are in the AETHER_DASHBOARD directory');
         console.error('  2. Make sure the database file (database.db) exists');
         console.error('  3. Check that Node.js and all dependencies are installed');
         console.error('  4. Make sure the dashboard is not currently running (or restart it after)');
