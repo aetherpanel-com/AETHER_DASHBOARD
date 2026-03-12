@@ -146,7 +146,52 @@ pm2 restart aether-dashboard
 
 ## 📝 Version Changelog
 
-### Version 1.3.5 (Latest) 🎉
+## Aether Dashboard v1.3.6
+
+### 🚀 Major Improvements
+
+* Implemented **WebSocket-based real-time server updates**
+* Removed HTTP polling for server status updates
+* Improved performance and reduced API load
+
+### ⚡ Performance Improvements
+
+* Server status updates now pushed via WebSocket
+* Lower network overhead compared to polling
+* Faster UI updates for server metrics
+
+### 🔧 Stability Improvements
+
+* Fixed logout issues related to polling conflicts
+* Improved session stability across dashboard navigation
+* WebSocket architecture tested across all dashboard sections
+
+### 🧠 Architecture Improvements
+
+* Introduced server subscription rooms for WebSocket events
+* Status updates now emitted directly from the status poller
+* Cleaner real-time data flow between backend and frontend
+
+### 📊 Dashboard Enhancements
+
+* Real-time CPU, Memory, Disk, and Network metrics
+* Improved server details page with live updates
+* WebSocket-first architecture for server monitoring
+
+### 🛠 Internal Changes
+
+* Removed legacy HTTP polling system
+* Simplified frontend update logic
+* Reduced redundant API calls
+
+### ⚠ Notes
+
+This version introduces a WebSocket-based realtime system.
+Existing installations upgrading from **v1.3.5** should restart the dashboard service to initialize the new WebSocket layer.
+
+---
+
+### Version 1.3.5
 
 **Release Date:** March 2026
 
@@ -741,7 +786,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.3.5
+**Last Updated:** Version 1.3.6
 
 **Made with ❤️ for free hosting providers**
 

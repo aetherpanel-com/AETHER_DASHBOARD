@@ -416,7 +416,7 @@ crontab -e
 
 ---
 
-**Last Updated:** Version 1.3.5
+**Last Updated:** Version 1.3.6
 
 **Made with ❤️ for free hosting providers**
 
