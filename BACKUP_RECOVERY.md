@@ -13,7 +13,7 @@
 2. Scroll down to "Backup System" section
 3. Click "Create Backup" to backup your game server files
 
-The Backup System in v1.3 lets users backup their game servers directly from the dashboard!
+The Backup System in v1.3+ lets users backup their game servers directly from the dashboard!
 
 ---
 
@@ -416,7 +416,7 @@ crontab -e
 
 ---
 
-**Last Updated:** Version 1.3.6
+**Last Updated:** Version 1.4.0
 
 **Made with ❤️ for free hosting providers**
 

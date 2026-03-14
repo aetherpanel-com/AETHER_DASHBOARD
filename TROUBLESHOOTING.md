@@ -4,6 +4,144 @@
 
 ---
 
+## 🔧 Installation Issues
+
+### "Installer script fails to run"
+
+**Problem:** Cannot execute the installer script.
+
+**Solution:**
+
+1. **Ensure you have root access:**
+   ```bash
+   sudo bash install.sh
+   ```
+
+2. **Check if script is executable:**
+   ```bash
+   chmod +x install.sh
+   sudo ./install.sh
+   ```
+
+3. **Download script manually if curl fails:**
+   ```bash
+   wget https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh
+   sudo bash install.sh
+   ```
+
+---
+
+### "DNS verification timeout during installation"
+
+**Problem:** Installer waits for DNS but it never resolves.
+
+**Solution:**
+
+1. **Check DNS configuration:**
+   ```bash
+   dig +short your-domain.com
+   ```
+
+2. **Verify DNS is pointing to correct IP:**
+   - Check your DNS provider's control panel
+   - Ensure A record is created correctly
+   - Wait up to 48 hours for full propagation
+
+3. **Skip DNS verification (not recommended):**
+   - Press Ctrl+C when prompted
+   - Continue with installation
+   - Configure SSL manually later using `certbot`
+
+---
+
+### "SSL certificate installation fails"
+
+**Problem:** Certbot fails to obtain SSL certificate during installation.
+
+**Checklist:**
+- ✅ DNS is properly configured and pointing to server IP
+- ✅ Port 80 is open and accessible
+- ✅ Nginx is running
+- ✅ Domain is not already using a certificate
+
+**Fix:**
+
+1. **Run certbot manually:**
+   ```bash
+   sudo certbot --nginx -d your-domain.com -d www.your-domain.com
+   ```
+
+2. **Check Nginx configuration:**
+   ```bash
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+---
+
+### "PM2 services not starting after installation"
+
+**Problem:** Dashboard or Discord bot fails to start.
+
+**Checklist:**
+- ✅ Check PM2 logs: `pm2 logs`
+- ✅ Verify .env files exist and are configured
+- ✅ Check Node.js version: `node --version` (should be 18+)
+- ✅ Verify dependencies installed: `cd /opt/aether-dashboard && npm list`
+
+**Fix:**
+
+1. **Check service status:**
+   ```bash
+   pm2 status
+   pm2 logs aether-dashboard
+   ```
+
+2. **Restart services:**
+   ```bash
+   pm2 restart aether-dashboard
+   pm2 restart aether-discord-bot
+   ```
+
+3. **Reinstall dependencies if needed:**
+   ```bash
+   cd /opt/aether-dashboard
+   npm install
+   cd aether-discord-bot
+   npm install
+   ```
+
+---
+
+### "Update script fails"
+
+**Problem:** Update script shows errors or doesn't complete.
+
+**Solution:**
+
+1. **Check installation directory exists:**
+   ```bash
+   ls -la /opt/aether-dashboard
+   ```
+
+2. **Verify git repository:**
+   ```bash
+   cd /opt/aether-dashboard
+   git status
+   ```
+
+3. **Manual update:**
+   ```bash
+   cd /opt/aether-dashboard
+   git pull origin main
+   npm install
+   cd aether-discord-bot && npm install && cd ..
+   pm2 restart aether-dashboard
+   pm2 restart aether-discord-bot
+   ```
+
+---
+
 ## ❓ Common Issues
 
 ### "node: command not found"
@@ -309,6 +447,138 @@ pm2 restart aether-dashboard
 
 ## 🚀 New Features Troubleshooting (Version 1.3+)
 
+### "Discord bot not connecting" (Version 1.4+)
+
+**Problem:** Discord bot shows errors or doesn't connect to Discord.
+
+**Checklist:**
+- ✅ `DISCORD_BOT_TOKEN` is correct in bot `.env` file
+- ✅ Bot has required intents enabled (Server Members, Message Content)
+- ✅ Bot is invited to your Discord server with correct permissions
+- ✅ Check bot logs: `pm2 logs aether-discord-bot`
+
+**Fix:**
+1. Verify bot token in Discord Developer Portal
+2. Ensure intents are enabled in bot settings
+3. Re-invite bot with correct permissions if needed
+
+---
+
+### "Invite rewards not working" (Version 1.4+)
+
+**Problem:** Users don't receive coins when someone joins Discord.
+
+**Checklist:**
+- ✅ Discord bot is running (`pm2 list` should show `aether-discord-bot`)
+- ✅ Bot has "Manage Invites" permission
+- ✅ `BOT_API_KEY` matches in both dashboard and bot `.env` files
+- ✅ `DASHBOARD_API_URL` is correct in bot `.env`
+- ✅ Check bot logs: `pm2 logs aether-discord-bot`
+- ✅ Check dashboard logs: `pm2 logs aether-dashboard`
+
+**Fix:**
+1. Ensure bot is running: `pm2 start bot.js --name aether-discord-bot`
+2. Verify API keys match in both `.env` files
+3. Check that bot has proper Discord permissions
+
+---
+
+### Configuration Issues
+
+### "Bot cannot connect to dashboard"
+
+**Problem:** Discord bot shows errors when trying to connect to dashboard API.
+
+**Checklist:**
+- ✅ `DASHBOARD_API_URL` in bot `.env` is correct (e.g., `http://localhost:3000` or `https://yourdomain.com`)
+- ✅ Dashboard is running and accessible
+- ✅ `BOT_API_KEY` matches in both `.env` files
+- ✅ Check bot logs: `pm2 logs aether-discord-bot`
+
+**Fix:**
+1. Verify `DASHBOARD_API_URL` in `aether-discord-bot/.env` points to correct dashboard URL
+2. Test dashboard accessibility: `curl http://localhost:3000/health`
+3. Ensure `BOT_API_KEY` is identical in both `.env` files
+4. Check firewall rules allow communication between services
+
+---
+
+### "Dashboard cannot send messages to Discord"
+
+**Problem:** Messages typed in dashboard don't appear in Discord.
+
+**Checklist:**
+- ✅ `BOT_API_URL` is correct in dashboard `.env` (e.g., `http://localhost:4000`)
+- ✅ `BOT_API_KEY` matches in both `.env` files
+- ✅ Bot API server is running (check `pm2 list`)
+- ✅ Bot has "Send Messages" permission in Discord channel
+- ✅ Check dashboard logs for API errors
+
+**Fix:**
+1. Verify `BOT_API_URL` in dashboard `.env` points to correct bot API port (default: 4000)
+2. Ensure bot is running: `pm2 logs aether-discord-bot`
+3. Check that `BOT_API_KEY` matches exactly in both files
+4. Verify bot has proper Discord channel permissions
+
+---
+
+### "Invite rewards not working"
+
+**Problem:** Users don't receive coins when someone joins Discord.
+
+**Checklist:**
+- ✅ `BOT_API_KEY` matches in both dashboard and bot `.env` files
+- ✅ Bot is running and connected to Discord
+- ✅ Bot has "Manage Invites" permission
+- ✅ `DASHBOARD_API_URL` is correct in bot `.env`
+- ✅ Check bot logs for authentication errors
+
+**Fix:**
+1. Verify `BOT_API_KEY` is identical in both `.env` files (no extra spaces or quotes)
+2. Ensure bot is running: `pm2 restart aether-discord-bot`
+3. Check bot logs: `pm2 logs aether-discord-bot --lines 50`
+4. Verify dashboard is accessible from bot's location
+
+---
+
+### "Discord chat messages not appearing" (Version 1.4+)
+
+**Problem:** Messages sent in Discord don't appear in dashboard Community page.
+
+**Checklist:**
+- ✅ `DISCORD_CHAT_CHANNEL_ID` is correct in bot `.env`
+- ✅ Bot has "Read Message History" and "Send Messages" permissions
+- ✅ WebSocket connection is active (check browser console)
+- ✅ Bot is online in Discord
+- ✅ Check dashboard logs for WebSocket errors
+
+**Fix:**
+1. Verify channel ID is correct (right-click channel → Copy ID)
+2. Ensure bot has message permissions in that channel
+3. Check browser console for WebSocket connection errors
+
+---
+
+### "Dashboard messages not sending to Discord" (Version 1.4+)
+
+**Problem:** Messages typed in dashboard don't appear in Discord.
+
+**Checklist:**
+- ✅ `BOT_API_URL` is correct in dashboard `.env`
+- ✅ `BOT_API_KEY` matches in both `.env` files
+- ✅ Bot API server is running (check `pm2 list`)
+- ✅ Bot has "Send Messages" permission in Discord channel
+- ✅ Check dashboard logs for API errors
+
+**Fix:**
+1. Verify bot API is running: `pm2 logs aether-discord-bot`
+2. Check `BOT_API_URL` points to correct port (default: 4000)
+3. Ensure API keys match exactly
+
+---
+
+## 🚀 New Features Troubleshooting (Version 1.3+)
+
 ### "Server power buttons don't work" (Start/Stop/Restart)
 
 **Problem:** Quick action buttons show error or don't respond.
@@ -496,7 +766,7 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.3.6
+**Last Updated:** Version 1.4.0
 
 **Made with ❤️ for free hosting providers**
 

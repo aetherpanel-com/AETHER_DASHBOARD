@@ -37,6 +37,36 @@ cp .env backups/.env-$(date +%Y%m%d-%H%M%S)
 
 **Choose the method based on how you installed the dashboard:**
 
+### Method 1: Automated Update Script (Recommended)
+
+**If you installed using the automated installer:**
+
+```bash
+sudo bash /opt/aether-dashboard/update.sh
+```
+
+Or download and run:
+
+```bash
+curl -O https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/update.sh
+sudo bash update.sh
+```
+
+**What this does:**
+- ✅ Backs up your configuration files and database
+- ✅ Pulls latest code from GitHub
+- ✅ Updates Node.js dependencies
+- ✅ Restarts services safely
+- ✅ Verifies update success
+
+**This is the safest and easiest method!**
+
+---
+
+### Method 2: Manual Update
+
+**Choose the method based on how you installed the dashboard:**
+
 ### Method 1: If You Installed via GitHub (Git Clone)
 
 **This is the easiest method!**
@@ -145,6 +175,184 @@ pm2 restart aether-dashboard
 ---
 
 ## 📝 Version Changelog
+
+## Aether Dashboard v1.4.0
+
+### 🎉 Discord Update
+
+**Release Date:** December 2024
+
+**Status:** Production Ready ✅
+
+**🚀 This is a MAJOR feature update!** Version 1.4.0 brings full Discord integration with automated invite rewards, real-time chat, and bidirectional messaging.
+
+**🏗️ Dual-Service Architecture:** This version introduces a dual-service architecture where the dashboard and Discord bot operate as separate services, each with their own `.env` configuration file. This separation improves security by keeping sensitive bot tokens isolated from the dashboard configuration.
+
+### ✨ New Features
+
+| Feature | Description |
+|---------|-------------|
+| 🤖 **Discord Bot Integration** | Complete Discord bot system for invite tracking and chat synchronization |
+| 💰 **Invite Reward System** | Users automatically earn coins when someone joins Discord using their invite link |
+| 🔄 **Auto Deduction System** | Rewards automatically removed if invited user leaves the Discord server |
+| 💬 **Real-time Discord Chat** | Discord messages mirrored in dashboard Community page with WebSocket |
+| 📤 **Bidirectional Messaging** | Send messages from dashboard to Discord and receive Discord messages in dashboard |
+| 🏆 **Invite Leaderboard** | Live leaderboard showing top inviters with coins earned |
+| 🔍 **Invite Join Detection** | Automatic detection of which invite was used when users join |
+| 🛡️ **Abuse Protection** | Duplicate invite joins detected and prevented - each user can only reward once |
+| ⚡ **WebSocket Events** | Real-time chat updates via WebSocket for instant synchronization |
+
+### 🎮 System Components
+
+- **Aether Dashboard** - Main dashboard application with Discord integration endpoints
+- **Aether Discord Bot** - Standalone Discord bot for invite tracking and message forwarding
+- **WebSocket Event System** - Real-time communication between dashboard and Discord
+- **Invite Tracking Cache** - Efficient invite usage tracking and comparison
+- **Coin Reward Engine** - Automated coin distribution and deduction system
+
+### 📦 New Files & Components
+
+**Discord Bot:**
+- `aether-discord-bot/` - Complete Discord bot project
+- `aether-discord-bot/bot.js` - Main bot file with invite tracking and message handling
+- `aether-discord-bot/package.json` - Bot dependencies (discord.js, axios, express, dotenv)
+
+**Dashboard Integration:**
+- `routes/discord.js` - Discord webhook endpoints (`/api/discord/invite-used`, `/api/discord/member-left`, `/api/discord/message`)
+- `routes/community.js` - Community page routes with chat API (`/api/community/send-message`)
+- `views/community.html` - Community page with Discord chat UI and invite rewards
+- `config/database.js` - Added `discord_invites` table for abuse protection
+
+### 🔧 Technical Improvements
+
+- **Express Server in Bot** - Bot includes Express API server for receiving dashboard messages
+- **WebSocket Broadcasting** - Dashboard messages broadcast instantly via WebSocket
+- **Session Management** - Proper session handling for authenticated API calls
+- **Error Handling** - Comprehensive error handling for bot API failures
+- **Environment Configuration** - Centralized configuration via `.env` files
+
+### 📊 Database Changes
+
+- ✅ Added `discord_invites` table for tracking rewarded users
+  - Columns: `id`, `inviter`, `joined_user`, `invite_code`, `rewarded`, `timestamp`
+  - Prevents duplicate rewards for the same user
+  - Automatic table creation on server startup
+
+### 🛠 Setup Requirements
+
+**⚠️ Important:** The project now uses a **dual-service architecture** with separate `.env` files for each service. The Discord Bot Token is **NOT stored in the dashboard** - it remains exclusively in the bot's `.env` file for security.
+
+**New Environment Variables:**
+
+**Dashboard `.env` (Root Directory):**
+```env
+# Internal Bot Communication (required for Discord integration)
+BOT_API_URL=http://localhost:4000
+BOT_API_KEY=secure_internal_key
+```
+
+**Bot `.env` (aether-discord-bot/.env):**
+```env
+# Discord Bot Configuration
+DISCORD_BOT_TOKEN=your_discord_bot_token
+DASHBOARD_API_URL=http://localhost:3000
+BOT_API_KEY=secure_internal_key
+BOT_API_PORT=4000
+```
+
+**Key Points:**
+- 🔒 **Discord Bot Token** is stored ONLY in the bot's `.env` file, never in the dashboard
+- 🔑 **BOT_API_KEY** must match exactly in both `.env` files for secure communication
+- 🌐 **DASHBOARD_API_URL** in bot `.env` points to where the dashboard API is running
+- 📡 **BOT_API_URL** in dashboard `.env` points to where the bot API is running
+- ⚙️ **Configuration separation** improves security and maintainability
+
+### 📖 Documentation Updates
+
+- ✅ Added comprehensive Discord bot setup guide in README.md
+- ✅ Updated version references to 1.4.0
+- ✅ Added Discord integration to feature highlights
+- ✅ Included bot setup in Quick Deployment Guide
+
+### ⚠️ Upgrade Notes
+
+**For existing installations upgrading from v1.3.6:**
+
+1. **Install Discord Bot:**
+   ```bash
+   cd aether-discord-bot
+   npm install
+   ```
+
+2. **Configure Bot `.env` file** (see setup guide)
+
+3. **Update Dashboard `.env`** with `BOT_API_URL` and `BOT_API_KEY`
+
+4. **Start Discord Bot:**
+   ```bash
+   pm2 start bot.js --name aether-discord-bot
+   pm2 save
+   ```
+
+5. **Restart Dashboard:**
+   ```bash
+   pm2 restart aether-dashboard
+   ```
+
+6. **Configure Discord Integration** in Admin Panel → Integrations → Discord
+
+**⚠️ Important:** The Discord bot must be running for invite rewards and chat features to work!
+
+### 🎯 How It Works
+
+1. **Invite Rewards:**
+   - User creates Discord invite link
+   - Someone joins Discord using that invite
+   - Bot detects which invite was used
+   - Dashboard awards coins to inviter
+   - If user leaves, coins are automatically deducted
+
+2. **Real-time Chat:**
+   - Discord messages sent to dashboard API
+   - Dashboard broadcasts via WebSocket
+   - Messages appear instantly in Community page
+   - Dashboard messages sent to bot API
+   - Bot forwards to Discord channel
+
+3. **Abuse Protection:**
+   - Each joined user tracked in database
+   - Duplicate joins detected and ignored
+   - Prevents multiple rewards for same user
+
+### 🔒 Security Features
+
+- Bot API authentication via `BOT_API_KEY`
+- Session-based authentication for dashboard API
+- Input validation and sanitization
+- Error handling prevents information leakage
+
+### 📝 Breaking Changes
+
+- None - This is a feature addition, existing functionality remains unchanged
+
+### 🐛 Bug Fixes
+
+- Fixed dashboard message broadcast timing
+- Improved WebSocket connection stability
+- Enhanced error handling for bot API failures
+
+### 🚀 Performance Improvements
+
+- WebSocket-based real-time updates reduce API load
+- Efficient invite cache system
+- Optimized database queries for invite tracking
+
+### 📚 Additional Resources
+
+- See [Discord Bot Setup Guide](#-setting-up-discord-bot-integration) in README.md
+- Discord bot README: `aether-discord-bot/README.md`
+
+---
 
 ## Aether Dashboard v1.3.6
 

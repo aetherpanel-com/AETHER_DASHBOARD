@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.3.6
+**Version:** 1.4.0
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.3.6):** WebSocket-based real-time server updates - improved performance, reduced API load, and enhanced stability - See [Changelog](UPDATES.md#aether-dashboard-v136) for details.
+**🔧 Latest Update (v1.4.0):** Discord Integration Update - Full Discord bot integration with invite rewards, real-time chat, and automated coin management - See [Changelog](UPDATES.md#aether-dashboard-v140) for details.
 
 ---
 
@@ -37,21 +37,169 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 ---
 
-## ✨ What's New in Version 1.3
+## ✨ What's New in Version 1.4
 
-This major update brings **powerful server management features** that put you ahead of competitors:
+**Discord Integration Update** - Connect your Discord server to your dashboard for automated rewards and real-time chat!
+
+### 🎮 Discord Features
 
 | Feature | Description |
 |---------|-------------|
-| ⚡ **Quick Actions** | Start/Stop/Restart servers with one click directly from dashboard |
-| 📦 **Server Templates** | Admins create pre-configured templates for instant server deployment |
-| 📊 **Live Stats Dashboard** | Real-time CPU, RAM, Disk graphs with Chart.js |
-| 💻 **Console Commands** | Send commands to server console without opening Pterodactyl |
-| 📁 **File Manager** | Browse, edit, create, delete files directly from dashboard |
-| 💾 **Backup System** | Create, download, and restore server backups |
-| ⏰ **Scheduled Tasks** | Automate server restarts, commands, and backups |
-| 🗃️ **Database Manager** | Create and manage MySQL databases for your servers |
-| 🚨 **Usage Alerts** | Get notified when CPU/RAM/Disk usage is high |
+| 💰 **Invite Rewards** | Users earn coins when someone joins Discord using their invite link |
+| 🔄 **Auto Deduction** | Rewards automatically removed if invited user leaves the server |
+| 💬 **Real-time Chat** | Discord chat mirrored in dashboard Community page |
+| 📤 **Bidirectional Chat** | Send messages from dashboard to Discord and vice versa |
+| 🏆 **Leaderboard** | Track top inviters with live leaderboard |
+| 🛡️ **Abuse Protection** | Duplicate invite joins detected and prevented |
+
+---
+
+## 🚀 Automated Installation (Recommended)
+
+**The easiest way to install Aether Dashboard!** Use our automated installer script for a hassle-free setup.
+
+### Quick Install
+
+**Run this single command on your Linux VPS:**
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh)
+```
+
+**Or download and run locally:**
+
+```bash
+curl -O https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh
+sudo bash install.sh
+```
+
+### What the Installer Does
+
+The automated installer will:
+
+✅ **Check system requirements** - Verifies Node.js, npm, and other dependencies  
+✅ **Install system packages** - Nginx, Certbot, PM2, and more  
+✅ **Configure firewall** - Sets up UFW with proper ports  
+✅ **Clone repository** - Downloads latest code to `/opt/aether-dashboard`  
+✅ **Generate secure secrets** - Creates random session secrets and API keys  
+✅ **Setup SSL certificate** - Automatically configures HTTPS with Let's Encrypt  
+✅ **Configure Nginx** - Sets up reverse proxy for your domain  
+✅ **Start services** - Launches dashboard and Discord bot with PM2  
+✅ **Verify installation** - Tests that everything is working correctly  
+
+### Installation Requirements
+
+Before running the installer, make sure you have:
+
+- **Root access** to your Linux VPS (Ubuntu 22.04 / Debian recommended)
+- **Domain name** pointing to your server (or IP address for testing)
+- **Discord Bot Token** (if using Discord integration)
+- **Ports open**: 22 (SSH), 80 (HTTP), 443 (HTTPS)
+
+### Installation Process
+
+1. **Run the installer:**
+   ```bash
+   bash <(curl -s https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh)
+   ```
+
+2. **Follow the prompts:**
+   - Enter your domain name (e.g., `dashboard.example.com`)
+   - Enter your Discord Bot Token (optional)
+   - Choose dashboard port (default: 3000)
+   - Configure DNS when prompted
+   - Wait for DNS verification
+
+3. **Access your dashboard:**
+   - Open `https://your-domain.com` in your browser
+   - Default login: `admin` / `admin123`
+   - ⚠️ **Change password immediately!**
+
+### Updating the Dashboard
+
+**To update to the latest version:**
+
+```bash
+sudo bash /opt/aether-dashboard/update.sh
+```
+
+Or download and run:
+
+```bash
+curl -O https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/update.sh
+sudo bash update.sh
+```
+
+The update script will:
+- Backup your configuration files
+- Pull latest code from GitHub
+- Update dependencies
+- Restart services safely
+
+### Uninstalling
+
+**To completely remove Aether Dashboard:**
+
+```bash
+sudo bash /opt/aether-dashboard/uninstall.sh
+```
+
+Or download and run:
+
+```bash
+curl -O https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/uninstall.sh
+sudo bash uninstall.sh
+```
+
+**⚠️ Warning:** This will remove all data, configuration, and services. Backups are preserved in `/opt/aether-dashboard/backups/` if created.
+
+### Installation Location
+
+The installer installs to:
+
+- **Installation Directory:** `/opt/aether-dashboard`
+- **Logs:** `/var/log/aether-installer.log`
+- **PM2 Services:** `aether-dashboard`, `aether-discord-bot`
+- **Nginx Config:** `/etc/nginx/sites-available/aether-dashboard`
+
+### Useful Commands After Installation
+
+```bash
+# Check service status
+pm2 status
+
+# View logs
+pm2 logs aether-dashboard
+pm2 logs aether-discord-bot
+
+# Restart services
+pm2 restart aether-dashboard
+pm2 restart aether-discord-bot
+
+# View installation logs
+cat /var/log/aether-installer.log
+```
+
+### Troubleshooting Installation
+
+**If installation fails:**
+
+1. **Check the logs:**
+   ```bash
+   cat /var/log/aether-installer.log
+   ```
+
+2. **Verify system requirements:**
+   - Ubuntu 22.04 / Debian 11+ recommended
+   - Root access required
+   - Internet connection needed
+
+3. **Common issues:**
+   - **DNS not resolving:** Wait longer for DNS propagation (can take up to 48 hours)
+   - **Port already in use:** Change the dashboard port in the installer
+   - **SSL certificate fails:** Ensure DNS is properly configured before running installer
+
+4. **Manual installation:** If automated installer fails, see [Manual Installation Guide](#-step-by-step-installation-guide) below
 
 ---
 
@@ -99,10 +247,26 @@ nano .env
 ```
 Paste this (change `SESSION_SECRET` to a random 32+ character string):
 ```env
+# Server Configuration
 PORT=3000
 NODE_ENV=production
-SESSION_SECRET=your-random-secret-key-at-least-32-characters-long
-USE_HTTPS=false
+SESSION_SECRET=your_session_secret_here
+
+# HTTPS Configuration (set to 'true' if using HTTPS/SSL)
+USE_HTTPS=true
+
+# Discord OAuth (optional - for user login via Discord)
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
+DISCORD_CALLBACK_URL=http://localhost:3000/auth/discord/callback
+
+# Pterodactyl Panel (optional - for game server management)
+PTERODACTYL_URL=
+PTERODACTYL_API_KEY=
+
+# Internal Bot Communication (required for Discord integration)
+BOT_API_KEY=secure_internal_key
+BOT_API_URL=http://localhost:4000
 ```
 Save: `Ctrl + X`, then `Y`, then `Enter`
 
@@ -497,6 +661,10 @@ DISCORD_CALLBACK_URL=https://yourdomain.com/auth/discord/callback
 # Pterodactyl Panel (optional - configure via Admin Panel after installation)
 PTERODACTYL_URL=
 PTERODACTYL_API_KEY=
+
+# Internal Bot Communication (required for Discord integration)
+BOT_API_KEY=secure_internal_key
+BOT_API_URL=http://localhost:4000
 ```
 
 **Step 6.3: Make these changes:**
@@ -997,7 +1165,262 @@ pm2 restart aether-dashboard
 
 ---
 
-## 🚀 Feature Highlights (Version 1.3)
+## ⚙️ Environment Configuration
+
+**The Aether Dashboard project uses a dual-service architecture with separate environment configuration files.**
+
+### 📋 Overview
+
+The project consists of **two services**, each with its own `.env` file:
+
+1. **Main Dashboard Application** - Located in the root directory (`AETHER_DASHBOARD/.env`)
+2. **Discord Bot Service** - Located in `aether-discord-bot/` directory (`AETHER_DASHBOARD/aether-discord-bot/.env`)
+
+**⚠️ Important:** `.env` files are **NOT included in the repository** and must be created manually when setting up the project. They contain sensitive information and should never be committed to Git.
+
+---
+
+### 1. Dashboard `.env` File (Root Directory)
+
+**Location:** `AETHER_DASHBOARD/.env`
+
+**Purpose:** Configuration for the main dashboard Express server.
+
+**Example Configuration:**
+
+```env
+# Server Configuration
+PORT=3000
+NODE_ENV=production
+SESSION_SECRET=your_session_secret_here
+
+# HTTPS Configuration (set to 'true' if using HTTPS/SSL)
+USE_HTTPS=true
+
+# Discord OAuth (optional - for user login via Discord)
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
+DISCORD_CALLBACK_URL=http://localhost:3000/auth/discord/callback
+
+# Pterodactyl Panel (optional - for game server management)
+PTERODACTYL_URL=
+PTERODACTYL_API_KEY=
+
+# Internal Bot Communication (required for Discord integration)
+BOT_API_KEY=secure_internal_key
+BOT_API_URL=http://localhost:4000
+```
+
+**Variable Descriptions:**
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PORT` | Yes | Port number for the dashboard server (default: 3000) |
+| `NODE_ENV` | Yes | Environment mode (`production` or `development`) |
+| `SESSION_SECRET` | Yes | Secret key for session encryption (32+ characters, random) |
+| `USE_HTTPS` | Yes | Set to `true` if using HTTPS/SSL, `false` for HTTP |
+| `DISCORD_CLIENT_ID` | Optional | Discord OAuth application client ID (for Discord login) |
+| `DISCORD_CLIENT_SECRET` | Optional | Discord OAuth application client secret |
+| `DISCORD_CALLBACK_URL` | Optional | Discord OAuth callback URL |
+| `PTERODACTYL_URL` | Optional | Pterodactyl panel URL (e.g., `https://panel.yoursite.com`) |
+| `PTERODACTYL_API_KEY` | Optional | Pterodactyl application API key |
+| `BOT_API_KEY` | Required* | Shared secret key for bot-dashboard communication (*required if using Discord integration) |
+| `BOT_API_URL` | Required* | URL where the Discord bot API is running (*required if using Discord integration) |
+
+**Important Notes:**
+
+- ⚠️ **The dashboard does NOT connect directly to Discord.** It communicates with the Discord bot using `BOT_API_URL` and `BOT_API_KEY`.
+- 🔒 **Secrets such as `SESSION_SECRET` and API keys must never be committed to Git.**
+- 🔑 **`BOT_API_KEY` must match the same value in the bot's `.env` file** for secure communication.
+- 🌐 **`BOT_API_URL` should point to where your Discord bot is running** (default: `http://localhost:4000`).
+
+---
+
+### 2. Discord Bot `.env` File
+
+**Location:** `AETHER_DASHBOARD/aether-discord-bot/.env`
+
+**Purpose:** Configuration for the Discord bot service that handles invite tracking and chat synchronization.
+
+**Example Configuration:**
+
+```env
+# Discord Bot Configuration
+DISCORD_BOT_TOKEN=your_discord_bot_token_here
+DASHBOARD_API_URL=http://localhost:3000
+BOT_API_KEY=secure_internal_key
+BOT_API_PORT=4000
+```
+
+**Variable Descriptions:**
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DISCORD_BOT_TOKEN` | Yes | Discord bot token from Discord Developer Portal |
+| `DASHBOARD_API_URL` | Yes | URL of the dashboard API where bot sends events |
+| `BOT_API_KEY` | Yes | Shared secret key for bot-dashboard communication (must match dashboard `.env`) |
+| `BOT_API_PORT` | Optional | Port for bot's internal API server (default: 4000) |
+
+**Purpose of Each Variable:**
+
+- **`DISCORD_BOT_TOKEN`**: Used by the bot to authenticate with Discord's API. This token is obtained from the [Discord Developer Portal](https://discord.com/developers/applications).
+
+- **`DASHBOARD_API_URL`**: The dashboard API endpoint where the bot sends events such as:
+  - Invite joins (`POST /api/discord/invite-used`)
+  - Member leaves (`POST /api/discord/member-left`)
+  - Discord chat messages (`POST /api/discord/message`)
+  - Heartbeat signals (`POST /api/bot/heartbeat`)
+
+- **`BOT_API_KEY`**: Used to authenticate requests between the bot and dashboard. **This value must match exactly** in both the dashboard `.env` and bot `.env` files.
+
+- **`BOT_API_PORT`**: Port number for the bot's internal Express API server that receives messages from the dashboard.
+
+**⚠️ Important:** The Discord bot token is **never stored in the dashboard** - it remains exclusively in the bot's `.env` file for security.
+
+---
+
+### 3. Communication Flow
+
+**How the two services interact:**
+
+```
+┌─────────────────────┐
+│  Dashboard Server   │
+│   (Port 3000)       │
+│                     │
+│  - User Management  │
+│  - Server Management│
+│  - Coin System      │
+│  - WebSocket Events │
+└──────────┬──────────┘
+           │
+           │ HTTP API
+           │ (BOT_API_KEY)
+           │
+           ▼
+┌─────────────────────┐
+│   Discord Bot       │
+│   (Port 4000)       │
+│                     │
+│  - Invite Tracking  │
+│  - Message Forwarding│
+│  - Heartbeat        │
+└──────────┬──────────┘
+           │
+           │ Discord Gateway
+           │ (DISCORD_BOT_TOKEN)
+           │
+           ▼
+┌─────────────────────┐
+│   Discord Server    │
+│                     │
+│  - User Joins/Leaves│
+│  - Chat Messages    │
+│  - Invite Events    │
+└─────────────────────┘
+```
+
+**Event Flow Examples:**
+
+**1. Invite Join Flow:**
+```
+User joins Discord
+  → Bot detects invite used
+  → Bot sends event to Dashboard API (POST /api/discord/invite-used)
+  → Dashboard awards coins to inviter
+  → Dashboard updates database
+```
+
+**2. Chat Bridge (Discord → Dashboard):**
+```
+Discord message sent
+  → Bot receives message
+  → Bot sends to Dashboard API (POST /api/discord/message)
+  → Dashboard broadcasts via WebSocket
+  → Message appears in Community page
+```
+
+**3. Chat Bridge (Dashboard → Discord):**
+```
+Dashboard user sends message
+  → Dashboard API sends request to Bot (POST /bot/send-message)
+  → Bot receives message via internal API
+  → Bot sends message to Discord channel
+  → Message appears in Discord
+```
+
+**4. Heartbeat System:**
+```
+Bot sends heartbeat every 30 seconds
+  → Dashboard receives heartbeat (POST /api/bot/heartbeat)
+  → Dashboard updates bot status timestamp
+  → Admin panel checks status (GET /api/bot/status)
+  → Shows 🟢 Online or 🔴 Offline
+```
+
+---
+
+### 4. Security Best Practices
+
+**🔒 Protecting Your Secrets:**
+
+1. **Never commit `.env` files to Git** - They are already in `.gitignore`
+2. **Use strong, random values** for `SESSION_SECRET` and `BOT_API_KEY`
+3. **Keep `DISCORD_BOT_TOKEN` secret** - Only stored in bot's `.env` file
+4. **Use HTTPS in production** - Set `USE_HTTPS=true` when using SSL
+5. **Restrict file permissions** - Use `chmod 600 .env` to restrict access
+6. **Backup `.env` files securely** - Store backups in encrypted storage
+
+**Example secure permissions:**
+```bash
+chmod 600 .env
+chmod 600 aether-discord-bot/.env
+```
+
+---
+
+### 5. Setup Checklist
+
+**For Dashboard:**
+- [ ] Create `AETHER_DASHBOARD/.env` file
+- [ ] Set `SESSION_SECRET` to random 32+ character string
+- [ ] Configure `PORT` (default: 3000)
+- [ ] Set `USE_HTTPS` based on your setup
+- [ ] Add `BOT_API_KEY` and `BOT_API_URL` (if using Discord integration)
+- [ ] Optionally configure Discord OAuth and Pterodactyl
+
+**For Discord Bot:**
+- [ ] Create `aether-discord-bot/.env` file
+- [ ] Set `DISCORD_BOT_TOKEN` from Discord Developer Portal
+- [ ] Set `DASHBOARD_API_URL` to your dashboard URL
+- [ ] Set `BOT_API_KEY` to **match** the dashboard's `BOT_API_KEY`
+- [ ] Optionally set `BOT_API_PORT` (default: 4000)
+
+**Verification:**
+- [ ] Both `.env` files exist
+- [ ] `BOT_API_KEY` matches in both files
+- [ ] `DASHBOARD_API_URL` in bot points to correct dashboard URL
+- [ ] All required variables are set
+- [ ] File permissions are secure (`chmod 600`)
+
+---
+
+## 🚀 Feature Highlights
+
+### 🤖 Discord Integration (Version 1.4)
+
+**Full Discord bot integration for automated rewards and real-time chat:**
+
+- **Invite Reward System** - Users earn coins automatically when someone joins Discord using their invite link
+- **Real-time Chat Sync** - Discord messages appear instantly in dashboard Community page
+- **Bidirectional Messaging** - Send messages from dashboard to Discord and vice versa
+- **Invite Tracking** - Automatic detection of which invite was used when users join
+- **Abuse Protection** - Prevents duplicate rewards for the same user
+- **Auto Deduction** - Rewards automatically removed if invited user leaves the server
+- **Live Leaderboard** - Track top inviters with real-time leaderboard
+- **WebSocket Integration** - Real-time updates via WebSocket for instant chat synchronization
+
+### ⚡ Server Management Features (Version 1.3)
 
 **These features make your dashboard stand out from competitors!**
 
@@ -1226,9 +1649,12 @@ pm2 start server.js --name aether-dashboard  # Start
 ```
 
 ### Important Files
-- **`.env`** - Your configuration (keep secret!)
+- **`.env`** - Dashboard configuration (keep secret!) - See [Environment Configuration](#-environment-configuration)
+- **`aether-discord-bot/.env`** - Discord bot configuration (keep secret!) - See [Environment Configuration](#-environment-configuration)
 - **`database.db`** - All your data (backup regularly!) - See [Backup & Recovery Guide](BACKUP_RECOVERY.md)
 - **`reset-admin-password.js`** - Password reset script (use if you forget admin password)
+
+**⚠️ Note:** The project uses two separate `.env` files - one for the dashboard and one for the Discord bot. See the [Environment Configuration](#-environment-configuration) section for details.
 
 ---
 
@@ -1241,7 +1667,8 @@ pm2 start server.js --name aether-dashboard  # Start
 - [ ] Installed Node.js (checked with `node --version`)
 - [ ] Uploaded/cloned dashboard code
 - [ ] Installed dependencies (`npm install`)
-- [ ] Created `.env` file with configuration
+- [ ] Created dashboard `.env` file with configuration (see [Environment Configuration](#-environment-configuration))
+- [ ] Created Discord bot `.env` file (if using Discord integration)
 - [ ] Started with PM2 (`pm2 start server.js --name aether-dashboard`)
 - [ ] Configured firewall
 - [ ] Can access dashboard in browser

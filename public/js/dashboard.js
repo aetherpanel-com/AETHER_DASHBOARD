@@ -59,12 +59,17 @@ function checkAdminAccess() {
                 // Show all admin-only items
                 document.querySelectorAll('.admin-only').forEach(item => {
                     // Use 'block' for dropdown containers, 'flex' for nav items
-                    if (item.classList.contains('nav-dropdown')) {
+                    if (item.classList.contains('sidebar-dropdown') || item.classList.contains('nav-dropdown')) {
                         item.style.display = 'block';
                     } else {
                         item.style.display = 'flex';
                     }
                 });
+                
+                // Re-initialize sidebar state after admin access is confirmed
+                if (typeof initializeSidebarState === 'function') {
+                    initializeSidebarState();
+                }
             } else {
                 // Hide admin items if not admin
                 document.querySelectorAll('.admin-only').forEach(item => {

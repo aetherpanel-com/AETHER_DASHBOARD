@@ -91,6 +91,16 @@ router.get('/settings/branding', requireAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, '../views/admin-branding.html'));
 });
 
+// Admin integrations - Linkvertise page
+router.get('/integrations/linkvertise', requireAdmin, (req, res) => {
+    res.sendFile(path.join(__dirname, '../views/admin-integrations-linkvertise.html'));
+});
+
+// Admin integrations - Discord page
+router.get('/integrations/discord', requireAdmin, (req, res) => {
+    res.sendFile(path.join(__dirname, '../views/admin-integrations-discord.html'));
+});
+
 // API endpoint to get system statistics
 router.get('/api/stats', requireAdmin, async (req, res) => {
     try {
@@ -468,6 +478,82 @@ router.post('/api/linkvertise/config', requireAdmin, async (req, res) => {
         res.json({ success: true, message: 'Configuration saved successfully' });
     } catch (error) {
         console.error('Error saving Linkvertise config:', error);
+        res.status(500).json({ success: false, message: 'Error saving configuration' });
+    }
+});
+
+// Discord Configuration API
+router.get('/api/discord-config', requireAdmin, async (req, res) => {
+    try {
+        const config = await get('SELECT * FROM discord_config ORDER BY id DESC LIMIT 1');
+        if (config) {
+            res.json({ 
+                success: true, 
+                config: {
+                    guild_id: config.guild_id || '',
+                    chat_channel_id: config.chat_channel_id || '',
+                    invite_channel_id: config.invite_channel_id || '',
+                    reward_per_invite: config.reward_per_invite || 100,
+                    enable_chat: config.enable_chat === 1,
+                    enable_invite_rewards: config.enable_invite_rewards === 1
+                }
+            });
+        } else {
+            res.json({ 
+                success: true, 
+                config: {
+                    guild_id: '',
+                    chat_channel_id: '',
+                    invite_channel_id: '',
+                    reward_per_invite: 100,
+                    enable_chat: true,
+                    enable_invite_rewards: true
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching Discord config:', error);
+        res.status(500).json({ success: false, message: 'Error fetching configuration' });
+    }
+});
+
+router.post('/api/discord-config', requireAdmin, async (req, res) => {
+    try {
+        const { guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards } = req.body;
+        
+        // Validate reward_per_invite is an integer
+        const rewardPerInvite = parseInt(reward_per_invite);
+        if (isNaN(rewardPerInvite) || rewardPerInvite < 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Reward per invite must be a non-negative integer' 
+            });
+        }
+        
+        // Convert boolean values to integers for database storage
+        const enableChatInt = enable_chat === true || enable_chat === 'true' || enable_chat === 1 ? 1 : 0;
+        const enableInviteRewardsInt = enable_invite_rewards === true || enable_invite_rewards === 'true' || enable_invite_rewards === 1 ? 1 : 0;
+        
+        // Check if config exists
+        const existing = await get('SELECT id FROM discord_config ORDER BY id DESC LIMIT 1');
+        
+        if (existing) {
+            // Update existing config
+            await run(
+                'UPDATE discord_config SET guild_id = ?, chat_channel_id = ?, invite_channel_id = ?, reward_per_invite = ?, enable_chat = ?, enable_invite_rewards = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                [guild_id || '', chat_channel_id || '', invite_channel_id || '', rewardPerInvite, enableChatInt, enableInviteRewardsInt, existing.id]
+            );
+        } else {
+            // Create new config
+            await run(
+                'INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards) VALUES (?, ?, ?, ?, ?, ?)',
+                [guild_id || '', chat_channel_id || '', invite_channel_id || '', rewardPerInvite, enableChatInt, enableInviteRewardsInt]
+            );
+        }
+        
+        res.json({ success: true, message: 'Discord configuration saved successfully' });
+    } catch (error) {
+        console.error('Error saving Discord config:', error);
         res.status(500).json({ success: false, message: 'Error saving configuration' });
     }
 });

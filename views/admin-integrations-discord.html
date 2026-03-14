@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/assets/defaults/aether-dashboard-favicon.ico">
+    <title>Discord Integration - Admin Panel - Aether Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <style>
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(107, 114, 128, 0.5);
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #7c3aed;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .toggle-label-text {
+            color: #f8fafc;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="/assets/defaults/aether-dashboard-logo.png" alt="Aether Dashboard" class="dashboard-logo">
+                <h2>Aether Dashboard</h2>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item" data-page="dashboard">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="/servers" class="nav-item" data-page="servers">
+                    <span class="nav-icon">🖥️</span>
+                    <span class="nav-text">Manage Servers</span>
+                </a>
+                <a href="/servers/create" class="nav-item" data-page="create-server">
+                    <span class="nav-icon">➕</span>
+                    <span class="nav-text">Create Server</span>
+                </a>
+                <a href="/linkvertise" class="nav-item" data-page="linkvertise">
+                    <span class="nav-icon">💰</span>
+                    <span class="nav-text">Linkvertise</span>
+                </a>
+                <a href="/servers/store" class="nav-item" data-page="store">
+                    <span class="nav-icon">🛒</span>
+                    <span class="nav-text">Resource Store</span>
+                </a>
+                <a href="/community" class="nav-item" data-page="community">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">Community</span>
+                </a>
+                <a href="/dashboard/profile" class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Profile</span>
+                </a>
+                <a href="/dashboard/settings" class="nav-item" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Settings</span>
+                </a>
+                <!-- Admin Panel Dropdown -->
+                <div class="sidebar-dropdown admin-only" style="display: none;">
+                    <div class="sidebar-dropdown-toggle active">
+                        <div class="nav-dropdown-left">
+                            <span class="nav-icon">🛡️</span>
+                            <span class="nav-text">Admin Panel</span>
+                        </div>
+                        <span class="dropdown-arrow">▼</span>
+                    </div>
+                    <div class="sidebar-submenu">
+                        <a href="/admin" class="nav-item" data-page="admin">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">Overview</span>
+                        </a>
+                        
+                        <!-- Admin Settings Nested Dropdown -->
+                        <div class="sidebar-dropdown nested">
+                            <div class="sidebar-dropdown-toggle">
+                                <div class="nav-dropdown-left">
+                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-text">Admin Settings</span>
+                                </div>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sidebar-submenu">
+                                <a href="/admin/settings/themes" class="nav-item" data-page="admin-themes">
+                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-text">Themes</span>
+                                </a>
+                                <a href="/admin/settings/branding" class="nav-item" data-page="admin-branding">
+                                    <span class="nav-icon">✨</span>
+                                    <span class="nav-text">Branding</span>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Integrations Nested Dropdown -->
+                        <div class="sidebar-dropdown nested">
+                            <div class="sidebar-dropdown-toggle active">
+                                <div class="nav-dropdown-left">
+                                    <span class="nav-icon">🔌</span>
+                                    <span class="nav-text">Integrations</span>
+                                </div>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sidebar-submenu">
+                                <a href="/admin/integrations/linkvertise" class="nav-item" data-page="admin-integrations-linkvertise">
+                                    <span class="nav-icon">💰</span>
+                                    <span class="nav-text">Linkvertise</span>
+                                </a>
+                                <a href="/admin/integrations/discord" class="nav-item active" data-page="admin-integrations-discord">
+                                    <span class="nav-icon">💬</span>
+                                    <span class="nav-text">Discord</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="/auth/logout" class="btn btn-secondary" style="width: 100%;">Logout</a>
+            </div>
+        </aside>
+        
+        <!-- Sidebar Overlay (for mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+                    <h1>Discord Integration</h1>
+                </div>
+                <div class="header-right">
+                    <div class="coin-balance">
+                        <span class="coin-icon">🪙</span>
+                        <span id="coinAmount">0</span> Coins
+                    </div>
+                </div>
+            </header>
+            
+            <div class="dashboard-content">
+                <!-- Bot Status Indicator -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header">Discord Bot Status</div>
+                    <div style="padding: 20px;">
+                        <div id="botStatusIndicator" style="display: flex; align-items: center; gap: 12px;">
+                            <span id="botStatusIcon" style="font-size: 24px;">⏳</span>
+                            <span id="botStatusText" style="color: #cbd5e1; font-size: 16px; font-weight: 500;">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">Discord Server Configuration</div>
+                    <p style="color: #cbd5e1; margin-bottom: 20px;">
+                        Configure your Discord server settings to enable chat and invite rewards features. The bot token is configured in the server's environment variables.
+                    </p>
+                    
+                    <form id="discordConfigForm">
+                        <div class="form-group">
+                            <label for="discordServerId">Discord Server ID (Guild ID)</label>
+                            <input type="text" id="discordServerId" placeholder="123456789012345678" style="font-family: monospace;">
+                            <small style="color: #cbd5e1;">Right-click your Discord server → Server Settings → Widget → Server ID</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="discordChatChannelId">Discord Chat Channel ID</label>
+                            <input type="text" id="discordChatChannelId" placeholder="123456789012345678" style="font-family: monospace;">
+                            <small style="color: #cbd5e1;">Right-click the chat channel → Copy ID (Developer Mode must be enabled)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="discordInviteChannelId">Discord Invite Channel ID</label>
+                            <input type="text" id="discordInviteChannelId" placeholder="123456789012345678" style="font-family: monospace;">
+                            <small style="color: #cbd5e1;">Channel where invite reward notifications will be sent</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rewardPerInvite">Reward Per Invite</label>
+                            <input type="number" id="rewardPerInvite" min="0" value="100" placeholder="100">
+                            <small style="color: #cbd5e1;">Number of coins users receive per successful invite</small>
+                        </div>
+                        
+                        <div style="margin: 24px 0; padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                            <h3 style="color: #f8fafc; margin-bottom: 16px; font-size: 18px;">Feature Toggles</h3>
+                            
+                            <div class="form-group">
+                                <div class="toggle-label">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="enableDiscordChat" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <span class="toggle-label-text">Enable Discord Chat</span>
+                                </div>
+                                <small style="color: #cbd5e1; margin-left: 62px; display: block;">Allow users to chat in Discord from the Community page</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="toggle-label">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="enableInviteRewards" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <span class="toggle-label-text">Enable Invite Rewards</span>
+                                </div>
+                                <small style="color: #cbd5e1; margin-left: 62px; display: block;">Reward users with coins when they invite others</small>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script src="/js/main.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/theme.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            initMobileMenu();
+            await loadUserData();
+            checkAdminAccess();
+            loadBrandingSettings();
+            await loadDiscordConfig();
+            await loadBotStatus();
+            
+            // Set up periodic bot status check (every 10 seconds)
+            setInterval(loadBotStatus, 10000);
+        });
+        
+        // Load Discord bot status from backend
+        async function loadBotStatus() {
+            try {
+                const response = await apiFetch('/api/bot/status');
+                if (!response || !response.ok) {
+                    console.error('Failed to load bot status');
+                    updateBotStatusUI(false);
+                    return;
+                }
+                
+                const data = await response.json();
+                const isOnline = data.online === true;
+                updateBotStatusUI(isOnline);
+            } catch (error) {
+                console.error('Error loading bot status:', error);
+                updateBotStatusUI(false);
+            }
+        }
+        
+        // Update bot status UI indicator
+        function updateBotStatusUI(isOnline) {
+            const statusIcon = document.getElementById('botStatusIcon');
+            const statusText = document.getElementById('botStatusText');
+            
+            if (isOnline) {
+                statusIcon.textContent = '🟢';
+                statusText.textContent = 'Online';
+                statusText.style.color = '#10b981'; // Green color
+            } else {
+                statusIcon.textContent = '🔴';
+                statusText.textContent = 'Offline';
+                statusText.style.color = '#ef4444'; // Red color
+            }
+        }
+        
+        // Load Discord configuration from backend
+        async function loadDiscordConfig() {
+            try {
+                const response = await apiFetch('/admin/api/discord-config');
+                if (!response || !response.ok) {
+                    console.error('Failed to load Discord config');
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && data.config) {
+                    const config = data.config;
+                    
+                    // Populate form fields (note: bot token is not stored in database)
+                    document.getElementById('discordServerId').value = config.guild_id || '';
+                    document.getElementById('discordChatChannelId').value = config.chat_channel_id || '';
+                    document.getElementById('discordInviteChannelId').value = config.invite_channel_id || '';
+                    document.getElementById('rewardPerInvite').value = config.reward_per_invite || 100;
+                    document.getElementById('enableDiscordChat').checked = config.enable_chat !== false;
+                    document.getElementById('enableInviteRewards').checked = config.enable_invite_rewards !== false;
+                }
+            } catch (error) {
+                console.error('Error loading Discord config:', error);
+            }
+        }
+        
+        // Discord Config Form
+        document.getElementById('discordConfigForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Note: Bot token is NOT saved to database - it remains in .env file
+            const config = {
+                guild_id: document.getElementById('discordServerId').value.trim(),
+                chat_channel_id: document.getElementById('discordChatChannelId').value.trim(),
+                invite_channel_id: document.getElementById('discordInviteChannelId').value.trim(),
+                reward_per_invite: parseInt(document.getElementById('rewardPerInvite').value),
+                enable_chat: document.getElementById('enableDiscordChat').checked,
+                enable_invite_rewards: document.getElementById('enableInviteRewards').checked
+            };
+            
+            // Validate reward_per_invite
+            if (isNaN(config.reward_per_invite) || config.reward_per_invite < 0) {
+                showNotification('Reward per invite must be a non-negative number', 'error');
+                return;
+            }
+            
+            try {
+                const response = await apiFetch('/admin/api/discord-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response && response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        showNotification('Discord settings saved successfully', 'success');
+                    } else {
+                        showNotification(data.message || 'Failed to save settings', 'error');
+                    }
+                } else {
+                    showNotification('Failed to save settings', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving Discord config:', error);
+                showNotification('An error occurred while saving settings', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

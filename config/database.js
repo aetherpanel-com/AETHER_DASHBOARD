@@ -287,6 +287,59 @@ function initializeDatabase() {
                 });
             });
 
+            // Create Discord_Invites table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS discord_invites (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    inviter TEXT NOT NULL,
+                    joined_user TEXT NOT NULL,
+                    invite_code TEXT NOT NULL,
+                    rewarded INTEGER DEFAULT 1,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating discord_invites table:', err);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Discord_Invites table created/verified');
+            });
+
+            // Create Discord_Config table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS discord_config (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    guild_id TEXT,
+                    chat_channel_id TEXT,
+                    invite_channel_id TEXT,
+                    reward_per_invite INTEGER DEFAULT 100,
+                    enable_chat INTEGER DEFAULT 1,
+                    enable_invite_rewards INTEGER DEFAULT 1,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating discord_config table:', err);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Discord_Config table created/verified');
+                
+                // Create default config if it doesn't exist
+                db.get('SELECT id FROM discord_config', (err, row) => {
+                    if (!err && !row) {
+                        db.run('INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards) VALUES (?, ?, ?, ?, ?, ?)', 
+                            ['', '', '', 100, 1, 1], (err) => {
+                                if (!err) {
+                                    console.log('✅ Default Discord config created');
+                                }
+                            });
+                    }
+                });
+            });
+
             // Create Pterodactyl_Config table
             db.run(`
                 CREATE TABLE IF NOT EXISTS pterodactyl_config (

@@ -116,16 +116,67 @@ async function apiRequest(url, options = {}) {
     }
 }
 
-// Setup dropdown toggle for Admin Settings menu
+// Reusable Sidebar Dropdown System - Generic handler for all dropdowns
 function setupDropdownToggle() {
-    document.querySelectorAll('.nav-dropdown-toggle').forEach(toggle => {
-        toggle.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const dropdown = this.closest('.nav-dropdown');
+    // Generic click handler for all sidebar dropdown toggles
+    function handleDropdownClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Find the closest sidebar dropdown container
+        const dropdown = this.closest('.sidebar-dropdown');
+        if (dropdown) {
+            // Toggle the 'open' class on the parent dropdown
+            // This will trigger CSS to rotate the arrow via .sidebar-dropdown.open .dropdown-arrow
             dropdown.classList.toggle('open');
-        });
+        }
+    }
+    
+    // Remove existing listeners and add new ones to prevent duplicates
+    document.querySelectorAll('.sidebar-dropdown-toggle').forEach(toggle => {
+        // Remove old listener by cloning
+        const newToggle = toggle.cloneNode(true);
+        toggle.parentNode.replaceChild(newToggle, toggle);
+        
+        // Add new click handler
+        newToggle.addEventListener('click', handleDropdownClick);
     });
+    
+    // Initialize sidebar state on page load
+    initializeSidebarState();
+}
+
+// Initialize sidebar dropdown state based on current page
+function initializeSidebarState() {
+    const currentPath = window.location.pathname;
+    
+    // Only initialize admin dropdowns if on admin pages
+    if (currentPath.startsWith('/admin')) {
+        // Always expand Admin Panel dropdown on admin pages
+        const adminPanelDropdown = document.querySelector('.sidebar-dropdown.admin-only');
+        if (adminPanelDropdown) {
+            adminPanelDropdown.classList.add('open');
+        }
+        
+        // Auto-expand nested dropdowns based on current page
+        if (currentPath.startsWith('/admin/settings')) {
+            // Find Admin Settings nested dropdown
+            document.querySelectorAll('.sidebar-dropdown.nested').forEach(dropdown => {
+                const toggle = dropdown.querySelector('.sidebar-dropdown-toggle');
+                if (toggle && toggle.textContent.includes('Admin Settings')) {
+                    dropdown.classList.add('open');
+                }
+            });
+        } else if (currentPath.startsWith('/admin/integrations')) {
+            // Find Integrations nested dropdown
+            document.querySelectorAll('.sidebar-dropdown.nested').forEach(dropdown => {
+                const toggle = dropdown.querySelector('.sidebar-dropdown-toggle');
+                if (toggle && toggle.textContent.includes('Integrations')) {
+                    dropdown.classList.add('open');
+                }
+            });
+        }
+    }
 }
 
 // Mobile menu toggle functionality

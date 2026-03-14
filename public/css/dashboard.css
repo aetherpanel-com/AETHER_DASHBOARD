@@ -164,7 +164,145 @@
                 inset 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
-/* Dropdown Menu Styles */
+/* Reusable Sidebar Dropdown System */
+.sidebar-dropdown {
+    position: relative;
+}
+
+.sidebar-dropdown-toggle {
+    display: flex;
+    align-items: center;
+    padding: 14px 24px;
+    color: var(--sidebar-text);
+    opacity: 0.9;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 3px solid transparent;
+    margin: 2px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    justify-content: space-between;
+    user-select: none;
+}
+
+.sidebar-dropdown-toggle:hover {
+    background: var(--sidebar-hover-bg);
+    color: var(--sidebar-text);
+    opacity: 1;
+    border-left-color: var(--sidebar-text);
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-dropdown-toggle.active {
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-text);
+    opacity: 1;
+    border-left-color: var(--sidebar-text);
+}
+
+.nav-dropdown-left {
+    display: flex;
+    align-items: center;
+}
+
+/* Dropdown Arrow - Generic rotation for all dropdowns */
+.dropdown-arrow {
+    font-size: 12px;
+    transition: transform 0.25s ease;
+    margin-left: auto;
+    display: inline-block;
+    transform: rotate(0deg); /* Default state - arrow pointing down (▼) */
+}
+
+/* Arrow rotation when dropdown is open - works for ALL dropdowns (main and nested) */
+/* When .open class is added, arrow rotates 180deg to point up (▲) */
+.sidebar-dropdown.open .dropdown-arrow,
+.sidebar-dropdown.nested.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+/* Ensure arrow returns to 0deg when dropdown is closed (no .open class) */
+.sidebar-dropdown:not(.open) .dropdown-arrow,
+.sidebar-dropdown.nested:not(.open) .dropdown-arrow {
+    transform: rotate(0deg);
+}
+
+/* Sidebar Submenu - Smooth expand/collapse */
+.sidebar-submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    background: rgba(0, 0, 0, 0.15);
+    margin: 0 12px;
+    border-radius: 0 0 8px 8px;
+}
+
+.sidebar-dropdown.open .sidebar-submenu {
+    max-height: 500px;
+    opacity: 1;
+}
+
+.sidebar-submenu .nav-item {
+    padding: 12px 20px 12px 44px;
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    font-size: 14px;
+}
+
+.sidebar-submenu .nav-item:first-child {
+    border-radius: 8px 8px 0 0;
+}
+
+.sidebar-submenu .nav-item:last-child {
+    border-radius: 0 0 8px 8px;
+}
+
+/* Nested Dropdown Styles */
+.sidebar-dropdown.nested {
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar-dropdown.nested .sidebar-dropdown-toggle {
+    padding: 12px 20px 12px 44px;
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    font-size: 14px;
+}
+
+.sidebar-dropdown.nested .sidebar-dropdown-toggle:hover {
+    background: rgba(124, 58, 237, 0.1);
+    transform: none;
+}
+
+.sidebar-dropdown.nested .sidebar-submenu {
+    margin: 0;
+    padding-left: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    max-height: 0;
+}
+
+.sidebar-dropdown.nested.open .sidebar-submenu {
+    max-height: 200px;
+    opacity: 1;
+}
+
+.sidebar-dropdown.nested .sidebar-submenu .nav-item {
+    padding: 10px 20px 10px 44px;
+}
+
+.sidebar-dropdown.nested .dropdown-arrow {
+    font-size: 10px;
+}
+
+/* Nested dropdown arrow rotation is handled by the generic rule above */
+/* .sidebar-dropdown.nested.open .dropdown-arrow inherits from .sidebar-dropdown.open .dropdown-arrow */
+
+/* Legacy support - keep old classes for backward compatibility */
 .nav-dropdown {
     position: relative;
 }
@@ -182,6 +320,7 @@
     border-radius: 8px;
     cursor: pointer;
     justify-content: space-between;
+    user-select: none;
 }
 
 .nav-dropdown-toggle:hover {
@@ -200,15 +339,11 @@
     border-left-color: var(--sidebar-text);
 }
 
-.nav-dropdown-left {
-    display: flex;
-    align-items: center;
-}
-
 .nav-dropdown-arrow {
     font-size: 12px;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin-left: auto;
+    display: inline-block;
 }
 
 .nav-dropdown.open .nav-dropdown-arrow {
@@ -218,7 +353,7 @@
 .nav-dropdown-menu {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease, opacity 0.3s ease;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     opacity: 0;
     background: rgba(0, 0, 0, 0.15);
     margin: 0 12px;
@@ -226,7 +361,7 @@
 }
 
 .nav-dropdown.open .nav-dropdown-menu {
-    max-height: 200px;
+    max-height: 500px;
     opacity: 1;
 }
 
@@ -244,6 +379,48 @@
 
 .nav-dropdown-menu .nav-item:last-child {
     border-radius: 0 0 8px 8px;
+}
+
+.nav-dropdown.nested {
+    margin: 0;
+    padding: 0;
+}
+
+.nav-dropdown.nested .nav-dropdown-toggle {
+    padding: 12px 20px 12px 44px;
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    font-size: 14px;
+}
+
+.nav-dropdown.nested .nav-dropdown-toggle:hover {
+    background: rgba(124, 58, 237, 0.1);
+    transform: none;
+}
+
+.nav-dropdown.nested .nav-dropdown-menu {
+    margin: 0;
+    padding-left: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    max-height: 0;
+}
+
+.nav-dropdown.nested.open .nav-dropdown-menu {
+    max-height: 200px;
+    opacity: 1;
+}
+
+.nav-dropdown.nested .nav-dropdown-menu .nav-item {
+    padding: 10px 20px 10px 44px;
+}
+
+.nav-dropdown.nested .nav-dropdown-arrow {
+    font-size: 10px;
+}
+
+.nav-dropdown.nested.open .nav-dropdown-arrow {
+    transform: rotate(180deg);
 }
 
 .nav-dropdown-menu .nav-item:hover {

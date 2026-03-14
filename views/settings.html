@@ -38,6 +38,10 @@
                     <span class="nav-icon">🛒</span>
                     <span class="nav-text">Resource Store</span>
                 </a>
+                <a href="/community" class="nav-item" data-page="community">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">Community</span>
+                </a>
                 <a href="/dashboard/profile" class="nav-item" data-page="profile">
                     <span class="nav-icon">👤</span>
                     <span class="nav-text">Profile</span>
@@ -46,28 +50,63 @@
                     <span class="nav-icon">⚙️</span>
                     <span class="nav-text">Settings</span>
                 </a>
-                <a href="/admin" class="nav-item admin-only" data-page="admin" style="display: none;">
-                    <span class="nav-icon">🛡️</span>
-                    <span class="nav-text">Admin Panel</span>
-                </a>
-                <!-- Admin Settings Dropdown -->
-                <div class="nav-dropdown admin-only" style="display: none;">
-                    <div class="nav-dropdown-toggle">
+                
+                <!-- Admin Panel Dropdown -->
+                <div class="sidebar-dropdown admin-only" style="display: none;">
+                    <div class="sidebar-dropdown-toggle">
                         <div class="nav-dropdown-left">
-                            <span class="nav-icon">🎨</span>
-                            <span class="nav-text">Admin Settings</span>
+                            <span class="nav-icon">🛡️</span>
+                            <span class="nav-text">Admin Panel</span>
                         </div>
-                        <span class="nav-dropdown-arrow">▼</span>
+                        <span class="dropdown-arrow">▼</span>
                     </div>
-                    <div class="nav-dropdown-menu">
-                        <a href="/admin/settings/themes" class="nav-item" data-page="admin-themes">
-                            <span class="nav-icon">🎨</span>
-                            <span class="nav-text">Themes</span>
+                    <div class="sidebar-submenu">
+                        <a href="/admin" class="nav-item" data-page="admin">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">Overview</span>
                         </a>
-                        <a href="/admin/settings/branding" class="nav-item" data-page="admin-branding">
-                            <span class="nav-icon">✨</span>
-                            <span class="nav-text">Branding</span>
-                        </a>
+                        
+                        <!-- Admin Settings Nested Dropdown -->
+                        <div class="sidebar-dropdown nested">
+                            <div class="sidebar-dropdown-toggle">
+                                <div class="nav-dropdown-left">
+                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-text">Admin Settings</span>
+                                </div>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sidebar-submenu">
+                                <a href="/admin/settings/themes" class="nav-item" data-page="admin-themes">
+                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-text">Themes</span>
+                                </a>
+                                <a href="/admin/settings/branding" class="nav-item" data-page="admin-branding">
+                                    <span class="nav-icon">✨</span>
+                                    <span class="nav-text">Branding</span>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Integrations Nested Dropdown -->
+                        <div class="sidebar-dropdown nested">
+                            <div class="sidebar-dropdown-toggle">
+                                <div class="nav-dropdown-left">
+                                    <span class="nav-icon">🔌</span>
+                                    <span class="nav-text">Integrations</span>
+                                </div>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sidebar-submenu">
+                                <a href="/admin/integrations/linkvertise" class="nav-item" data-page="admin-integrations-linkvertise">
+                                    <span class="nav-icon">💰</span>
+                                    <span class="nav-text">Linkvertise</span>
+                                </a>
+                                <a href="/admin/integrations/discord" class="nav-item" data-page="admin-integrations-discord">
+                                    <span class="nav-icon">💬</span>
+                                    <span class="nav-text">Discord</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </nav>

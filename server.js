@@ -259,14 +259,22 @@ const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const serverRoutes = require('./routes/servers');
 const linkvertiseRoutes = require('./routes/linkvertise');
+const communityRoutes = require('./routes/community');
 const adminRoutes = require('./routes/admin');
+const discordRoutes = require('./routes/discord');
+const botRoutes = require('./routes/bot');
 
 // Use routes
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/servers', serverRoutes);
 app.use('/linkvertise', linkvertiseRoutes);
+app.use('/community', communityRoutes);
 app.use('/admin', adminRoutes);
+app.use('/api/discord', discordRoutes);
+app.use('/api/bot', botRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/invites', communityRoutes); // Mount invites routes
 
 // Health check endpoint - for monitoring and Cloudflare health checks
 app.get('/health', (req, res) => {
@@ -315,6 +323,9 @@ const io = new Server(server, {
         credentials: true
     }
 });
+
+// Make Socket.IO instance available to routes via app
+app.set('io', io);
 
 // Initialize status poller with Socket.IO instance (Phase 3)
 const statusPoller = require('./config/statusPoller');

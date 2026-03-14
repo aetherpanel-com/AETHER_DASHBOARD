@@ -3,14 +3,10 @@ node_modules/
 
 # Environment variables
 .env
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
+.env.local
+.env.*.local
 
 # Logs
-logs
 *.log
 npm-debug.log*
 
@@ -18,13 +14,8 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# IDE
+# IDE files
 .vscode/
 .idea/
-
-# Build files
-dist/
-build/
-
-# Documentation
-PROJECT_STRUCTURE.md
+*.swp
+*.swo
