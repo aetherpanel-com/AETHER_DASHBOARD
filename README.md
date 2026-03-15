@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.4.0
+**Version:** 1.4.1
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.4.0):** Discord Integration Update - Full Discord bot integration with invite rewards, real-time chat, and automated coin management - See [Changelog](UPDATES.md#aether-dashboard-v140) for details.
+**🔧 Latest Update (v1.4.1):** Installer Improvements - Enhanced automated installer with better error handling, input validation, and interactive prompts - See [Changelog](UPDATES.md#aether-dashboard-v141) for details.
 
 ---
 

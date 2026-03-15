@@ -354,6 +354,131 @@ BOT_API_PORT=4000
 
 ---
 
+## Aether Dashboard v1.4.1
+
+### 🔧 Installer Improvements & Bug Fixes
+
+**Release Date:** December 2024
+
+**Status:** Production Ready ✅
+
+**🛠️ This is a patch release** that significantly improves the automated installer script with enhanced error handling, better input validation, and improved user experience.
+
+### ✨ Installer Improvements
+
+| Improvement | Description |
+|-------------|-------------|
+| 🛡️ **Enhanced Error Handling** | Added comprehensive error handling for all package installations, network operations, and service management |
+| ✅ **Input Validation** | Added IP address, email, domain, and port validation with user-friendly error messages |
+| 🔍 **Port Conflict Detection** | Installer now checks if the selected port is already in use and prompts user for confirmation |
+| 🌐 **Network Connectivity Checks** | Verifies internet connectivity before attempting to clone repository |
+| 🔐 **Interactive SSL Email** | SSL certificate email is now collected interactively instead of being hardcoded |
+| 📡 **DNS Utilities Installation** | Automatically installs `dnsutils` package required for DNS verification |
+| ⏱️ **Timeout Protection** | Added timeout protection to curl commands to prevent hanging operations |
+| 🔄 **Better DNS Verification** | Improved DNS verification with better error handling and user prompts |
+| 📝 **Environment File Warnings** | Added warnings when users skip critical .env file creation |
+| 🚀 **NodeSource Installation** | Improved NodeSource script installation with proper error handling |
+| 🔧 **PM2 Startup Handling** | Better error handling for PM2 startup configuration |
+| 📊 **Enhanced Verification** | Improved installation verification with better status checking |
+
+### 🐛 Bug Fixes
+
+| Bug | Description |
+|-----|-------------|
+| 🐛 **Domain Validation** | Fixed domain regex to properly handle subdomains (e.g., `sub.dashboard.example.com`) |
+| 🐛 **Early Return Issues** | Fixed early returns in .env file creation that could break installation flow |
+| 🐛 **Missing DNS Utils** | Fixed missing `dnsutils` package that caused DNS verification to fail |
+| 🐛 **Hardcoded SSL Email** | Fixed hardcoded SSL email address - now collected interactively |
+| 🐛 **Network Hanging** | Fixed curl commands that could hang indefinitely without timeout |
+| 🐛 **Port Validation** | Added proper port availability checking before proceeding |
+| 🐛 **Firewall Errors** | Improved firewall configuration error handling |
+| 🐛 **PM2 Startup Command** | Fixed PM2 startup command execution with better error handling |
+
+### 🔧 Technical Improvements
+
+- **Safe Package Installation**: New `safe_apt_install()` wrapper function with proper error handling
+- **Safe Network Operations**: New `safe_curl()` function with timeout protection
+- **Input Validation Functions**: Added `validate_ip()`, `validate_email()`, and `check_port()` helper functions
+- **Better User Prompts**: Enhanced interactive prompts with validation loops and clear error messages
+- **Graceful Degradation**: Installer continues gracefully when optional steps fail (with user confirmation)
+- **Comprehensive Logging**: All operations logged to `/var/log/aether-installer.log` for troubleshooting
+
+### 📋 Installation Flow Improvements
+
+1. **Root Check**: Enhanced root privilege verification
+2. **System Checks**: Better detection and installation of missing tools
+3. **Network Verification**: Checks connectivity before attempting operations
+4. **Interactive Setup**: Improved domain, token, and port collection with validation
+5. **IP Detection**: Multiple fallback services with IP format validation
+6. **DNS Verification**: Better timeout handling with user confirmation options
+7. **Secret Generation**: Verification that secrets were generated successfully
+8. **Environment Files**: Better handling when users skip file creation
+9. **Dependencies**: Error handling for npm install failures
+10. **Nginx Configuration**: Better error messages for configuration failures
+11. **SSL Setup**: Interactive email collection and better error handling
+12. **Service Management**: File existence checks before starting services
+13. **Verification**: Enhanced status checking with better error reporting
+
+### 🎯 User Experience Improvements
+
+- **Clear Error Messages**: All errors now provide actionable guidance
+- **Interactive Prompts**: Better prompts with examples and validation
+- **Progress Feedback**: Clear progress messages throughout installation
+- **Confirmation Options**: Users can cancel or continue at critical decision points
+- **Helpful Instructions**: DNS configuration instructions improved with examples
+- **Troubleshooting Info**: Better error messages include troubleshooting commands
+
+### ⚠️ Upgrade Notes
+
+**For existing installations:**
+
+- No action required - this is an installer-only update
+- Existing installations are not affected
+- New installations will benefit from improved installer
+- If you want to reinstall, use the updated `install.sh` script
+
+**For new installations:**
+
+- The installer is now more robust and user-friendly
+- Better error handling means fewer failed installations
+- Interactive prompts guide you through the setup process
+- All operations are logged for troubleshooting
+
+### 📚 Documentation Updates
+
+- ✅ Updated version references to 1.4.1
+- ✅ Enhanced installer documentation in README.md
+- ✅ Added troubleshooting section for installer issues
+
+### 🚀 How to Update
+
+**If you're installing fresh:**
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh)
+```
+
+**If you already have an installation:**
+
+- No update needed - this only affects new installations
+- Your existing installation continues to work as before
+
+### 🔒 Security Improvements
+
+- Better input validation prevents invalid configurations
+- Secure secret generation with verification
+- Proper file permissions on .env files (600)
+- Network timeout protection prevents hanging operations
+
+### 📊 Impact
+
+- **Installation Success Rate**: Significantly improved with better error handling
+- **User Experience**: More intuitive and interactive installation process
+- **Troubleshooting**: Easier to diagnose issues with comprehensive logging
+- **Reliability**: More robust installer that handles edge cases gracefully
+
+---
+
 ## Aether Dashboard v1.3.6
 
 ### 🚀 Major Improvements
@@ -994,7 +1119,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.3.6
+**Last Updated:** Version 1.4.1
 
 **Made with ❤️ for free hosting providers**
 

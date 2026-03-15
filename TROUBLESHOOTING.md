@@ -766,7 +766,7 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.4.0
+**Last Updated:** Version 1.4.1
 
 **Made with ❤️ for free hosting providers**
 
