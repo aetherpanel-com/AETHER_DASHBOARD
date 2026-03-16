@@ -841,23 +841,32 @@ display_completion() {
 # Main installation flow
 main() {
     echo ""
-    log_info "Starting Aether Dashboard installation..."
+    echo "=================================="
+    echo "Aether Dashboard Installer"
+    echo "=================================="
     echo ""
     
     check_root
     check_existing_installation
+    
+    # Collect user configuration first
+    interactive_setup
+    detect_server_ip
+    verify_dns
+    
+    # Begin installation steps
     clone_repository
     check_system_requirements
     install_system_dependencies
     configure_firewall
-    interactive_setup
-    detect_server_ip
-    verify_dns
+    
     generate_secrets
     create_env_files
+    
     install_dependencies
     configure_nginx
     enable_ssl
+    
     start_services
     verify_installation
     display_completion
