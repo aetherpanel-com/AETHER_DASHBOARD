@@ -63,7 +63,7 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 **Run this single command on your Linux VPS:**
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh)
 ```
 
 **Or download and run locally:**
