@@ -48,7 +48,7 @@ sudo bash /opt/aether-dashboard/update.sh
 Or download and run:
 
 ```bash
-curl -O https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/update.sh
+curl -O https://raw.githubusercontent.com/aetherpanel-com/AETHER_DASHBOARD/main/update.sh
 sudo bash update.sh
 ```
 
@@ -455,7 +455,7 @@ BOT_API_PORT=4000
 **If you're installing fresh:**
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh)
+bash <(curl -s https://raw.githubusercontent.com/aetherpanel-com/AETHER_DASHBOARD/main/install.sh)
 ```
 
 **If you already have an installation:**

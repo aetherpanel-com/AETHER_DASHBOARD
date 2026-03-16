@@ -25,7 +25,7 @@
 
 3. **Download script manually if curl fails:**
    ```bash
-   wget https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh
+   wget https://raw.githubusercontent.com/aetherpanel-com/AETHER_DASHBOARD/main/install.sh
    sudo bash install.sh
    ```
 

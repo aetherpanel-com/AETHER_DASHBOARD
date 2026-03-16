@@ -63,13 +63,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 **Run this single command on your Linux VPS:**
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/aetherpanel-com/AETHER_DASHBOARD/main/install.sh)
 ```
 
 **Or download and run locally:**
 
 ```bash
-curl -O https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh
+curl -O https://raw.githubusercontent.com/aetherpanel-com/AETHER_DASHBOARD/main/install.sh
 sudo bash install.sh
 ```
 
@@ -100,7 +100,7 @@ Before running the installer, make sure you have:
 
 1. **Run the installer:**
    ```bash
-   bash <(curl -s https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/install.sh)
+   bash <(curl -s https://raw.githubusercontent.com/aetherpanel-com/AETHER_DASHBOARD/main/install.sh)
    ```
 
 2. **Follow the prompts:**
@@ -126,7 +126,7 @@ sudo bash /opt/aether-dashboard/update.sh
 Or download and run:
 
 ```bash
-curl -O https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/update.sh
+curl -O https://raw.githubusercontent.com/aetherpanel-com/AETHER_DASHBOARD/main/update.sh
 sudo bash update.sh
 ```
 
@@ -147,7 +147,7 @@ sudo bash /opt/aether-dashboard/uninstall.sh
 Or download and run:
 
 ```bash
-curl -O https://raw.githubusercontent.com/Shaf2665/AETHER_DASHBOARD/main/uninstall.sh
+curl -O https://raw.githubusercontent.com/aetherpanel-com/AETHER_DASHBOARD/main/uninstall.sh
 sudo bash uninstall.sh
 ```
 
@@ -232,7 +232,7 @@ sudo apt install -y nodejs
 
 **4. Get dashboard code:**
 ```bash
-git clone https://github.com/Shaf2665/AETHER_DASHBOARD.git
+git clone https://github.com/aetherpanel-com/AETHER_DASHBOARD.git
 cd AETHER_DASHBOARD
 ```
 
@@ -589,7 +589,7 @@ sudo yum install git -y  # CentOS/RHEL
 
 **Step 4.2: Clone the repository**
 ```bash
-git clone https://github.com/Shaf2665/AETHER_DASHBOARD.git
+git clone https://github.com/aetherpanel-com/AETHER_DASHBOARD.git
 ```
 
 **Step 4.3: Go into the folder**
@@ -1687,4 +1687,4 @@ MIT License - Feel free to use, modify, and distribute!
 
 **Made with ❤️ for free hosting providers. Start earning revenue today!** 🚀💰
 
-**Version 1.3.6** - Production Ready ✅
+**Version 1.4.1** - Production Ready ✅

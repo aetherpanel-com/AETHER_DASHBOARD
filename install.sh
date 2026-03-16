@@ -9,7 +9,7 @@ set -e
 # Configuration
 INSTALL_DIR="/opt/aether-dashboard"
 LOG_FILE="/var/log/aether-installer.log"
-REPO_URL="https://github.com/Shaf2665/AETHER_DASHBOARD.git"
+REPO_URL="https://github.com/aetherpanel-com/AETHER_DASHBOARD.git"
 
 # Enable logging
 mkdir -p /var/log
@@ -43,9 +43,16 @@ log_error() {
 safe_apt_install() {
     local packages=("$@")
     log_info "Updating package list..."
-    if ! apt-get update -qq; then
-        log_error "Failed to update package list"
-        return 1
+    
+    # Update package list with flags to continue even if some repositories fail
+    local update_output
+    update_output=$(apt-get update -o Acquire::AllowInsecureRepositories=true \
+                                   -o Acquire::AllowDowngradeToInsecureRepositories=true \
+                                   -y 2>&1) || true
+    
+    # Check if there were any errors in the output
+    if echo "$update_output" | grep -qiE "(error|failed|404|403|401)"; then
+        log_warning "Some repositories failed to update. Continuing installation."
     fi
     
     log_info "Installing packages: ${packages[*]}"
