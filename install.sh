@@ -144,7 +144,7 @@ clone_repository() {
     fi
     
     # Check network connectivity
-    if ! safe_curl "https://github.com" 5; then
+    if ! safe_curl "https://github.com" 5 > /dev/null; then
         log_error "Cannot reach GitHub. Please check your internet connection."
         exit 1
     fi
@@ -596,12 +596,6 @@ install_dependencies() {
     log_info "Installing dashboard dependencies..."
     if ! npm install; then
         log_error "Failed to install dashboard dependencies"
-        exit 1
-    fi
-    
-    log_info "Building Next.js application for production..."
-    if ! npm run build; then
-        log_error "Build failed. Check for TypeScript or dependency errors."
         exit 1
     fi
     
