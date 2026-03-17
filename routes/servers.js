@@ -1508,8 +1508,8 @@ router.get('/api/status/:id', requireAuth, async (req, res) => {
             
             return res.json({ 
                 success: true, 
-                status: 'installing',
-                message: result.error || 'Could not fetch server status - server may still be installing'
+                status: 'checking',
+                message: result.error || 'Could not fetch server status. Retrying…'
             });
         }
         
@@ -1577,6 +1577,68 @@ router.get('/api/details/:id', requireAuth, async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Error getting server details' 
+        });
+    }
+});
+
+// API endpoint to resolve and cache public address for a server
+router.get('/api/resolve-address/:id', requireAuth, async (req, res) => {
+    try {
+        const serverId = req.params.id;
+        
+        // Verify ownership
+        const server = await get('SELECT * FROM servers WHERE id = ? AND user_id = ?', 
+            [serverId, req.session.user.id]);
+        
+        if (!server) {
+            return res.status(404).json({
+                success: false,
+                message: 'Server not found'
+            });
+        }
+        
+        // If already stored, return it directly
+        if (server.public_address) {
+            return res.json({
+                success: true,
+                public_address: server.public_address
+            });
+        }
+        
+        // Need Pterodactyl configured and an ID to resolve address
+        if (!server.pterodactyl_id || !await pterodactyl.isConfigured()) {
+            return res.json({
+                success: false,
+                public_address: null
+            });
+        }
+        
+        const serverDetails = await pterodactyl.getServerDetails(server.pterodactyl_id);
+        if (!serverDetails.success) {
+            return res.json({
+                success: false,
+                public_address: null
+            });
+        }
+        
+        const publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
+        
+        if (publicAddress) {
+            await run(
+                'UPDATE servers SET public_address = ? WHERE id = ?',
+                [publicAddress, server.id]
+            );
+        }
+        
+        res.json({
+            success: true,
+            public_address: publicAddress || null
+        });
+    } catch (error) {
+        console.error('Error resolving server address:', error);
+        res.json({
+            success: false,
+            public_address: null
         });
     }
 });

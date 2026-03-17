@@ -107,13 +107,21 @@ router.get('/api/stats', requireAdmin, async (req, res) => {
         const totalUsers = await get('SELECT COUNT(*) as count FROM users');
         const totalServers = await get('SELECT COUNT(*) as count FROM servers');
         const totalCoins = await get('SELECT SUM(coins) as total FROM users');
+        const usersLastWeek = await get(
+            "SELECT COUNT(*) as count FROM users WHERE created_at <= datetime('now', '-7 days')"
+        );
+        const serversLastWeek = await get(
+            "SELECT COUNT(*) as count FROM servers WHERE created_at <= datetime('now', '-7 days')"
+        );
         
         res.json({
             success: true,
             stats: {
                 total_users: totalUsers.count,
                 total_servers: totalServers.count,
-                total_coins: totalCoins.total || 0
+                total_coins: totalCoins.total || 0,
+                users_last_week: usersLastWeek.count,
+                servers_last_week: serversLastWeek.count
             }
         });
     } catch (error) {

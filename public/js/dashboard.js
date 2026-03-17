@@ -34,7 +34,10 @@ async function loadDashboardStats() {
         if (response.ok) {
             const data = await response.json();
             const serverCount = data.servers ? data.servers.length : 0;
-            document.getElementById('serverCount').textContent = serverCount;
+            const serverCountElement = document.getElementById('serverCount');
+            if (serverCountElement) {
+                serverCountElement.textContent = serverCount;
+            }
         }
         
         // Load coin balance
@@ -42,11 +45,38 @@ async function loadDashboardStats() {
         if (userResponse.ok) {
             const userData = await userResponse.json();
             if (userData.user) {
-                document.getElementById('totalCoins').textContent = formatNumber(userData.user.coins || 0);
+                const totalCoinsElement = document.getElementById('totalCoins');
+                if (totalCoinsElement) {
+                    totalCoinsElement.textContent = formatNumber(userData.user.coins || 0);
+                }
             }
         }
     } catch (error) {
         console.error('Error loading dashboard stats:', error);
+    }
+}
+
+function setActiveNavItem(pageKey) {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.sidebar-dropdown-toggle').forEach(el => el.classList.remove('active'));
+
+    const activeItem = document.querySelector(`.nav-item[data-page="${pageKey}"]`);
+    if (activeItem) {
+        activeItem.classList.add('active');
+
+        const parentDropdown = activeItem.closest('.sidebar-dropdown');
+        if (parentDropdown) {
+            parentDropdown.classList.add('open');
+            const toggle = parentDropdown.querySelector(':scope > .sidebar-dropdown-toggle');
+            if (toggle) toggle.classList.add('active');
+
+            const grandparentDropdown = parentDropdown.closest('.sidebar-dropdown');
+            if (grandparentDropdown) {
+                grandparentDropdown.classList.add('open');
+                const grandToggle = grandparentDropdown.querySelector(':scope > .sidebar-dropdown-toggle');
+                if (grandToggle) grandToggle.classList.add('active');
+            }
+        }
     }
 }
 

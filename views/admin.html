@@ -141,6 +141,7 @@
                         <div class="stat-info">
                             <h3 id="totalUsers">0</h3>
                             <p>Total Users</p>
+                            <p id="usersDelta"></p>
                         </div>
                     </div>
                     
@@ -149,6 +150,7 @@
                         <div class="stat-info">
                             <h3 id="totalServers">0</h3>
                             <p>Total Servers</p>
+                            <p id="serversDelta"></p>
                         </div>
                     </div>
                     
@@ -176,6 +178,24 @@
                     
                     <!-- Users Tab -->
                     <div id="usersTab" class="tab-content">
+                        <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                            <input
+                                type="text"
+                                id="userSearchInput"
+                                placeholder="Search by username or email..."
+                                oninput="filterUsers()"
+                                style="flex: 1; min-width: 200px; padding: 10px 14px; background: var(--input-bg);
+                                       border: 1px solid var(--input-border); border-radius: 8px;
+                                       color: var(--input-text); font-size: 14px;"
+                            />
+                            <select id="userRoleFilter" onchange="filterUsers()"
+                                style="padding: 10px 14px; background: var(--input-bg); border: 1px solid var(--input-border);
+                                       border-radius: 8px; color: var(--input-text); font-size: 14px;">
+                                <option value="all">All roles</option>
+                                <option value="admin">Admin only</option>
+                                <option value="user">Users only</option>
+                            </select>
+                        </div>
                         <div id="usersList">
                             <p>Loading users...</p>
                         </div>
@@ -193,9 +213,22 @@
                         <div class="card" style="margin-bottom: 20px;">
                             <div class="card-header">Add/Remove Coins</div>
                             <form id="coinManagementForm">
-                                <div class="form-group">
+                                <div class="form-group" style="position: relative;">
                                     <label for="coinUsername">Username</label>
-                                    <input type="text" id="coinUsername" required>
+                                    <input
+                                        type="text"
+                                        id="coinUsername"
+                                        autocomplete="off"
+                                        placeholder="Type to search users..."
+                                        oninput="onCoinUsernameInput(this.value)"
+                                        onfocus="onCoinUsernameInput(this.value)"
+                                        required
+                                    >
+                                    <div id="coinUserSuggestions" style="
+                                        display: none; position: absolute; z-index: 100; width: 100%;
+                                        background: var(--card-bg); border: 1px solid var(--input-border);
+                                        border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto;
+                                    "></div>
                                 </div>
                                 <div class="form-group">
                                     <label for="coinAmountInput">Amount</label>
@@ -205,36 +238,7 @@
                                 <button type="submit" class="btn btn-primary">Update Coins</button>
                             </form>
                         </div>
-                    </div>
-                    
-                        <!-- Configuration Section -->
-                        <div class="card" style="margin-bottom: 20px;">
-                            <div class="card-header">Linkvertise Configuration</div>
-                            <form id="linkvertiseConfigForm">
-                                <div class="form-group">
-                                    <label for="publisherLink">Publisher Link</label>
-                                    <input type="text" id="publisherLink" placeholder="https://publisher.linkvertise.com/ac/1450748">
-                                    <small style="color: #cbd5e1;">Your Linkvertise publisher account link</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="publisherId">Publisher ID</label>
-                                    <input type="text" id="publisherId" placeholder="1450748">
-                                    <small style="color: #cbd5e1;">Extracted from your publisher link (optional)</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="defaultCoins">Default Coins per Link</label>
-                                    <input type="number" id="defaultCoins" min="1" value="10">
-                                    <small style="color: #cbd5e1;">Default coin reward for new links</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="cooldownSeconds">Cooldown Timer (seconds)</label>
-                                    <input type="number" id="cooldownSeconds" min="0" value="30">
-                                    <small style="color: #cbd5e1;">Time users must wait before completing the same link again (default: 30 seconds)</small>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Save Configuration</button>
-                            </form>
-                        </div>
-                        
+
                         <!-- Links Management Section -->
                         <div class="card">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -744,10 +748,29 @@
             } else {
                 console.error('coinManagementForm not found');
             }
+
+            // Close coin user suggestions when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#coinUsername') && !e.target.closest('#coinUserSuggestions')) {
+                    const box = document.getElementById('coinUserSuggestions');
+                    if (box) box.style.display = 'none';
+                }
+            });
+
+            // Restore tab from URL hash on load
+            const hash = window.location.hash.replace('#', '');
+            const validTabs = ['users', 'servers', 'coins', 'store', 'templates', 'panel'];
+            if (hash && validTabs.includes(hash)) {
+                const btn = Array.from(document.querySelectorAll('.tab-btn'))
+                    .find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${hash}'`));
+                showTab(hash, btn || null);
+            } else {
+                const defaultBtn = document.querySelector('.tab-btn.active') || document.querySelector('.tab-btn');
+                showTab('users', defaultBtn);
+            }
         });
         
         function showTab(tabName, buttonElement) {
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.style.display = 'none';
             });
@@ -755,22 +778,24 @@
                 btn.classList.remove('active');
             });
             
-            // Show selected tab
             const tabContent = document.getElementById(tabName + 'Tab');
             if (tabContent) {
                 tabContent.style.display = 'block';
             }
             
-            // Activate the clicked button
             if (buttonElement) {
                 buttonElement.classList.add('active');
             } else {
-                // Fallback: find button by text content matching tab name
                 document.querySelectorAll('.tab-btn').forEach(btn => {
                     if (btn.textContent.trim().toLowerCase().includes(tabName.toLowerCase())) {
                         btn.classList.add('active');
                     }
                 });
+            }
+
+            // Persist to URL hash without scrolling
+            if (typeof history !== 'undefined' && history.replaceState) {
+                history.replaceState(null, '', '#' + tabName);
             }
             
             // Load data for tab
@@ -794,15 +819,42 @@
                 const response = await apiFetch('/admin/api/stats');
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('totalUsers').textContent = data.stats.total_users || 0;
-                    document.getElementById('totalServers').textContent = data.stats.total_servers || 0;
-                    document.getElementById('totalCoins').textContent = formatNumber(data.stats.total_coins || 0);
+                    const s = data.stats || {};
+                    
+                    document.getElementById('totalUsers').textContent = s.total_users || 0;
+                    document.getElementById('totalServers').textContent = s.total_servers || 0;
+                    document.getElementById('totalCoins').textContent = formatNumber(s.total_coins || 0);
+
+                    renderDelta('usersDelta', s.total_users, s.users_last_week);
+                    renderDelta('serversDelta', s.total_servers, s.servers_last_week);
                 }
             } catch (error) {
                 console.error('Error loading system stats:', error);
             }
         }
+
+        function renderDelta(elementId, current, previous) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const curr = Number(current) || 0;
+            const prev = Number(previous) || 0;
+            const diff = curr - prev;
+            
+            if (diff === 0) {
+                el.textContent = '';
+                el.style.color = '';
+                return;
+            }
+            
+            const sign = diff > 0 ? '+' : '';
+            el.textContent = `${sign}${diff} this week`;
+            el.style.color = diff > 0 ? 'var(--accent-success)' : 'var(--accent-danger)';
+            el.style.fontSize = '12px';
+            el.style.marginTop = '4px';
+        }
         
+        let _allUsers = [];
+
         async function loadUsers() {
             try {
                 const response = await apiFetch('/admin/api/users');
@@ -816,6 +868,84 @@
         }
         
         function displayUsers(users) {
+            _allUsers = users || [];
+            renderUsers(_allUsers);
+        }
+
+        function onCoinUsernameInput(value) {
+            const box = document.getElementById('coinUserSuggestions');
+            if (!box) return;
+
+            if (!value.trim() || !_allUsers.length) {
+                box.style.display = 'none';
+                return;
+            }
+
+            const q = value.toLowerCase();
+            const matches = _allUsers.filter(u =>
+                (u.username || '').toLowerCase().includes(q) ||
+                (u.email || '').toLowerCase().includes(q)
+            ).slice(0, 8);
+
+            if (!matches.length) {
+                box.style.display = 'none';
+                return;
+            }
+
+            box.innerHTML = matches.map(u => `
+                <div onclick="selectCoinUser('${escapeHtml(u.username)}')"
+                    style="padding: 10px 14px; cursor: pointer; font-size: 14px;
+                           border-bottom: 1px solid rgba(124,58,237,0.1);">
+                    <strong style="color: var(--card-text);">${escapeHtml(u.username)}</strong>
+                    <span style="color: #94a3b8; margin-left: 8px; font-size: 12px;">${escapeHtml(u.email)}</span>
+                    <span style="color: #f59e0b; margin-left: 8px; font-size: 12px;">🪙 ${formatNumber(u.coins || 0)}</span>
+                </div>
+            `).join('');
+            box.style.display = 'block';
+        }
+
+        function selectCoinUser(username) {
+            const input = document.getElementById('coinUsername');
+            if (input) {
+                input.value = username;
+            }
+            const box = document.getElementById('coinUserSuggestions');
+            if (box) {
+                box.style.display = 'none';
+            }
+        }
+
+        function filterUsers() {
+            if (!_allUsers || !_allUsers.length) {
+                return;
+            }
+
+            const searchInput = document.getElementById('userSearchInput');
+            const roleSelect = document.getElementById('userRoleFilter');
+            const q = (searchInput?.value || '').toLowerCase();
+            const role = roleSelect?.value || 'all';
+
+            const filtered = _allUsers.filter(u => {
+                const username = (u.username || '').toLowerCase();
+                const email = (u.email || '').toLowerCase();
+                const matchesSearch =
+                    !q ||
+                    username.includes(q) ||
+                    email.includes(q);
+
+                const isAdmin = !!u.is_admin;
+                const matchesRole =
+                    role === 'all' ||
+                    (role === 'admin' && isAdmin) ||
+                    (role === 'user' && !isAdmin);
+
+                return matchesSearch && matchesRole;
+            });
+
+            renderUsers(filtered);
+        }
+
+        function renderUsers(users) {
             const container = document.getElementById('usersList');
             
             if (users.length === 0) {

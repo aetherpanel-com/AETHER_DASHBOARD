@@ -155,7 +155,42 @@
                     <!-- Custom Theme Editor -->
                     <div>
                         <h3 style="color: #f8fafc; font-size: 16px; margin-bottom: 16px;">Custom Theme Editor</h3>
-                        
+
+                        <div style="margin-bottom: 24px;">
+                            <h3 style="color: #f8fafc; font-size: 15px; margin-bottom: 12px;">Live Preview</h3>
+                            <div id="sidebarPreview" style="
+                                width: 200px; height: 320px; border-radius: 12px; overflow: hidden;
+                                box-shadow: 0 8px 32px rgba(0,0,0,0.4); display: flex; flex-direction: column;
+                                background: linear-gradient(180deg, #7c3aed 0%, #a855f7 50%, #06b6d4 100%);
+                            ">
+                                <div style="padding: 16px 14px; border-bottom: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(255,255,255,0.25);"></div>
+                                    <span id="previewBrandName" style="color: #fff; font-weight: 600; font-size: 13px;">Dashboard</span>
+                                </div>
+                                <div style="padding: 10px 8px; flex: 1;">
+                                    <div id="previewActiveItem" style="
+                                        display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 6px;
+                                        background: rgba(255,255,255,0.25); border-left: 3px solid #fff; margin-bottom: 4px;">
+                                        <span style="font-size: 14px;">🏠</span>
+                                        <span style="color: #fff; font-size: 12px; font-weight: 600;">Dashboard</span>
+                                    </div>
+                                    <div id="previewHoverItem" style="
+                                        display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 6px;
+                                        opacity: 0.85; margin-bottom: 4px;">
+                                        <span style="font-size: 14px;">🖥️</span>
+                                        <span style="color: #fff; font-size: 12px;">Servers</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 6px; opacity: 0.75;">
+                                        <span style="font-size: 14px;">🪙</span>
+                                        <span style="color: #fff; font-size: 12px;">Resource Store</span>
+                                    </div>
+                                </div>
+                                <div style="padding: 12px 8px; border-top: 1px solid rgba(255,255,255,0.2);">
+                                    <div style="background: rgba(255,255,255,0.15); border-radius: 6px; padding: 8px 10px; text-align: center; color: #fff; font-size: 11px;">Logout</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <form id="themeForm">
                             <!-- Sidebar Settings -->
                             <div style="margin-bottom: 24px; padding: 16px; background: rgba(30, 30, 50, 0.4); border-radius: 12px; border: 1px solid rgba(124, 58, 237, 0.2);">
@@ -564,6 +599,9 @@
             
             // Update gradient field visibility
             updateGradientFields();
+
+            // Sync preview with loaded theme
+            updateSidebarPreview();
         }
         
         function setFormValue(id, value) {
@@ -634,6 +672,19 @@
             
             if (sidebarBgType) sidebarBgType.addEventListener('change', updateGradientFields);
             if (mainBgType) mainBgType.addEventListener('change', updateGradientFields);
+
+            // Update sidebar preview when relevant fields change
+            const previewFields = [
+                'sidebar_bg_type','sidebar_color_1','sidebar_color_2','sidebar_color_3',
+                'sidebar_text_color','sidebar_active_bg','sidebar_hover_bg'
+            ];
+            previewFields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', updateSidebarPreview);
+                    el.addEventListener('change', updateSidebarPreview);
+                }
+            });
         }
         
         function updateGradientFields() {
@@ -647,6 +698,33 @@
             document.querySelectorAll('.main-gradient-only').forEach(el => {
                 el.style.display = mainType === 'gradient' ? '' : 'none';
             });
+
+            updateSidebarPreview();
+        }
+
+        function updateSidebarPreview() {
+            const preview = document.getElementById('sidebarPreview');
+            if (!preview) return;
+
+            const type = document.getElementById('sidebar_bg_type')?.value;
+            const c1 = document.getElementById('sidebar_color_1')?.value || '#7c3aed';
+            const c2 = document.getElementById('sidebar_color_2')?.value || '#a855f7';
+            const c3 = document.getElementById('sidebar_color_3')?.value || '#06b6d4';
+            const dir = '180deg';
+
+            if (type === 'gradient') {
+                preview.style.background = `linear-gradient(${dir}, ${c1} 0%, ${c2} 50%, ${c3} 100%)`;
+            } else {
+                preview.style.background = c1;
+            }
+
+            const activeItem = document.getElementById('previewActiveItem');
+            const activeBg = document.getElementById('sidebar_active_bg')?.value || 'rgba(255, 255, 255, 0.25)';
+            if (activeItem) activeItem.style.background = activeBg;
+
+            const hoverItem = document.getElementById('previewHoverItem');
+            const hoverBg = document.getElementById('sidebar_hover_bg')?.value || 'rgba(255, 255, 255, 0.15)';
+            if (hoverItem) hoverItem.style.background = hoverBg;
         }
         
         // Preview theme without saving

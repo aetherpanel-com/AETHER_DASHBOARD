@@ -85,8 +85,8 @@ async function fetchServerStatus(serverId, userId) {
             
             return {
                 success: true,
-                status: 'installing',
-                message: result.error || 'Could not fetch server status - server may still be installing',
+                status: 'checking',
+                message: result.error || 'Could not fetch server status. Retrying…',
                 resources: null
             };
         }

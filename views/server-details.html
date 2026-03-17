@@ -145,6 +145,10 @@
             font-size: 14px;
             margin-top: 8px;
         }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -295,8 +299,19 @@
                                         <span id="statusText">Checking...</span>
                                     </span>
                                 </div>
-                                <p class="server-address" id="serverAddress">Loading address...</p>
-                                <p class="uptime-display" id="uptimeDisplay">Uptime: Calculating...</p>
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <p class="server-address" id="serverAddress" style="margin: 0;">Loading address...</p>
+                                    <button
+                                        id="copyAddressBtn"
+                                        onclick="copyServerAddress()"
+                                        style="background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.4);
+                                               color: #a855f7; border-radius: 6px; padding: 4px 10px; font-size: 12px;
+                                               cursor: pointer; transition: all 0.2s;"
+                                        title="Copy to clipboard">
+                                        📋 Copy
+                                    </button>
+                                </div>
+                                <p class="uptime-display" id="uptimeDisplay">Uptime: —</p>
                             </div>
                             <div class="server-actions">
                                 <button id="btnStart" class="btn power-btn power-start" onclick="sendPowerAction('start')">
@@ -599,9 +614,12 @@
         
         function displayServerInfo() {
             document.getElementById('serverName').textContent = serverData.name;
-            document.getElementById('serverAddress').textContent = serverData.public_address 
-                ? `🌐 ${serverData.public_address}` 
-                : 'Address not available';
+            if (serverData.public_address) {
+                document.getElementById('serverAddress').textContent = `🌐 ${serverData.public_address}`;
+            } else {
+                document.getElementById('serverAddress').textContent = 'Resolving address...';
+                resolveServerAddress();
+            }
             
             // Set initial status to "Checking..." before first status check
             updateStatusBadge('checking');
@@ -618,10 +636,32 @@
                 document.getElementById('panelLink').style.display = 'none';
             }
         }
+
+        async function resolveServerAddress() {
+            try {
+                const response = await fetch(`/servers/api/resolve-address/${serverId}`);
+                const data = await response.json();
+                if (data.success && data.public_address) {
+                    serverData.public_address = data.public_address;
+                    document.getElementById('serverAddress').textContent = `🌐 ${data.public_address}`;
+                } else {
+                    document.getElementById('serverAddress').textContent = 'Address not available';
+                }
+            } catch (error) {
+                console.error('Error resolving server address:', error);
+                document.getElementById('serverAddress').textContent = 'Address not available';
+            }
+        }
         
         async function refreshStats() {
             if (!serverData || !serverData.pterodactyl_identifier) {
-                updateStatusBadge('unknown');
+                // Server exists in dashboard but has no Pterodactyl identifier yet
+                // Treat as installing until panel finishes provisioning it
+                updateStatusBadge('installing');
+                const uptimeDisplay = document.getElementById('uptimeDisplay');
+                if (uptimeDisplay) {
+                    uptimeDisplay.textContent = 'Uptime: —';
+                }
                 return;
             }
             
@@ -670,19 +710,76 @@
                 'running': { text: 'Online', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.2)', border: 'rgba(34, 197, 94, 0.4)' },
                 'online': { text: 'Online', color: '#22c55e', bg: 'rgba(34, 197, 94, 0.2)', border: 'rgba(34, 197, 94, 0.4)' },
                 'offline': { text: 'Offline', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.2)', border: 'rgba(107, 114, 128, 0.4)' },
+                'stopped': { text: 'Offline', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.2)', border: 'rgba(107, 114, 128, 0.4)' },
                 'starting': { text: 'Starting', color: '#eab308', bg: 'rgba(234, 179, 8, 0.2)', border: 'rgba(234, 179, 8, 0.4)' },
                 'stopping': { text: 'Stopping', color: '#f97316', bg: 'rgba(249, 115, 22, 0.2)', border: 'rgba(249, 115, 22, 0.4)' },
                 'installing': { text: 'Installing', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.4)' },
                 'checking': { text: 'Checking...', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.4)' },
-                'unknown': { text: 'Installing', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.4)' } // Show "Installing" for unknown status
+                // Treat unknown as an offline/ready state instead of "Installing"
+                'unknown': { text: 'Offline', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.2)', border: 'rgba(107, 114, 128, 0.4)' }
             };
             
-            const info = statusMap[status] || statusMap['unknown'];
+            const info = statusMap[status] || statusMap['offline'];
             text.textContent = info.text;
             badge.style.background = info.bg;
             badge.style.borderColor = info.border;
             badge.style.color = info.color;
             badge.querySelector('.dot').style.background = info.color;
+            
+            // Keep uptime text in sync with non-running states
+            const uptimeDisplay = document.getElementById('uptimeDisplay');
+            if (uptimeDisplay) {
+                const nonRunningStatuses = ['offline', 'stopped', 'unknown', 'installing', 'checking'];
+                if (nonRunningStatuses.includes(status)) {
+                    if (status === 'installing' || status === 'checking') {
+                        uptimeDisplay.textContent = 'Uptime: —';
+                    } else {
+                        uptimeDisplay.textContent = 'Uptime: Server is offline';
+                    }
+                }
+            }
+
+            syncButtonStateWithStatus(status);
+        }
+
+        function syncButtonStateWithStatus(status) {
+            const installing = status === 'installing' || status === 'checking';
+            const transitioning = status === 'starting' || status === 'stopping';
+            const shouldDisable = installing || transitioning;
+
+            ['btnStart', 'btnStop', 'btnRestart'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                btn.disabled = shouldDisable;
+                if (installing) {
+                    btn.title = 'Server is still installing. Please wait.';
+                } else if (transitioning) {
+                    btn.title = 'Server is transitioning. Please wait.';
+                } else {
+                    btn.title = '';
+                }
+            });
+        }
+
+        function copyServerAddress() {
+            const addrElement = document.getElementById('serverAddress');
+            const btn = document.getElementById('copyAddressBtn');
+            if (!addrElement) return;
+            const addr = (addrElement.textContent || '').trim();
+            if (!addr || addr === 'Loading address...') return;
+
+            if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                return;
+            }
+
+            navigator.clipboard.writeText(addr).then(() => {
+                if (!btn) return;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText || '📋 Copy';
+                }, 2000);
+            }).catch(() => {});
         }
         
         function updateStats(resources) {
@@ -733,9 +830,11 @@
             lastNetworkUpdate = now;
             
             // Uptime
-            if (resources.uptime) {
+            if (resources.uptime && resources.uptime > 0) {
                 const uptimeSeconds = resources.uptime / 1000;
                 document.getElementById('uptimeDisplay').textContent = `Uptime: ${formatUptime(uptimeSeconds)}`;
+            } else {
+                document.getElementById('uptimeDisplay').textContent = 'Uptime: Starting…';
             }
             
             // Update charts
@@ -888,9 +987,38 @@
             ramChart.update('none');
         }
         
+        function setPowerButtonLoading(buttonId, loading, originalText) {
+            const btn = document.getElementById(buttonId);
+            if (!btn) return;
+            if (loading) {
+                btn.disabled = true;
+                btn.dataset.originalText = btn.textContent;
+                btn.innerHTML = `<span style="
+                    display: inline-block; width: 12px; height: 12px;
+                    border: 2px solid rgba(255,255,255,0.3);
+                    border-top-color: #fff; border-radius: 50%;
+                    animation: spin 0.6s linear infinite;
+                    vertical-align: middle; margin-right: 6px;
+                "></span>${originalText || btn.textContent.trim()}`;
+            } else {
+                btn.disabled = false;
+                if (btn.dataset.originalText) {
+                    btn.textContent = btn.dataset.originalText;
+                }
+            }
+        }
+
         async function sendPowerAction(action) {
             const buttons = document.querySelectorAll('.power-btn');
             buttons.forEach(btn => btn.disabled = true);
+
+            if (action === 'start') {
+                setPowerButtonLoading('btnStart', true, '▶ Start');
+            } else if (action === 'stop') {
+                setPowerButtonLoading('btnStop', true, '⏹ Stop');
+            } else if (action === 'restart') {
+                setPowerButtonLoading('btnRestart', true, '🔄 Restart');
+            }
             
             console.log('[DEBUG] sendPowerAction called:', { serverId, action });
             
@@ -965,12 +1093,18 @@
                                     powerActionTargetStatus = null;
                                     // Re-enable buttons
                                     buttons.forEach(btn => btn.disabled = false);
+                                    setPowerButtonLoading('btnStart', false);
+                                    setPowerButtonLoading('btnStop', false);
+                                    setPowerButtonLoading('btnRestart', false);
                                 } else if (pollCount >= maxPolls) {
                                     // Timeout - re-enable buttons anyway
                                     clearInterval(pollInterval);
                                     powerActionInProgress = false;
                                     powerActionTargetStatus = null;
                                     buttons.forEach(btn => btn.disabled = false);
+                                    setPowerButtonLoading('btnStart', false);
+                                    setPowerButtonLoading('btnStop', false);
+                                    setPowerButtonLoading('btnRestart', false);
                                     showNotification('Status check timeout. Buttons re-enabled.', 'info');
                                 }
                             }
@@ -981,6 +1115,9 @@
                                 powerActionInProgress = false;
                                 powerActionTargetStatus = null;
                                 buttons.forEach(btn => btn.disabled = false);
+                                setPowerButtonLoading('btnStart', false);
+                                setPowerButtonLoading('btnStop', false);
+                                setPowerButtonLoading('btnRestart', false);
                             }
                         }
                     }, 2000); // Poll every 2 seconds
@@ -1001,6 +1138,9 @@
                     }
                     // Re-enable buttons on error
                     buttons.forEach(btn => btn.disabled = false);
+                    setPowerButtonLoading('btnStart', false);
+                    setPowerButtonLoading('btnStop', false);
+                    setPowerButtonLoading('btnRestart', false);
                 }
             } catch (error) {
                 console.error('[DEBUG] Error sending power action:', error);
@@ -1010,6 +1150,9 @@
                 powerActionTargetStatus = null;
                 // Re-enable buttons on error
                 buttons.forEach(btn => btn.disabled = false);
+                setPowerButtonLoading('btnStart', false);
+                setPowerButtonLoading('btnStop', false);
+                setPowerButtonLoading('btnRestart', false);
             }
         }
         
