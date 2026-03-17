@@ -67,7 +67,7 @@ safe_apt_install() {
 safe_curl() {
     local url="$1"
     local timeout="${2:-10}"
-    curl -s --max-time "$timeout" --connect-timeout 5 "$url" 2>/dev/null || return 1
+    curl -4 -fsSL --max-time "$timeout" --connect-timeout 5 "$url" 2>/dev/null || return 1
 }
 
 # Check if port is available
@@ -207,9 +207,10 @@ check_system_requirements() {
     
     # Check npm
     if ! command -v npm &> /dev/null; then
-        log_error "npm not found. Please install Node.js first."
-        exit 1
+        log_warning "npm not found, attempting to install..."
+        safe_apt_install npm || { log_error "Failed to install npm"; exit 1; }
     fi
+    log_success "npm $(npm --version) is available"
     
     log_success "System requirements met"
 }
@@ -238,6 +239,17 @@ install_nodejs() {
         log_error "Failed to install Node.js"
         exit 1
     fi
+    
+    # Refresh PATH so npm is immediately available
+    hash -r
+    export PATH="$PATH:/usr/bin:/usr/local/bin"
+    
+    # Ensure npm is available
+    if ! command -v npm &> /dev/null; then
+        log_error "npm not found after Node.js installation. Try: apt install npm"
+        exit 1
+    fi
+    log_success "npm $(npm --version) is available"
     
     # Verify installation
     if ! command -v node &> /dev/null; then
@@ -380,7 +392,10 @@ interactive_setup() {
 detect_server_ip() {
     log_info "Detecting server IP address..."
     
-    SERVER_IP=$(safe_curl "ifconfig.me" 10 || safe_curl "ifconfig.co" 10 || safe_curl "icanhazip.com" 10)
+    SERVER_IP=$(curl -4 -s --max-time 10 --connect-timeout 5 ifconfig.me 2>/dev/null || \
+                curl -4 -s --max-time 10 --connect-timeout 5 ifconfig.co 2>/dev/null || \
+                curl -4 -s --max-time 10 --connect-timeout 5 icanhazip.com 2>/dev/null || "")
+    SERVER_IP=$(echo "$SERVER_IP" | tr -d '[:space:]')
     
     if [ -z "$SERVER_IP" ]; then
         log_error "Could not detect server IP address automatically"
