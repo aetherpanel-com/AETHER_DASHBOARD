@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.4.1
+**Version:** 1.4.2
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.4.1):** Installer Improvements - Enhanced automated installer with better error handling, input validation, and interactive prompts - See [Changelog](UPDATES.md#aether-dashboard-v141) for details.
+**🔧 Latest Update (v1.4.2):** Installer UX & Stability Refresh – new interactive installation wizard, improved banner, safer APT handling, and refined Node.js/PM2 setup for smoother first-time installs. See [Changelog](UPDATES.md#aether-dashboard-v142) for details.
 
 ---
 
@@ -1687,4 +1687,4 @@ MIT License - Feel free to use, modify, and distribute!
 
 **Made with ❤️ for free hosting providers. Start earning revenue today!** 🚀💰
 
-**Version 1.4.1** - Production Ready ✅
+**Version 1.4.2** - Production Ready ✅

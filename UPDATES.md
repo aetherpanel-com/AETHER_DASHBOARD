@@ -354,6 +354,37 @@ BOT_API_PORT=4000
 
 ---
 
+## Aether Dashboard v1.4.2
+
+### 🎨 Installer UX Refresh & Stability Tweaks
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+This patch focuses on polishing the automated installer experience and making it more resilient in real-world VPS environments.
+
+### ✨ What's New
+
+- **Interactive Installation Wizard:** New banner and sectioned logging make the install flow easier to follow for beginners.
+- **Improved Prompts & Labels:** Clearer `[>]` prompts for domain, ports, IP address, SSL email, and overwrite confirmations.
+- **Enhanced Completion Summary:** Rich final summary with next steps, useful PM2 commands, and support links.
+
+### 🔧 Technical Improvements
+
+- **Safer APT Handling:** `safe_apt_install()` now tolerates broken third‑party repositories while still installing required packages.
+- **IPv4-Only IP Detection:** External IP detection now forces IPv4 and strips whitespace to avoid invalid IP formats.
+- **Hardened `safe_curl()`:** Adds `--fail`, redirect following, timeouts, and IPv4 enforcement for all scripted HTTP requests.
+- **Corrected Dependency Flow:** Ensures Node.js/npm checks happen after installation and avoids a failing `npm run build` step in non-Next.js environments.
+- **Firewall & PM2 Startup:** Opens the dashboard port in UFW and improves PM2 startup/verification logic for more reliable service boot.
+
+### 🧩 Backwards Compatibility
+
+- No database changes.
+- Existing installations do not require any manual migration; benefits apply when using the updated `install.sh`.
+
+---
+
 ## Aether Dashboard v1.4.1
 
 ### 🔧 Installer Improvements & Bug Fixes
@@ -1119,7 +1150,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.4.1
+**Last Updated:** Version 1.4.2
 
 **Made with ❤️ for free hosting providers**
 
