@@ -6,29 +6,24 @@
 
 set -e
 
-# Display banner function with alternative styling
+# Display banner function
 display_banner() {
     clear
     cat << "EOF"
 
-  ╔══════════════════════════════════════════════════════════════════════════╗
-  ║                                                                          ║
-  ║         ╔═══════════════════════════════════════════════════════╗        ║
-  ║         ║                                                       ║        ║
-  ║         ║   ▄▄▄·▄▄▄▄▄▄▄▄▄ ▄▄▄·▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄          ║        ║
-  ║         ║  ▐█ ▀█ •██  ██▌▐█ ▀█▪▐██ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄          ║        ║
-  ║         ║  ▐█ ▀███ ██  ██▌▐█ ▀███ ██  █████████████          ║        ║
-  ║         ║  ▐█▄▪▐█ ██  ██▌▐█▄▪▐█ ██  ███████████████          ║        ║
-  ║         ║   ▀▀▀▀  ▀▀  ▀▀▀  ▀▀▀▀  ▀▀  ▀▀▀▀▀▀▀▀▀▀▀▀▀          ║        ║
-  ║         ║                                                       ║        ║
-  ║         ╚═══════════════════════════════════════════════════════╝        ║
-  ║                                                                          ║
-  ║                   AETHER DASHBOARD INSTALLATION                         ║
-  ║                      Production Installer v1.0                          ║
-  ║                                                                          ║
-  ║    🎮 Game Server Management • 🤖 Discord Integration • ⚡ Fast & Reliable ║
-  ║                                                                          ║
-  ╚══════════════════════════════════════════════════════════════════════════╝
+================================================================================
+                                                                              
+                        +==========================+                        
+                        |   AETHER DASHBOARD       |                        
+                        |   Installation Wizard    |                        
+                        +==========================+                        
+                                                                              
+         [*] Game Server Management  |  [*] Discord Integration              
+         [*] Fast & Reliable         |  [*] Enterprise Ready                 
+                                                                              
+         Production Installer v1.0                                            
+                                                                              
+================================================================================
 
 EOF
     sleep 2
@@ -38,24 +33,24 @@ EOF
 display_welcome() {
     cat << "EOF"
 
-┌────────────────────────────────────────────────────────────────────────────┐
-│                                                                            │
-│  Welcome to the Aether Dashboard Installation Wizard!                     │
-│                                                                            │
-│  This script will install and configure:                                  │
-│                                                                            │
-│  ✓ Node.js 20 LTS Runtime                   ✓ Nginx Web Server             │
-│  ✓ Dashboard Application                    ✓ SSL/TLS Certificate          │
-│  ✓ Discord Bot Integration                  ✓ Firewall Configuration       │
-│  ✓ PM2 Process Manager                      ✓ Automatic Startup Scripts    │
-│                                                                            │
-│  System Requirements:                                                      │
-│  • Ubuntu 22.04 LTS or Debian-based system                               │
-│  • Root or sudo privileges                                                │
-│  • Active internet connection                                             │
-│  • Valid domain name (for SSL)                                            │
-│                                                                            │
-└────────────────────────────────────────────────────────────────────────────┘
+================================================================================
+
+  Welcome to the Aether Dashboard Installation Wizard!
+
+  This script will install and configure:
+
+  [✓] Node.js 20 LTS Runtime              [✓] Nginx Web Server
+  [✓] Dashboard Application               [✓] SSL/TLS Certificate
+  [✓] Discord Bot Integration             [✓] Firewall Configuration
+  [✓] PM2 Process Manager                 [✓] Automatic Startup Scripts
+
+  System Requirements:
+  * Ubuntu 22.04 LTS or Debian-based system
+  * Root or sudo privileges
+  * Active internet connection
+  * Valid domain name (for SSL)
+
+================================================================================
 
 EOF
     
@@ -118,9 +113,9 @@ log_error() {
 
 log_section() {
     echo ""
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${CYAN}→ $1${NC}"
-    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo "================================================================================"
+    echo ">>> $1"
+    echo "================================================================================"
 }
 
 # Safe apt-get wrapper with error handling
@@ -422,7 +417,7 @@ interactive_setup() {
     
     # Get domain name with better validation
     while true; do
-        read -p "$(echo -e ${CYAN}→${NC}) Enter your domain name (e.g., dashboard.example.com): " DOMAIN
+        read -p "[>]  Enter your domain name (e.g., dashboard.example.com): " DOMAIN
         DOMAIN=$(echo "$DOMAIN" | tr '[:upper:]' '[:lower:]' | xargs)
         
         # Improved domain validation (allows subdomains)
@@ -441,7 +436,7 @@ interactive_setup() {
     
     # Get Discord Bot Token
     while true; do
-        read -p "$(echo -e ${CYAN}→${NC}) Enter your Discord Bot Token (or press Enter to skip): " DISCORD_BOT_TOKEN
+        read -p "[>]  Enter your Discord Bot Token (or press Enter to skip): " DISCORD_BOT_TOKEN
         if [ -z "$DISCORD_BOT_TOKEN" ]; then
             log_warning "Discord Bot Token is empty. You can add it later in $INSTALL_DIR/aether-discord-bot/.env"
             break
@@ -454,7 +449,7 @@ interactive_setup() {
     
     # Get dashboard port with validation
     while true; do
-        read -p "$(echo -e ${CYAN}→${NC}) Enter dashboard port (default: 3000): " DASHBOARD_PORT
+        read -p "[>]  Enter dashboard port (default: 3000): " DASHBOARD_PORT
         DASHBOARD_PORT=${DASHBOARD_PORT:-3000}
         
         # Validate port
@@ -466,7 +461,7 @@ interactive_setup() {
         # Check if port is available
         if ! check_port "$DASHBOARD_PORT"; then
             log_warning "Port $DASHBOARD_PORT is already in use."
-            read -p "$(echo -e ${CYAN}→${NC}) Continue anyway? (y/N): " continue_anyway
+            read -p "[>]  Continue anyway? (y/N): " continue_anyway
             if [[ "$continue_anyway" =~ ^[Yy]$ ]]; then
                 break
             fi
@@ -491,7 +486,7 @@ detect_server_ip() {
     if [ -z "$SERVER_IP" ]; then
         log_error "Could not detect server IP address automatically"
         while true; do
-            read -p "$(echo -e ${CYAN}→${NC}) Enter your server IP address manually: " SERVER_IP
+            read -p "[>]  Enter your server IP address manually: " SERVER_IP
             SERVER_IP=$(echo "$SERVER_IP" | xargs)
             if validate_ip "$SERVER_IP"; then
                 break
@@ -503,10 +498,10 @@ detect_server_ip() {
         # Validate detected IP
         if ! validate_ip "$SERVER_IP"; then
             log_warning "Detected IP format seems invalid: $SERVER_IP"
-            read -p "$(echo -e ${CYAN}→${NC}) Enter your server IP address manually: " SERVER_IP
+            read -p "[>]  Enter your server IP address manually: " SERVER_IP
             while ! validate_ip "$SERVER_IP"; do
                 log_error "Invalid IP address format. Please try again."
-                read -p "$(echo -e ${CYAN}→${NC}) Enter your server IP address manually: " SERVER_IP
+                read -p "[>]  Enter your server IP address manually: " SERVER_IP
             done
         fi
     fi
@@ -529,7 +524,7 @@ ${CYAN}│${NC}
 ${CYAN}└─${NC}
 EOF
     
-    read -p "$(echo -e ${CYAN}→${NC}) Press Enter once you have configured DNS..."
+    read -p "[>]  Press Enter once you have configured DNS..."
 }
 
 # STEP 9 — Verify DNS
@@ -561,7 +556,7 @@ verify_dns() {
     
     log_warning "DNS verification timeout after $max_attempts attempts."
     log_info "This might be normal if DNS hasn't propagated yet."
-    read -p "$(echo -e ${CYAN}→${NC}) Continue anyway? (y/N): " continue_dns
+    read -p "[>]  Continue anyway? (y/N): " continue_dns
     if [[ ! "$continue_dns" =~ ^[Yy]$ ]]; then
         log_info "Installation cancelled. Please configure DNS and run the installer again."
         exit 0
@@ -603,7 +598,7 @@ create_env_files() {
     local env_created=false
     if [ -f ".env" ]; then
         log_warning ".env file already exists"
-        read -p "$(echo -e ${CYAN}→${NC}) Overwrite existing .env file? (y/N): " overwrite
+        read -p "[>]  Overwrite existing .env file? (y/N): " overwrite
         if [[ "$overwrite" =~ ^[Yy]$ ]]; then
             env_created=true
         else
@@ -647,7 +642,7 @@ EOF
     local bot_env_created=false
     if [ -f "aether-discord-bot/.env" ]; then
         log_warning "Bot .env file already exists"
-        read -p "$(echo -e ${CYAN}→${NC}) Overwrite existing bot .env file? (y/N): " overwrite
+        read -p "[>]  Overwrite existing bot .env file? (y/N): " overwrite
         if [[ "$overwrite" =~ ^[Yy]$ ]]; then
             bot_env_created=true
         else
@@ -673,7 +668,7 @@ EOF
     # Warn if critical files weren't created
     if [ "$env_created" != true ] || [ "$bot_env_created" != true ]; then
         log_warning "Some environment files were not created. Services may not start correctly."
-        read -p "$(echo -e ${CYAN}→${NC}) Continue anyway? (y/N): " continue_anyway
+        read -p "[>]  Continue anyway? (y/N): " continue_anyway
         if [[ ! "$continue_anyway" =~ ^[Yy]$ ]]; then
             log_info "Installation cancelled. Please configure environment files and run again."
             exit 0
@@ -720,7 +715,7 @@ configure_nginx() {
     
     if [ -f "$nginx_config" ]; then
         log_warning "Nginx configuration already exists"
-        read -p "$(echo -e ${CYAN}→${NC}) Overwrite existing Nginx configuration? (y/N): " overwrite
+        read -p "[>]  Overwrite existing Nginx configuration? (y/N): " overwrite
         if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
             log_info "Skipping Nginx configuration"
             return
@@ -785,7 +780,7 @@ enable_ssl() {
     # Get email for SSL certificate
     local ssl_email=""
     while true; do
-        read -p "$(echo -e ${CYAN}→${NC}) Enter email for SSL certificate notifications (required for Let's Encrypt): " ssl_email
+        read -p "[>]  Enter email for SSL certificate notifications (required for Let's Encrypt): " ssl_email
         ssl_email=$(echo "$ssl_email" | xargs)
         if [ -z "$ssl_email" ]; then
             log_error "Email is required for SSL certificate"
@@ -817,7 +812,7 @@ enable_ssl() {
         log_warning "SSL certificate installation failed."
         log_info "You can run certbot manually later with:"
         log_info "  certbot --nginx -d $DOMAIN"
-        read -p "$(echo -e ${CYAN}→${NC}) Continue without SSL? (y/N): " continue_no_ssl
+        read -p "[>]  Continue without SSL? (y/N): " continue_no_ssl
         if [[ ! "$continue_no_ssl" =~ ^[Yy]$ ]]; then
             log_info "Installation cancelled. Please fix SSL issues and run again."
             exit 0
@@ -944,40 +939,40 @@ for a in apps:
 display_completion() {
     echo ""
     cat << EOF
-╔════════════════════════════════════════════════════════════════════════════╗
-║                                                                            ║
-║                   ✓ INSTALLATION COMPLETED SUCCESSFULLY                   ║
-║                                                                            ║
-╚════════════════════════════════════════════════════════════════════════════╝
+================================================================================
 
-${GREEN}Dashboard URL:${NC}
+               [SUCCESS] INSTALLATION COMPLETED SUCCESSFULLY
+
+================================================================================
+
+Dashboard URL:
    https://$DOMAIN
 
-${GREEN}Services Running:${NC}
-   ✓ Dashboard                ✓ Nginx
-   $([ -n "$DISCORD_BOT_TOKEN" ] && echo "✓ Discord Bot" || echo "✗ Discord Bot (not configured)")
-   ✓ SSL/TLS Enabled
+Services Running:
+   [✓] Dashboard                [✓] Nginx
+   $([ -n "$DISCORD_BOT_TOKEN" ] && echo "[✓] Discord Bot" || echo "[x] Discord Bot (not configured)")
+   [✓] SSL/TLS Enabled
 
-${GREEN}Useful Management Commands:${NC}
+Useful Management Commands:
    pm2 status                         # View service status
    pm2 logs                           # View real-time logs
    pm2 restart aether-dashboard       # Restart dashboard
    pm2 restart aether-discord-bot     # Restart bot
    pm2 monit                          # Monitor resources
 
-${GREEN}Installation Logs:${NC}
+Installation Logs:
    $LOG_FILE
 
-${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}
-${CYAN}Next Steps:${NC}
-${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}
+================================================================================
+                              NEXT STEPS
+================================================================================
 
 1. Access your dashboard at: https://$DOMAIN
 2. Configure Discord OAuth settings (if needed)
 3. Link your Pterodactyl Panel (if using game servers)
 4. Set up backup and maintenance schedules
 
-${YELLOW}Support & Documentation:${NC}
+Support & Documentation:
    GitHub: https://github.com/aetherpanel-com/AETHER_DASHBOARD
    Issues: https://github.com/aetherpanel-com/AETHER_DASHBOARD/issues
 
