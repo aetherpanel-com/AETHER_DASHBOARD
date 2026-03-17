@@ -699,7 +699,7 @@ enable_ssl() {
     done
     
     log_info "Requesting SSL certificate for $DOMAIN..."
-    if certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" --non-interactive --agree-tos --email "$ssl_email" --redirect; then
+    if certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email "$ssl_email" --redirect; then
         log_success "SSL certificate installed"
         
         # Update .env to use HTTPS
@@ -716,7 +716,7 @@ enable_ssl() {
     else
         log_warning "SSL certificate installation failed."
         log_info "You can run certbot manually later with:"
-        log_info "  certbot --nginx -d $DOMAIN -d www.$DOMAIN"
+        log_info "  certbot --nginx -d $DOMAIN"
         read -p "Continue without SSL? (y/N): " continue_no_ssl
         if [[ ! "$continue_no_ssl" =~ ^[Yy]$ ]]; then
             log_info "Installation cancelled. Please fix SSL issues and run again."
