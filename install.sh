@@ -223,6 +223,7 @@ install_nodejs() {
         log_error "Failed to download NodeSource setup script"
         exit 1
     fi
+    [ -s "$nodesource_script" ] || { log_error "Downloaded NodeSource script is empty. Aborting."; exit 1; }
     
     # Execute script with error handling
     if ! bash "$nodesource_script"; then
@@ -308,6 +309,7 @@ configure_firewall() {
     ufw allow 22/tcp comment 'SSH' 2>/dev/null || true
     ufw allow 80/tcp comment 'HTTP' 2>/dev/null || true
     ufw allow 443/tcp comment 'HTTPS' 2>/dev/null || true
+    ufw allow $DASHBOARD_PORT/tcp comment 'Aether Dashboard' 2>/dev/null || true
     
     log_success "Firewall configured"
 }
@@ -577,8 +579,14 @@ install_dependencies() {
     }
     
     log_info "Installing dashboard dependencies..."
-    if ! npm install --production; then
+    if ! npm install; then
         log_error "Failed to install dashboard dependencies"
+        exit 1
+    fi
+    
+    log_info "Building Next.js application for production..."
+    if ! npm run build; then
+        log_error "Build failed. Check for TypeScript or dependency errors."
         exit 1
     fi
     
@@ -587,7 +595,7 @@ install_dependencies() {
         log_error "Bot directory not found"
         exit 1
     }
-    if ! npm install --production; then
+    if ! npm install; then
         log_error "Failed to install bot dependencies"
         exit 1
     fi
@@ -725,7 +733,7 @@ start_services() {
     
     # Start dashboard
     log_info "Starting dashboard..."
-    if ! pm2 start server.js --name aether-dashboard; then
+    if ! HOST=0.0.0.0 pm2 start server.js --name aether-dashboard; then
         log_error "Failed to start dashboard"
         log_info "Check logs with: pm2 logs aether-dashboard"
         exit 1
@@ -782,8 +790,14 @@ verify_installation() {
     
     # Check PM2 status
     if pm2 list | grep -q "aether-dashboard"; then
-        local dashboard_status=$(pm2 jlist | grep -A 5 '"name":"aether-dashboard"' | grep '"pm2_env":{"status":"online"' || echo "")
-        if [ -n "$dashboard_status" ]; then
+        local status=$(pm2 jlist 2>/dev/null | python3 -c "
+import json,sys
+apps=json.load(sys.stdin)
+for a in apps:
+    if a.get('name')=='aether-dashboard':
+        print(a.get('pm2_env',{}).get('status',''))
+" 2>/dev/null)
+        if [ "$status" = "online" ]; then
             log_success "Dashboard service is running"
         else
             log_error "Dashboard service is not running"
