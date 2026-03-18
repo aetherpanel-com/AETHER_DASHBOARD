@@ -12,9 +12,10 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 process.on('uncaughtException', (error) => {
-    console.error('⚠️  Uncaught Exception:', error);
-    // Log but don't exit immediately - PM2 will restart if needed
-    // In production, PM2 will handle restarts automatically
+    console.error('⚠️  Uncaught Exception — shutting down for clean restart:', error);
+    // MUST exit after uncaughtException — the process is in undefined state.
+    // PM2 will restart automatically. Continuing risks data corruption.
+    process.exit(1);
 });
 
 // Import required modules

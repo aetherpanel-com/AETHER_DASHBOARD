@@ -489,6 +489,24 @@
                                 <button class="btn btn-primary" onclick="fetchEggs()">Fetch from Pterodactyl</button>
                                 <button class="btn btn-secondary" onclick="loadCachedEggs()" style="margin-left: 12px;">Load Cached</button>
                             </div>
+
+                            <div id="eggsFetchProgress" style="display: none; margin-top: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span id="eggsFetchLabel" style="font-size: 13px; color: #94a3b8;">Fetching eggs from Pterodactyl...</span>
+                                    <span id="eggsFetchPercent" style="font-size: 13px; color: #a855f7; font-weight: 600;">0%</span>
+                                </div>
+                                <div style="background: rgba(10, 14, 39, 0.5); border-radius: 8px; height: 8px; overflow: hidden;">
+                                    <div id="eggsFetchBar" style="
+                                        height: 100%;
+                                        width: 0%;
+                                        background: linear-gradient(90deg, #7c3aed, #a855f7, #06b6d4);
+                                        background-size: 200% 100%;
+                                        border-radius: 8px;
+                                        transition: width 0.4s ease;
+                                        animation: barShimmer 1.5s linear infinite;
+                                    "></div>
+                                </div>
+                            </div>
                             
                             <div id="eggsList">
                                 <p style="color: #cbd5e1;">Click "Fetch from Pterodactyl" to load eggs.</p>
@@ -505,6 +523,24 @@
                             <div style="margin-bottom: 20px;">
                                 <button class="btn btn-primary" onclick="fetchAllocations()">Fetch from Pterodactyl</button>
                                 <button class="btn btn-secondary" onclick="loadCachedAllocations()" style="margin-left: 12px;">Load Cached</button>
+                            </div>
+
+                            <div id="allocationsFetchProgress" style="display: none; margin-top: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span id="allocationsFetchLabel" style="font-size: 13px; color: #94a3b8;">Fetching allocations from Pterodactyl...</span>
+                                    <span id="allocationsFetchPercent" style="font-size: 13px; color: #a855f7; font-weight: 600;">0%</span>
+                                </div>
+                                <div style="background: rgba(10, 14, 39, 0.5); border-radius: 8px; height: 8px; overflow: hidden;">
+                                    <div id="allocationsFetchBar" style="
+                                        height: 100%;
+                                        width: 0%;
+                                        background: linear-gradient(90deg, #7c3aed, #a855f7, #06b6d4);
+                                        background-size: 200% 100%;
+                                        border-radius: 8px;
+                                        transition: width 0.4s ease;
+                                        animation: barShimmer 1.5s linear infinite;
+                                    "></div>
+                                </div>
                             </div>
                             
                             <div id="allocationsList">
@@ -631,6 +667,13 @@
         </div>
     </div>
     
+    <style>
+        @keyframes barShimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+
     <script src="/js/main.js"></script>
     <script src="/js/dashboard.js"></script>
     <script src="/js/theme.js"></script>
@@ -1467,19 +1510,92 @@
             });
         }
         
+        /**
+         * Animate a progress bar while an async operation runs.
+         */
+        async function withProgressBar(barId, labelId, percentId, progressId, labelText, asyncFn) {
+            const bar = document.getElementById(barId);
+            const label = document.getElementById(labelId);
+            const pct = document.getElementById(percentId);
+            const wrapper = document.getElementById(progressId);
+
+            wrapper.style.display = 'block';
+            bar.style.width = '0%';
+            bar.style.background = 'linear-gradient(90deg, #7c3aed, #a855f7, #06b6d4)';
+            label.textContent = labelText;
+            pct.textContent = '0%';
+
+            let current = 0;
+            const slowTarget = 85;
+            const interval = setInterval(() => {
+                if (current < slowTarget) {
+                    const step = current < 40 ? 6 : current < 70 ? 3 : 1;
+                    current = Math.min(current + step, slowTarget);
+                    bar.style.width = current + '%';
+                    pct.textContent = current + '%';
+                }
+            }, 200);
+
+            try {
+                const result = await asyncFn();
+                clearInterval(interval);
+                current = 100;
+                bar.style.width = '100%';
+                pct.textContent = '100%';
+                label.textContent = 'Done!';
+
+                setTimeout(() => {
+                    wrapper.style.transition = 'opacity 0.5s';
+                    wrapper.style.opacity = '0';
+                    setTimeout(() => {
+                        wrapper.style.display = 'none';
+                        wrapper.style.opacity = '1';
+                        wrapper.style.transition = '';
+                        bar.style.width = '0%';
+                    }, 500);
+                }, 1200);
+
+                return result;
+            } catch (err) {
+                clearInterval(interval);
+                bar.style.background = 'var(--accent-danger, #ef4444)';
+                label.textContent = 'Error — see notification';
+                pct.textContent = '';
+                setTimeout(() => {
+                    wrapper.style.display = 'none';
+                    wrapper.style.opacity = '1';
+                    wrapper.style.transition = '';
+                    bar.style.background = 'linear-gradient(90deg, #7c3aed, #a855f7, #06b6d4)';
+                }, 3000);
+                throw err;
+            }
+        }
+
         // Eggs Management Functions
         async function fetchEggs() {
             try {
-                showNotification('Fetching eggs from Pterodactyl...', 'info');
-                const response = await apiFetch('/admin/api/panel/eggs');
-                const data = await response.json();
-                
-                if (data.success) {
-                    displayEggs(data.eggs);
-                    showNotification(`Found ${data.eggs.length} eggs. Click "Sync to Database" to save them.`, 'success');
-                } else {
-                    showNotification(data.message || 'Failed to fetch eggs', 'error');
-                }
+                await withProgressBar(
+                    'eggsFetchBar',
+                    'eggsFetchLabel',
+                    'eggsFetchPercent',
+                    'eggsFetchProgress',
+                    'Fetching eggs from Pterodactyl...',
+                    async () => {
+                        const response = await apiFetch('/admin/api/panel/eggs');
+                        const data = await response.json();
+
+                        if (data.success) {
+                            displayEggs(data.eggs);
+                            if (data.eggs.length > 0) {
+                                showNotification(`Found ${data.eggs.length} eggs.`, 'success');
+                            } else {
+                                showNotification('No eggs found in Pterodactyl.', 'warning');
+                            }
+                        } else {
+                            showNotification(data.message || 'Failed to fetch eggs', 'error');
+                        }
+                    }
+                );
             } catch (error) {
                 showNotification('Error fetching eggs', 'error');
                 console.error('Fetch eggs error:', error);
@@ -1595,23 +1711,31 @@
             });
             
             try {
-                showNotification(`Syncing ${selectedEggIds.length} selected egg(s) to database...`, 'info');
-                const response = await apiFetch('/admin/api/panel/eggs/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ egg_ids: selectedEggIds, eggs: selectedEggs })
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    showNotification(`Successfully synced ${data.synced} egg(s) to database`, 'success');
-                    if (data.errors && data.errors.length > 0) {
-                        console.warn('Some eggs had errors:', data.errors);
+                await withProgressBar(
+                    'eggsFetchBar',
+                    'eggsFetchLabel',
+                    'eggsFetchPercent',
+                    'eggsFetchProgress',
+                    `Syncing ${selectedEggIds.length} selected egg(s) to database...`,
+                    async () => {
+                        const response = await apiFetch('/admin/api/panel/eggs/sync', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ egg_ids: selectedEggIds, eggs: selectedEggs })
+                        });
+                        const data = await response.json();
+
+                        if (data.success) {
+                            showNotification(`Successfully synced ${data.synced} egg(s) to database`, 'success');
+                            if (data.errors && data.errors.length > 0) {
+                                console.warn('Some eggs had errors:', data.errors);
+                            }
+                            loadCachedEggs();
+                        } else {
+                            showNotification(data.message || 'Failed to sync eggs', 'error');
+                        }
                     }
-                    loadCachedEggs();
-                } else {
-                    showNotification(data.message || 'Failed to sync eggs', 'error');
-                }
+                );
             } catch (error) {
                 showNotification('Error syncing eggs', 'error');
                 console.error('Sync eggs error:', error);
@@ -1621,22 +1745,29 @@
         // Allocations Management Functions
         async function fetchAllocations() {
             try {
-                showNotification('Fetching allocations from Pterodactyl...', 'info');
-                const response = await apiFetch('/admin/api/panel/allocations');
-                const data = await response.json();
-                
-                if (data.success) {
-                    displayAllocations(data.allocations);
-                    if (data.allocations.length > 0) {
-                        showNotification(`Found ${data.allocations.length} allocations. Syncing to database...`, 'info');
-                        // Auto-sync after fetching
-                        setTimeout(() => syncAllocations(), 500);
-                    } else {
-                        showNotification('No unassigned allocations found in Pterodactyl.', 'warning');
+                await withProgressBar(
+                    'allocationsFetchBar',
+                    'allocationsFetchLabel',
+                    'allocationsFetchPercent',
+                    'allocationsFetchProgress',
+                    'Fetching allocations from Pterodactyl...',
+                    async () => {
+                        const response = await apiFetch('/admin/api/panel/allocations');
+                        const data = await response.json();
+
+                        if (data.success) {
+                            displayAllocations(data.allocations);
+                            if (data.allocations.length > 0) {
+                                showNotification(`Found ${data.allocations.length} allocations. Syncing...`, 'info');
+                                setTimeout(() => syncAllocations(), 500);
+                            } else {
+                                showNotification('No unassigned allocations found.', 'warning');
+                            }
+                        } else {
+                            showNotification(data.message || 'Failed to fetch allocations', 'error');
+                        }
                     }
-                } else {
-                    showNotification(data.message || 'Failed to fetch allocations', 'error');
-                }
+                );
             } catch (error) {
                 showNotification('Error fetching allocations', 'error');
                 console.error('Fetch allocations error:', error);
@@ -1684,13 +1815,49 @@
                     : `<span style="color: #f59e0b; font-size: 12px;">⚠ No ip_alias set — users will see raw IP</span>`;
                 
                 html += `
-                    <div style="padding: 16px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
+                    <div id="alloc-card-${allocId}" style="padding: 16px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+                            <div style="flex: 1;">
                                 <h4 style="color: #f8fafc; margin: 0 0 4px 0;">${displayAddress}</h4>
                                 <p style="margin: 2px 0; font-size: 13px;">${addressNote}</p>
                                 <p style="color: #cbd5e1; margin: 4px 0; font-size: 14px;"><strong>Raw IP:</strong> ${ip}:${port}</p>
                                 <p style="color: #cbd5e1; margin: 4px 0; font-size: 14px;"><strong>Allocation ID:</strong> ${allocId} &nbsp;|&nbsp; <strong>Node:</strong> ${nodeId} &nbsp;|&nbsp; <strong>Priority:</strong> ${priority}</p>
+                            </div>
+                            <button
+                                onclick="toggleAliasEdit(${allocation.id}, '${(ipAlias || '').replace(/'/g, "\\'")}')"
+                                style="background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.4);
+                                       color: #a855f7; border-radius: 6px; padding: 6px 12px; font-size: 12px;
+                                       cursor: pointer; white-space: nowrap;">
+                                ✏️ Edit Alias
+                            </button>
+                        </div>
+
+                        <div id="alias-editor-${allocId}" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(124,58,237,0.2);">
+                            <p style="color: #94a3b8; font-size: 12px; margin: 0 0 8px 0;">
+                                ⚠ This edits the alias stored in Aether only. To change it in Pterodactyl, update it there and re-sync.
+                            </p>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <input
+                                    id="alias-input-${allocId}"
+                                    type="text"
+                                    value="${ipAlias || ''}"
+                                    placeholder="e.g. mtc.kovaihost.cloud"
+                                    style="flex: 1; min-width: 200px; padding: 8px 12px; background: rgba(10,14,39,0.5);
+                                           border: 1px solid rgba(124,58,237,0.4); border-radius: 6px;
+                                           color: #f8fafc; font-size: 13px;"
+                                />
+                                <button
+                                    onclick="saveAlias(${allocation.id})"
+                                    style="background: #7c3aed; border: none; color: #fff; border-radius: 6px;
+                                           padding: 8px 14px; font-size: 13px; cursor: pointer;">
+                                    Save
+                                </button>
+                                <button
+                                    onclick="toggleAliasEdit(${allocId}, null)"
+                                    style="background: rgba(107,114,128,0.2); border: 1px solid rgba(107,114,128,0.4);
+                                           color: #94a3b8; border-radius: 6px; padding: 8px 14px; font-size: 13px; cursor: pointer;">
+                                    Cancel
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1707,21 +1874,71 @@
         async function syncAllocations() {
             // Allow sync even without fetching first (will fetch fresh from Pterodactyl)
             try {
-                showNotification('Syncing allocations to database...', 'info');
-                const response = await apiFetch('/admin/api/panel/allocations/sync', { method: 'POST' });
-                const data = await response.json();
-                
-                if (data.success) {
-                    showNotification(`Successfully synced ${data.synced} allocations to database (cleared ${data.removed} old entries)`, 'success');
-                    // Reload cached allocations to show the updated list
-                    setTimeout(() => loadCachedAllocations(), 500);
-                } else {
-                    showNotification(data.message || 'Failed to sync allocations', 'error');
-                    console.error('Sync failed:', data);
-                }
+                await withProgressBar(
+                    'allocationsFetchBar',
+                    'allocationsFetchLabel',
+                    'allocationsFetchPercent',
+                    'allocationsFetchProgress',
+                    'Syncing allocations to database...',
+                    async () => {
+                        const response = await apiFetch('/admin/api/panel/allocations/sync', { method: 'POST' });
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            showNotification(`Successfully synced ${data.synced} allocations to database (cleared ${data.removed} old entries)`, 'success');
+                            setTimeout(() => loadCachedAllocations(), 500);
+                        } else {
+                            showNotification(data.message || 'Failed to sync allocations', 'error');
+                            console.error('Sync failed:', data);
+                        }
+                    }
+                );
             } catch (error) {
                 showNotification('Error syncing allocations: ' + error.message, 'error');
                 console.error('Sync allocations error:', error);
+            }
+        }
+
+        function toggleAliasEdit(allocId, currentAlias) {
+            const editor = document.getElementById(`alias-editor-${allocId}`);
+            if (!editor) return;
+
+            const isVisible = editor.style.display !== 'none';
+            editor.style.display = isVisible ? 'none' : 'block';
+
+            if (!isVisible) {
+                const input = document.getElementById(`alias-input-${allocId}`);
+                if (input) {
+                    if (currentAlias) input.value = currentAlias;
+                    setTimeout(() => input.focus(), 50);
+                }
+            }
+        }
+
+        async function saveAlias(allocId) {
+            const input = document.getElementById(`alias-input-${allocId}`);
+            if (!input) return;
+
+            const newAlias = input.value.trim();
+
+            try {
+                const response = await apiFetch(`/admin/api/panel/allocations/${allocId}/alias`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip_alias: newAlias })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    document.getElementById(`alias-editor-${allocId}`).style.display = 'none';
+                    setTimeout(() => loadCachedAllocations(), 300);
+                } else {
+                    showNotification(data.message || 'Failed to update alias', 'error');
+                }
+            } catch (error) {
+                showNotification('Error updating alias', 'error');
+                console.error('Save alias error:', error);
             }
         }
         

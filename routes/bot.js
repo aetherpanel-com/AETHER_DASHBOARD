@@ -3,6 +3,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { requireAdmin } = require('../middleware/auth');
 
 // Bot heartbeat tracking
 // Stores the timestamp of the last heartbeat received from the bot
@@ -55,7 +56,7 @@ router.post('/heartbeat', verifyBotApiKey, (req, res) => {
 
 // GET /api/bot/status
 // Endpoint to check if Discord bot is online
-router.get('/status', (req, res) => {
+router.get('/status', requireAdmin, (req, res) => {
     try {
         const now = Date.now();
         const heartbeatTimeout = 60000; // 60 seconds

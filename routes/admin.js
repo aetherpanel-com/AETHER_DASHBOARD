@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const multer = require('multer');
 const { query, get, run, transaction } = require('../config/database');
+const { sanitizeBody } = require('../middleware/validation');
 
 // Configure multer for file uploads (configure once, use multiple times)
 const uploadPath = path.join(__dirname, '../public/assets/branding');
@@ -342,7 +343,7 @@ router.delete('/api/servers/:id', requireAdmin, async (req, res) => {
 });
 
 // API endpoint to manage coins
-router.post('/api/coins', requireAdmin, async (req, res) => {
+router.post('/api/coins', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { username, amount } = req.body;
         
@@ -450,7 +451,7 @@ router.get('/api/linkvertise/config', requireAdmin, async (req, res) => {
     }
 });
 
-router.post('/api/linkvertise/config', requireAdmin, async (req, res) => {
+router.post('/api/linkvertise/config', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { publisher_link, publisher_id, default_coins, cooldown_seconds } = req.body;
         
@@ -590,7 +591,7 @@ router.get('/api/linkvertise/links/:id', requireAdmin, async (req, res) => {
     }
 });
 
-router.post('/api/linkvertise/links', requireAdmin, async (req, res) => {
+router.post('/api/linkvertise/links', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { title, url, coins_earned, is_active, priority } = req.body;
         
@@ -642,7 +643,7 @@ router.post('/api/linkvertise/links', requireAdmin, async (req, res) => {
     }
 });
 
-router.put('/api/linkvertise/links/:id', requireAdmin, async (req, res) => {
+router.put('/api/linkvertise/links/:id', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { title, url, coins_earned, is_active, priority } = req.body;
         const linkId = req.params.id;
@@ -1672,6 +1673,42 @@ router.put('/api/panel/allocations/:id/priority', requireAdmin, async (req, res)
     }
 });
 
+// Update ip_alias for a locally-stored allocation
+router.patch('/api/panel/allocations/:id/alias', requireAdmin, sanitizeBody, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { ip_alias } = req.body;
+
+        const alias = ip_alias && ip_alias.trim() !== '' ? ip_alias.trim() : null;
+
+        // Allow clearing the alias, otherwise enforce a basic hostname/IP-safe format
+        if (alias && !/^[a-zA-Z0-9.\-]+$/.test(alias)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ip_alias can only contain letters, numbers, dots, and hyphens'
+            });
+        }
+
+        const result = await run(
+            'UPDATE pterodactyl_allocations SET ip_alias = ? WHERE id = ?',
+            [alias, id]
+        );
+
+        if (result.changes === 0) {
+            return res.status(404).json({ success: false, message: 'Allocation not found' });
+        }
+
+        res.json({
+            success: true,
+            message: alias ? `ip_alias updated to ${alias}` : 'ip_alias cleared',
+            ip_alias: alias
+        });
+    } catch (error) {
+        console.error('Error updating ip_alias:', error);
+        res.status(500).json({ success: false, message: 'Error updating ip_alias' });
+    }
+});
+
 // Pterodactyl Settings API
 router.get('/api/panel/settings', requireAdmin, async (req, res) => {
     try {
@@ -1853,7 +1890,7 @@ router.get('/api/templates', requireAdmin, async (req, res) => {
 });
 
 // Create a new server template
-router.post('/api/templates', requireAdmin, async (req, res) => {
+router.post('/api/templates', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { name, description, egg_id, ram_mb, cpu_percent, storage_mb, icon, display_order } = req.body;
         
@@ -1886,7 +1923,7 @@ router.post('/api/templates', requireAdmin, async (req, res) => {
 });
 
 // Update a server template
-router.put('/api/templates/:id', requireAdmin, async (req, res) => {
+router.put('/api/templates/:id', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const templateId = req.params.id;
         const { name, description, egg_id, ram_mb, cpu_percent, storage_mb, is_active, icon, display_order } = req.body;

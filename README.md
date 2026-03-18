@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.4.2
+**Version:** 1.4.3
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.4.2):** Installer UX & Stability Refresh – new interactive installation wizard, improved banner, safer APT handling, and refined Node.js/PM2 setup for smoother first-time installs. See [Changelog](UPDATES.md#aether-dashboard-v142) for details.
+**🔧 Latest Update (v1.4.3):** Admin UX polish and server lifecycle fixes - weekly stat deltas, faster admin search/filter tools, improved server status/uptime handling, and `ip_alias` subdomain addresses for allocations. See [Changelog](UPDATES.md#aether-dashboard-v143) for details.
 
 ---
 
@@ -877,7 +877,7 @@ If you have a domain, set up Nginx (see the "Production Setup" section below).
    - Look for the shield icon (🛡️) in the sidebar
    - Click it
 
-3. **Click the "Linkvertise" tab**
+3. **Open Admin Panel -> Integrations -> Linkvertise**
 
 4. **In "Linkvertise Configuration":**
    - **Publisher Link:** Paste your Publisher Link here
@@ -1687,4 +1687,4 @@ MIT License - Feel free to use, modify, and distribute!
 
 **Made with ❤️ for free hosting providers. Start earning revenue today!** 🚀💰
 
-**Version 1.4.2** - Production Ready ✅
+**Version 1.4.3** - Production Ready ✅
