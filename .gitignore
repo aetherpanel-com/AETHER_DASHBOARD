@@ -28,3 +28,7 @@ build/
 
 # Documentation
 PROJECT_STRUCTURE.md
+
+
+# Proxy
+cloudflared.exe
