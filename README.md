@@ -203,6 +203,20 @@ cat /var/log/aether-installer.log
 
 ---
 
+## 📖 Admin Panel Guide
+
+Already installed? Ready to configure your panel?
+
+👉 **[See the Admin Panel Guide (ADMIN_GUIDE.md)](ADMIN_GUIDE.md)** for:
+- Step-by-step first-time setup order
+- How to connect and configure Pterodactyl
+- Setting up subdomain addresses (Node Default Aliases)
+- Linkvertise monetisation setup
+- Server templates, store pricing, themes, and branding
+- Discord bot integration guide
+
+---
+
 ## 🚀 Quick Deployment Guide
 
 **Want to get started fast?** Follow these quick steps. For detailed explanations, see the [Full Installation Guide](#-step-by-step-installation-guide) below.
@@ -1624,11 +1638,10 @@ pm2 restart aether-dashboard
 ## 📖 Need More Help?
 
 1. **Check this README** - Most questions are answered here
-2. **Check the Troubleshooting Guide** - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues and solutions
-3. **Check the Update Guide** - [UPDATES.md](UPDATES.md) for update instructions
-4. **Check the Backup Guide** - [BACKUP_RECOVERY.md](BACKUP_RECOVERY.md) for backup and recovery instructions
-5. **Check server logs** - `pm2 logs aether-dashboard`
-6. **Check error messages** - They usually tell you what's wrong
+2. **Check the Admin Guide** - [ADMIN_GUIDE.md](ADMIN_GUIDE.md) for full admin panel walkthrough
+3. **Check the Troubleshooting Guide** - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues and solutions
+4. **Check the Update Guide** - [UPDATES.md](UPDATES.md) for update instructions
+5. **Check the Backup Guide** - [BACKUP_RECOVERY.md](BACKUP_RECOVERY.md) for backup and recovery instructions
 
 ---
 
