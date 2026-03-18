@@ -436,6 +436,22 @@ function initializeDatabase() {
                 });
             });
 
+            // Create Pterodactyl_Node_Aliases table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS pterodactyl_node_aliases (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    node_id INTEGER NOT NULL UNIQUE,
+                    default_alias TEXT,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating pterodactyl_node_aliases table:', err);
+                } else {
+                    console.log('✅ Pterodactyl_Node_Aliases table created/verified');
+                }
+            });
+
             // Create Pterodactyl_Settings table
             db.run(`
                 CREATE TABLE IF NOT EXISTS pterodactyl_settings (

@@ -614,10 +614,13 @@
         
         function displayServerInfo() {
             document.getElementById('serverName').textContent = serverData.name;
+            const addrEl = document.getElementById('serverAddress');
             if (serverData.public_address) {
-                document.getElementById('serverAddress').textContent = `🌐 ${serverData.public_address}`;
+                addrEl.textContent = `🌐 ${serverData.public_address}`;
+                addrEl.dataset.rawAddress = serverData.public_address;
             } else {
-                document.getElementById('serverAddress').textContent = 'Resolving address...';
+                addrEl.textContent = 'Resolving address...';
+                addrEl.dataset.rawAddress = '';
                 resolveServerAddress();
             }
             
@@ -641,15 +644,20 @@
             try {
                 const response = await fetch(`/servers/api/resolve-address/${serverId}`);
                 const data = await response.json();
+                const addrEl = document.getElementById('serverAddress');
                 if (data.success && data.public_address) {
                     serverData.public_address = data.public_address;
-                    document.getElementById('serverAddress').textContent = `🌐 ${data.public_address}`;
+                    addrEl.textContent = `🌐 ${data.public_address}`;
+                    addrEl.dataset.rawAddress = data.public_address;
                 } else {
-                    document.getElementById('serverAddress').textContent = 'Address not available';
+                    addrEl.textContent = 'Address not available';
+                    addrEl.dataset.rawAddress = '';
                 }
             } catch (error) {
                 console.error('Error resolving server address:', error);
-                document.getElementById('serverAddress').textContent = 'Address not available';
+                const addrEl = document.getElementById('serverAddress');
+                addrEl.textContent = 'Address not available';
+                addrEl.dataset.rawAddress = '';
             }
         }
         
@@ -743,34 +751,65 @@
         }
 
         function syncButtonStateWithStatus(status) {
-            const installing = status === 'installing' || status === 'checking';
-            const transitioning = status === 'starting' || status === 'stopping';
-            const shouldDisable = installing || transitioning;
+            const isOnline = status === 'running' || status === 'online';
+            const isOffline = status === 'offline' || status === 'stopped' || status === 'unknown';
+            const isInstalling = status === 'installing' || status === 'checking';
+            const isTransitioning = status === 'starting' || status === 'stopping';
 
-            ['btnStart', 'btnStop', 'btnRestart'].forEach(id => {
-                const btn = document.getElementById(id);
-                if (!btn) return;
-                btn.disabled = shouldDisable;
-                if (installing) {
-                    btn.title = 'Server is still installing. Please wait.';
-                } else if (transitioning) {
-                    btn.title = 'Server is transitioning. Please wait.';
-                } else {
-                    btn.title = '';
-                }
-            });
+            const btnStart = document.getElementById('btnStart');
+            const btnStop = document.getElementById('btnStop');
+            const btnRestart = document.getElementById('btnRestart');
+
+            if (!btnStart || !btnStop || !btnRestart) return;
+
+            if (isInstalling) {
+                btnStart.disabled = true;
+                btnStop.disabled = true;
+                btnRestart.disabled = true;
+                btnStart.title = 'Server is still installing. Please wait.';
+                btnStop.title = 'Server is still installing. Please wait.';
+                btnRestart.title = 'Server is still installing. Please wait.';
+            } else if (isTransitioning) {
+                btnStart.disabled = true;
+                btnStop.disabled = true;
+                btnRestart.disabled = true;
+                btnStart.title = 'Server is transitioning. Please wait.';
+                btnStop.title = 'Server is transitioning. Please wait.';
+                btnRestart.title = 'Server is transitioning. Please wait.';
+            } else if (isOnline) {
+                btnStart.disabled = true;
+                btnStop.disabled = false;
+                btnRestart.disabled = false;
+                btnStart.title = 'Server is already online.';
+                btnStop.title = '';
+                btnRestart.title = '';
+            } else if (isOffline) {
+                btnStart.disabled = false;
+                btnStop.disabled = true;
+                btnRestart.disabled = false;
+                btnStart.title = '';
+                btnStop.title = 'Server is already offline.';
+                btnRestart.title = '';
+            } else {
+                btnStart.disabled = false;
+                btnStop.disabled = false;
+                btnRestart.disabled = false;
+                btnStart.title = '';
+                btnStop.title = '';
+                btnRestart.title = '';
+            }
         }
 
         function copyServerAddress() {
-            const addrElement = document.getElementById('serverAddress');
+            const addrEl = document.getElementById('serverAddress');
             const btn = document.getElementById('copyAddressBtn');
-            if (!addrElement) return;
-            const addr = (addrElement.textContent || '').trim();
-            if (!addr || addr === 'Loading address...') return;
+            if (!addrEl) return;
 
-            if (!navigator.clipboard || !navigator.clipboard.writeText) {
-                return;
-            }
+            const raw = addrEl.dataset.rawAddress || '';
+            const addr = raw.trim() || addrEl.textContent.replace(/^[^\w]+/, '').trim();
+
+            if (!addr || addr === 'Loading address...' || addr === 'Resolving address...' || addr === 'Address not available') return;
+            if (!navigator.clipboard?.writeText) return;
 
             navigator.clipboard.writeText(addr).then(() => {
                 if (!btn) return;

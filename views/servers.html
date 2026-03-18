@@ -1108,6 +1108,48 @@
             badge.classList.add(statusInfo.class);
             badge.querySelector('.status-text').textContent = statusInfo.text;
             badge.title = `Server is ${statusInfo.text.toLowerCase()}`;
+            syncCardButtonsToStatus(serverId, status);
+        }
+
+        function syncCardButtonsToStatus(serverId, status) {
+            const card = document.querySelector(`.server-card[data-server-id="${serverId}"]`);
+            if (!card) return;
+
+            const isOnline = status === 'running' || status === 'online';
+            const isOffline = status === 'offline' || status === 'stopped' || status === 'unknown';
+            const isInstalling = status === 'installing' || status === 'checking';
+            const isTransitioning = status === 'starting' || status === 'stopping';
+
+            const btnStart = card.querySelector('.power-start');
+            const btnStop = card.querySelector('.power-stop');
+            const btnRestart = card.querySelector('.power-restart');
+            const btnKill = card.querySelector('.power-kill');
+
+            if (!btnStart && !btnStop) return;
+
+            if (isInstalling) {
+                [btnStart, btnStop, btnRestart, btnKill].forEach(b => {
+                    if (b) { b.disabled = true; b.title = 'Server is still installing. Please wait.'; }
+                });
+            } else if (isTransitioning) {
+                [btnStart, btnStop, btnRestart, btnKill].forEach(b => {
+                    if (b) { b.disabled = true; b.title = 'Server is transitioning. Please wait.'; }
+                });
+            } else if (isOnline) {
+                if (btnStart) { btnStart.disabled = true; btnStart.title = 'Server is already online.'; }
+                if (btnStop) { btnStop.disabled = false; btnStop.title = ''; }
+                if (btnRestart) { btnRestart.disabled = false; btnRestart.title = ''; }
+                if (btnKill) { btnKill.disabled = false; btnKill.title = ''; }
+            } else if (isOffline) {
+                if (btnStart) { btnStart.disabled = false; btnStart.title = ''; }
+                if (btnStop) { btnStop.disabled = true; btnStop.title = 'Server is already offline.'; }
+                if (btnRestart) { btnRestart.disabled = false; btnRestart.title = ''; }
+                if (btnKill) { btnKill.disabled = false; btnKill.title = ''; }
+            } else {
+                [btnStart, btnStop, btnRestart, btnKill].forEach(b => {
+                    if (b) { b.disabled = false; b.title = ''; }
+                });
+            }
         }
         
         // Send power action to server
@@ -1173,8 +1215,8 @@
                                     delete card.dataset.powerActionTimeout;
                                     delete card.dataset.powerActionTargetStatus;
                                 }
-                                buttons.forEach(btn => btn.disabled = false);
-                                
+                                syncCardButtonsToStatus(serverId, currentStatus);
+
                                 // Remove this one-time listener
                                 socket.off('server_status', statusUpdateHandler);
                             }

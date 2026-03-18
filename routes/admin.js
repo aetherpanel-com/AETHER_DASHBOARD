@@ -1601,11 +1601,29 @@ router.post('/api/panel/allocations/sync', requireAdmin, async (req, res) => {
         for (const allocation of allocations) {
             try {
                 const allocAttrs = allocation.attributes || allocation;
-                // Allocation ID is in attributes.id, not allocation.id (when coming from Pterodactyl API)
                 const allocationId = allocAttrs.id || allocation.id;
                 const nodeId = allocation.node_id || allocAttrs.node_id;
-                
-                console.log(`[DEBUG] Syncing allocation:`, { allocationId, ip: allocAttrs.ip, port: allocAttrs.port, nodeId });
+
+                // Resolve ip_alias: prefer Pterodactyl's own value, then fall back to node default alias
+                let resolvedAlias = allocAttrs.ip_alias && String(allocAttrs.ip_alias).trim() !== ''
+                    ? String(allocAttrs.ip_alias).trim()
+                    : null;
+
+                if (!resolvedAlias && nodeId) {
+                    try {
+                        const nodeAlias = await get(
+                            'SELECT default_alias FROM pterodactyl_node_aliases WHERE node_id = ?',
+                            [nodeId]
+                        );
+                        if (nodeAlias && nodeAlias.default_alias) {
+                            resolvedAlias = nodeAlias.default_alias;
+                        }
+                    } catch (e) {
+                        // Table may not exist yet on first sync — safe to ignore
+                    }
+                }
+
+                console.log(`[DEBUG] Syncing allocation:`, { allocationId, ip: allocAttrs.ip, port: allocAttrs.port, nodeId, resolvedAlias });
                 
                 await run(`
                     INSERT INTO pterodactyl_allocations 
@@ -1614,7 +1632,7 @@ router.post('/api/panel/allocations/sync', requireAdmin, async (req, res) => {
                 `, [
                     allocationId,
                     allocAttrs.ip,
-                    allocAttrs.ip_alias || null,
+                    resolvedAlias,
                     allocAttrs.port,
                     nodeId
                 ]);
@@ -1706,6 +1724,68 @@ router.patch('/api/panel/allocations/:id/alias', requireAdmin, sanitizeBody, asy
     } catch (error) {
         console.error('Error updating ip_alias:', error);
         res.status(500).json({ success: false, message: 'Error updating ip_alias' });
+    }
+});
+
+// Get all configured node default aliases
+router.get('/api/panel/node-aliases', requireAdmin, async (req, res) => {
+    try {
+        const aliases = await query(
+            'SELECT * FROM pterodactyl_node_aliases ORDER BY node_id ASC'
+        );
+        res.json({ success: true, aliases });
+    } catch (error) {
+        console.error('Error fetching node aliases:', error);
+        res.status(500).json({ success: false, message: 'Error fetching node aliases' });
+    }
+});
+
+// Set or clear the default alias for a node
+router.post('/api/panel/node-aliases', requireAdmin, sanitizeBody, async (req, res) => {
+    try {
+        const { node_id, default_alias } = req.body;
+
+        if (!node_id) {
+            return res.status(400).json({ success: false, message: 'node_id is required' });
+        }
+
+        const alias = default_alias && String(default_alias).trim() !== ''
+            ? String(default_alias).trim()
+            : null;
+
+        if (alias && !/^[a-zA-Z0-9.\-]+$/.test(alias)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Alias can only contain letters, numbers, dots, and hyphens'
+            });
+        }
+
+        const existing = await get(
+            'SELECT id FROM pterodactyl_node_aliases WHERE node_id = ?',
+            [node_id]
+        );
+
+        if (existing) {
+            await run(
+                'UPDATE pterodactyl_node_aliases SET default_alias = ?, updated_at = CURRENT_TIMESTAMP WHERE node_id = ?',
+                [alias, node_id]
+            );
+        } else {
+            await run(
+                'INSERT INTO pterodactyl_node_aliases (node_id, default_alias) VALUES (?, ?)',
+                [node_id, alias]
+            );
+        }
+
+        res.json({
+            success: true,
+            message: alias
+                ? `Default alias for node ${node_id} set to ${alias}`
+                : `Default alias for node ${node_id} cleared`
+        });
+    } catch (error) {
+        console.error('Error saving node alias:', error);
+        res.status(500).json({ success: false, message: 'Error saving node alias' });
     }
 });
 

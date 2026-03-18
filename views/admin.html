@@ -513,6 +513,40 @@
                             </div>
                         </div>
 
+                        <!-- Node Default Aliases -->
+                        <div class="card" style="margin-bottom: 20px;">
+                            <div class="card-header">Node Default Aliases</div>
+                            <p style="color: #cbd5e1; margin-bottom: 16px; font-size: 14px;">
+                                Set a default subdomain per node. Applied to all allocations on that node
+                                during sync when no <code style="background: rgba(124,58,237,0.2); padding: 1px 6px; border-radius: 4px;">ip_alias</code>
+                                is set in Pterodactyl. After saving, click Fetch + Sync in Server Allocations below.
+                            </p>
+
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px;">
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label style="font-size: 13px; color: #94a3b8;">Node ID</label>
+                                    <input type="number" id="nodeAliasNodeId" placeholder="e.g. 6"
+                                        style="width: 110px; padding: 10px; background: var(--input-bg, rgba(30,30,50,0.4));
+                                               border: 1px solid var(--input-border, rgba(124,58,237,0.3));
+                                               border-radius: 8px; color: var(--input-text, #f8fafc); font-size: 14px;">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px;">
+                                    <label style="font-size: 13px; color: #94a3b8;">Default Alias (hostname only, no port)</label>
+                                    <input type="text" id="nodeAliasValue" placeholder="e.g. mtc.kovaihost.cloud"
+                                        style="width: 100%; padding: 10px; background: var(--input-bg, rgba(30,30,50,0.4));
+                                               border: 1px solid var(--input-border, rgba(124,58,237,0.3));
+                                               border-radius: 8px; color: var(--input-text, #f8fafc); font-size: 14px;">
+                                </div>
+                                <button class="btn btn-primary" onclick="saveNodeAlias()" style="padding: 10px 20px; white-space: nowrap;">
+                                    Save Alias
+                                </button>
+                            </div>
+
+                            <div id="nodeAliasesList">
+                                <p style="color: #94a3b8; font-size: 14px;">Loading...</p>
+                            </div>
+                        </div>
+
                         <!-- Allocations Management -->
                         <div class="card" style="margin-bottom: 20px;">
                             <div class="card-header">Server Allocations</div>
@@ -854,6 +888,7 @@
             } else if (tabName === 'panel') {
                 loadPanelConfig();
                 loadPanelSettings();
+                loadNodeAliases();
             }
         }
         
@@ -1939,6 +1974,101 @@
             } catch (error) {
                 showNotification('Error updating alias', 'error');
                 console.error('Save alias error:', error);
+            }
+        }
+
+        async function loadNodeAliases() {
+            try {
+                const response = await apiFetch('/admin/api/panel/node-aliases');
+                if (!response || !response.ok) return;
+                const data = await response.json();
+                renderNodeAliases(data.aliases || []);
+            } catch (error) {
+                console.error('Error loading node aliases:', error);
+            }
+        }
+
+        function renderNodeAliases(aliases) {
+            const container = document.getElementById('nodeAliasesList');
+            if (!container) return;
+
+            if (aliases.length === 0) {
+                container.innerHTML = '<p style="color: #94a3b8; font-size: 14px;">No node aliases configured yet.</p>';
+                return;
+            }
+
+            let html = '<div style="display: grid; gap: 8px;">';
+            aliases.forEach(a => {
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between;
+                                padding: 10px 14px; background: rgba(30,30,50,0.4);
+                                border: 1px solid rgba(124,58,237,0.3); border-radius: 8px;">
+                        <span style="font-size: 14px; color: #f8fafc;">
+                            Node <strong>${a.node_id}</strong>
+                            <span style="color: #22c55e; margin-left: 10px;">→ ${escapeHtml(a.default_alias || '(not set)')}</span>
+                        </span>
+                        <button onclick="clearNodeAlias(${a.node_id})"
+                            style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4);
+                                   color: #ef4444; border-radius: 6px; padding: 4px 10px;
+                                   font-size: 12px; cursor: pointer;">
+                            Clear
+                        </button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function saveNodeAlias() {
+            const nodeIdInput = document.getElementById('nodeAliasNodeId');
+            const aliasInput = document.getElementById('nodeAliasValue');
+            const nodeId = nodeIdInput?.value?.trim();
+            const alias = aliasInput?.value?.trim();
+
+            if (!nodeId) {
+                showNotification('Please enter a Node ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await apiFetch('/admin/api/panel/node-aliases', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ node_id: parseInt(nodeId, 10), default_alias: alias || '' })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    nodeIdInput.value = '';
+                    aliasInput.value = '';
+                    loadNodeAliases();
+                } else {
+                    showNotification(data.message || 'Failed to save alias', 'error');
+                }
+            } catch (error) {
+                showNotification('Error saving alias', 'error');
+                console.error('Save node alias error:', error);
+            }
+        }
+
+        async function clearNodeAlias(nodeId) {
+            try {
+                const response = await apiFetch('/admin/api/panel/node-aliases', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ node_id: nodeId, default_alias: '' })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification(`Alias cleared for node ${nodeId}`, 'success');
+                    loadNodeAliases();
+                } else {
+                    showNotification(data.message || 'Failed to clear alias', 'error');
+                }
+            } catch (error) {
+                showNotification('Error clearing alias', 'error');
             }
         }
         

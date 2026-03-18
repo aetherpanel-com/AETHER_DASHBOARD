@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.4.3
+**Version:** 1.4.4
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.4.3):** Admin UX polish and server lifecycle fixes - weekly stat deltas, faster admin search/filter tools, improved server status/uptime handling, and `ip_alias` subdomain addresses for allocations. See [Changelog](UPDATES.md#aether-dashboard-v143) for details.
+**🔧 Latest Update (v1.4.4):** Server control polish — Start/Stop smart button states, clean address copying without emoji, and node-level default alias for subdomain addresses. See [Changelog](UPDATES.md#aether-dashboard-v144) for details.
 
 ---
 
@@ -1687,4 +1687,4 @@ MIT License - Feel free to use, modify, and distribute!
 
 **Made with ❤️ for free hosting providers. Start earning revenue today!** 🚀💰
 
-**Version 1.4.3** - Production Ready ✅
+**Version 1.4.4** - Production Ready ✅
