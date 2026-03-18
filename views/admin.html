@@ -1674,18 +1674,23 @@
             allocations.forEach(allocation => {
                 const allocId = allocation.id || allocation.allocation_id || allocation.attributes?.id;
                 const ip = allocation.ip || allocation.attributes?.ip || 'N/A';
+                const ipAlias = allocation.ip_alias || allocation.attributes?.ip_alias || null;
                 const port = allocation.port || allocation.attributes?.port || 'N/A';
                 const nodeId = allocation.node_id || allocation.attributes?.node_id || 'N/A';
                 const priority = allocation.priority || 0;
+                const displayAddress = ipAlias ? `${ipAlias}:${port}` : `${ip}:${port}`;
+                const addressNote = ipAlias
+                    ? `<span style="color: #22c55e; font-size: 12px;">✓ Subdomain: ${ipAlias}:${port}</span>`
+                    : `<span style="color: #f59e0b; font-size: 12px;">⚠ No ip_alias set — users will see raw IP</span>`;
                 
                 html += `
                     <div style="padding: 16px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <h4 style="color: #f8fafc; margin: 0 0 8px 0;">${ip}:${port}</h4>
-                                <p style="color: #cbd5e1; margin: 4px 0; font-size: 14px;"><strong>Allocation ID:</strong> ${allocId}</p>
-                                <p style="color: #cbd5e1; margin: 4px 0; font-size: 14px;"><strong>Node ID:</strong> ${nodeId}</p>
-                                <p style="color: #cbd5e1; margin: 4px 0; font-size: 14px;"><strong>Priority:</strong> ${priority}</p>
+                                <h4 style="color: #f8fafc; margin: 0 0 4px 0;">${displayAddress}</h4>
+                                <p style="margin: 2px 0; font-size: 13px;">${addressNote}</p>
+                                <p style="color: #cbd5e1; margin: 4px 0; font-size: 14px;"><strong>Raw IP:</strong> ${ip}:${port}</p>
+                                <p style="color: #cbd5e1; margin: 4px 0; font-size: 14px;"><strong>Allocation ID:</strong> ${allocId} &nbsp;|&nbsp; <strong>Node:</strong> ${nodeId} &nbsp;|&nbsp; <strong>Priority:</strong> ${priority}</p>
                             </div>
                         </div>
                     </div>

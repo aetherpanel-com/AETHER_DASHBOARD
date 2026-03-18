@@ -426,13 +426,16 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
                 // pterodactyl_identifier = 8-char string (for Client API panel URLs)
                 const pterodactyl_identifier = createResult.data?.attributes?.identifier || createResult.data?.identifier || null;
                 
-                // Extract public_address from allocations
+                // Extract public_address — prefer cached ip_alias from our allocations table
                 let publicAddress = null;
-                if (createResult.data) {
+                if (allocation.ip_alias && String(allocation.ip_alias).trim() !== '') {
+                    publicAddress = `${String(allocation.ip_alias).trim()}:${allocation.port}`;
+                } else if (allocation.ip) {
+                    publicAddress = `${allocation.ip}:${allocation.port}`;
+                }
+                if (!publicAddress && createResult.data) {
                     publicAddress = pterodactyl.extractPublicAddress(createResult.data);
                 }
-                
-                // If not found in creation response, fetch server details
                 if (!publicAddress && pterodactyl_id) {
                     try {
                         const serverDetails = await pterodactyl.getServerDetails(pterodactyl_id);
@@ -1613,15 +1616,32 @@ router.get('/api/resolve-address/:id', requireAuth, async (req, res) => {
             });
         }
         
-        const serverDetails = await pterodactyl.getServerDetails(server.pterodactyl_id);
-        if (!serverDetails.success) {
-            return res.json({
-                success: false,
-                public_address: null
-            });
+        let publicAddress = null;
+        try {
+            const serverDetails = await pterodactyl.getServerDetails(server.pterodactyl_id);
+            if (serverDetails.success) {
+                const serverAttrs = serverDetails.data?.attributes || serverDetails.data;
+                const primaryAllocationId = serverAttrs?.allocation;
+                if (primaryAllocationId != null && primaryAllocationId !== '') {
+                    const aid = parseInt(String(primaryAllocationId), 10);
+                    const localAlloc = !Number.isNaN(aid)
+                        ? await get('SELECT * FROM pterodactyl_allocations WHERE allocation_id = ?', [aid])
+                        : await get('SELECT * FROM pterodactyl_allocations WHERE allocation_id = ?', [primaryAllocationId]);
+                    if (localAlloc) {
+                        const address = (localAlloc.ip_alias && String(localAlloc.ip_alias).trim() !== '')
+                            ? String(localAlloc.ip_alias).trim()
+                            : localAlloc.ip;
+                        publicAddress = `${address}:${localAlloc.port}`;
+                    } else {
+                        publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
+                    }
+                } else {
+                    publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
+                }
+            }
+        } catch (error) {
+            console.error('Error resolving server address:', error);
         }
-        
-        const publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
         
         if (publicAddress) {
             await run(
@@ -2249,12 +2269,16 @@ router.post('/api/create-from-template', requireAuth, async (req, res) => {
         const pterodactylId = pteroServer?.id;
         const pterodactylIdentifier = pteroServer?.identifier;
         
-        // Delete the used allocation
-        await run('DELETE FROM pterodactyl_allocations WHERE id = ?', [allocation.id]);
-        
-        // Get public address
         let publicAddress = null;
-        if (pterodactylId) {
+        if (allocation.ip_alias && String(allocation.ip_alias).trim() !== '') {
+            publicAddress = `${String(allocation.ip_alias).trim()}:${allocation.port}`;
+        } else if (allocation.ip) {
+            publicAddress = `${allocation.ip}:${allocation.port}`;
+        }
+        if (!publicAddress && createResult.data) {
+            publicAddress = pterodactyl.extractPublicAddress(createResult.data);
+        }
+        if (!publicAddress && pterodactylId) {
             try {
                 const serverDetails = await pterodactyl.getServerDetails(pterodactylId);
                 if (serverDetails.success) {
@@ -2264,6 +2288,9 @@ router.post('/api/create-from-template', requireAuth, async (req, res) => {
                 console.error('Error fetching server details:', e);
             }
         }
+        
+        // Delete the used allocation
+        await run('DELETE FROM pterodactyl_allocations WHERE id = ?', [allocation.id]);
         
         // Save to database
         const insertResult = await run(

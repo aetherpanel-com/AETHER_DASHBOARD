@@ -385,7 +385,7 @@ function extractPublicAddress(serverData) {
         
         if (primaryAllocation) {
             const attrs = primaryAllocation.attributes || primaryAllocation;
-            alias = attrs.ip_alias;
+            alias = attrs.ip_alias && String(attrs.ip_alias).trim() !== '' ? String(attrs.ip_alias).trim() : null;
             ip = attrs.ip;
             port = attrs.port;
         }
@@ -402,15 +402,15 @@ function extractPublicAddress(serverData) {
         
         if (primaryAllocation) {
             const attrs = primaryAllocation.attributes || primaryAllocation;
-            alias = attrs.ip_alias;
+            alias = attrs.ip_alias && String(attrs.ip_alias).trim() !== '' ? String(attrs.ip_alias).trim() : null;
             ip = attrs.ip;
             port = attrs.port;
         }
     }
     
-    // Return public_address as alias:port or ip:port
+    // Return public_address as alias:port or ip:port (empty ip_alias treated as absent)
     if (port) {
-        const address = alias || ip;
+        const address = (alias && alias.trim() !== '') ? alias.trim() : ip;
         return address ? `${address}:${port}` : null;
     }
     
