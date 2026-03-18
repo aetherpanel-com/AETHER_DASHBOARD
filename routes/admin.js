@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const multer = require('multer');
 const { query, get, run, transaction } = require('../config/database');
+const { sanitizeBody } = require('../middleware/validation');
 
 // Configure multer for file uploads (configure once, use multiple times)
 const uploadPath = path.join(__dirname, '../public/assets/branding');
@@ -342,7 +343,7 @@ router.delete('/api/servers/:id', requireAdmin, async (req, res) => {
 });
 
 // API endpoint to manage coins
-router.post('/api/coins', requireAdmin, async (req, res) => {
+router.post('/api/coins', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { username, amount } = req.body;
         
@@ -450,7 +451,7 @@ router.get('/api/linkvertise/config', requireAdmin, async (req, res) => {
     }
 });
 
-router.post('/api/linkvertise/config', requireAdmin, async (req, res) => {
+router.post('/api/linkvertise/config', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { publisher_link, publisher_id, default_coins, cooldown_seconds } = req.body;
         
@@ -590,7 +591,7 @@ router.get('/api/linkvertise/links/:id', requireAdmin, async (req, res) => {
     }
 });
 
-router.post('/api/linkvertise/links', requireAdmin, async (req, res) => {
+router.post('/api/linkvertise/links', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { title, url, coins_earned, is_active, priority } = req.body;
         
@@ -642,7 +643,7 @@ router.post('/api/linkvertise/links', requireAdmin, async (req, res) => {
     }
 });
 
-router.put('/api/linkvertise/links/:id', requireAdmin, async (req, res) => {
+router.put('/api/linkvertise/links/:id', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { title, url, coins_earned, is_active, priority } = req.body;
         const linkId = req.params.id;
@@ -1600,11 +1601,29 @@ router.post('/api/panel/allocations/sync', requireAdmin, async (req, res) => {
         for (const allocation of allocations) {
             try {
                 const allocAttrs = allocation.attributes || allocation;
-                // Allocation ID is in attributes.id, not allocation.id (when coming from Pterodactyl API)
                 const allocationId = allocAttrs.id || allocation.id;
                 const nodeId = allocation.node_id || allocAttrs.node_id;
-                
-                console.log(`[DEBUG] Syncing allocation:`, { allocationId, ip: allocAttrs.ip, port: allocAttrs.port, nodeId });
+
+                // Resolve ip_alias: prefer Pterodactyl's own value, then fall back to node default alias
+                let resolvedAlias = allocAttrs.ip_alias && String(allocAttrs.ip_alias).trim() !== ''
+                    ? String(allocAttrs.ip_alias).trim()
+                    : null;
+
+                if (!resolvedAlias && nodeId) {
+                    try {
+                        const nodeAlias = await get(
+                            'SELECT default_alias FROM pterodactyl_node_aliases WHERE node_id = ?',
+                            [nodeId]
+                        );
+                        if (nodeAlias && nodeAlias.default_alias) {
+                            resolvedAlias = nodeAlias.default_alias;
+                        }
+                    } catch (e) {
+                        // Table may not exist yet on first sync — safe to ignore
+                    }
+                }
+
+                console.log(`[DEBUG] Syncing allocation:`, { allocationId, ip: allocAttrs.ip, port: allocAttrs.port, nodeId, resolvedAlias });
                 
                 await run(`
                     INSERT INTO pterodactyl_allocations 
@@ -1613,7 +1632,7 @@ router.post('/api/panel/allocations/sync', requireAdmin, async (req, res) => {
                 `, [
                     allocationId,
                     allocAttrs.ip,
-                    allocAttrs.ip_alias || null,
+                    resolvedAlias,
                     allocAttrs.port,
                     nodeId
                 ]);
@@ -1669,6 +1688,104 @@ router.put('/api/panel/allocations/:id/priority', requireAdmin, async (req, res)
     } catch (error) {
         console.error('Error updating allocation priority:', error);
         res.status(500).json({ success: false, message: 'Error updating allocation priority' });
+    }
+});
+
+// Update ip_alias for a locally-stored allocation
+router.patch('/api/panel/allocations/:id/alias', requireAdmin, sanitizeBody, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { ip_alias } = req.body;
+
+        const alias = ip_alias && ip_alias.trim() !== '' ? ip_alias.trim() : null;
+
+        // Allow clearing the alias, otherwise enforce a basic hostname/IP-safe format
+        if (alias && !/^[a-zA-Z0-9.\-]+$/.test(alias)) {
+            return res.status(400).json({
+                success: false,
+                message: 'ip_alias can only contain letters, numbers, dots, and hyphens'
+            });
+        }
+
+        const result = await run(
+            'UPDATE pterodactyl_allocations SET ip_alias = ? WHERE id = ?',
+            [alias, id]
+        );
+
+        if (result.changes === 0) {
+            return res.status(404).json({ success: false, message: 'Allocation not found' });
+        }
+
+        res.json({
+            success: true,
+            message: alias ? `ip_alias updated to ${alias}` : 'ip_alias cleared',
+            ip_alias: alias
+        });
+    } catch (error) {
+        console.error('Error updating ip_alias:', error);
+        res.status(500).json({ success: false, message: 'Error updating ip_alias' });
+    }
+});
+
+// Get all configured node default aliases
+router.get('/api/panel/node-aliases', requireAdmin, async (req, res) => {
+    try {
+        const aliases = await query(
+            'SELECT * FROM pterodactyl_node_aliases ORDER BY node_id ASC'
+        );
+        res.json({ success: true, aliases });
+    } catch (error) {
+        console.error('Error fetching node aliases:', error);
+        res.status(500).json({ success: false, message: 'Error fetching node aliases' });
+    }
+});
+
+// Set or clear the default alias for a node
+router.post('/api/panel/node-aliases', requireAdmin, sanitizeBody, async (req, res) => {
+    try {
+        const { node_id, default_alias } = req.body;
+
+        if (!node_id) {
+            return res.status(400).json({ success: false, message: 'node_id is required' });
+        }
+
+        const alias = default_alias && String(default_alias).trim() !== ''
+            ? String(default_alias).trim()
+            : null;
+
+        if (alias && !/^[a-zA-Z0-9.\-]+$/.test(alias)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Alias can only contain letters, numbers, dots, and hyphens'
+            });
+        }
+
+        const existing = await get(
+            'SELECT id FROM pterodactyl_node_aliases WHERE node_id = ?',
+            [node_id]
+        );
+
+        if (existing) {
+            await run(
+                'UPDATE pterodactyl_node_aliases SET default_alias = ?, updated_at = CURRENT_TIMESTAMP WHERE node_id = ?',
+                [alias, node_id]
+            );
+        } else {
+            await run(
+                'INSERT INTO pterodactyl_node_aliases (node_id, default_alias) VALUES (?, ?)',
+                [node_id, alias]
+            );
+        }
+
+        res.json({
+            success: true,
+            message: alias
+                ? `Default alias for node ${node_id} set to ${alias}`
+                : `Default alias for node ${node_id} cleared`
+        });
+    } catch (error) {
+        console.error('Error saving node alias:', error);
+        res.status(500).json({ success: false, message: 'Error saving node alias' });
     }
 });
 
@@ -1853,7 +1970,7 @@ router.get('/api/templates', requireAdmin, async (req, res) => {
 });
 
 // Create a new server template
-router.post('/api/templates', requireAdmin, async (req, res) => {
+router.post('/api/templates', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const { name, description, egg_id, ram_mb, cpu_percent, storage_mb, icon, display_order } = req.body;
         
@@ -1886,7 +2003,7 @@ router.post('/api/templates', requireAdmin, async (req, res) => {
 });
 
 // Update a server template
-router.put('/api/templates/:id', requireAdmin, async (req, res) => {
+router.put('/api/templates/:id', requireAdmin, sanitizeBody, async (req, res) => {
     try {
         const templateId = req.params.id;
         const { name, description, egg_id, ram_mb, cpu_percent, storage_mb, is_active, icon, display_order } = req.body;

@@ -4,6 +4,55 @@
 
 ---
 
+## Aether Dashboard v1.4.4
+
+### 🐛 Server Details Polish & Subdomain Addressing
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+This patch release polishes the server details page and completes the
+subdomain addressing system introduced in v1.4.3.
+
+### 🐛 Bug Fixes
+
+| Bug | Description |
+|-----|-------------|
+| 🐛 **Copy Address Emoji** | Clicking "Copy" on a server address no longer includes the 🌐 globe emoji in the clipboard. The raw address (e.g. `mtc.kovaihost.cloud:2014`) is now copied cleanly. |
+| 🐛 **Start Button When Online** | Start button is now disabled when the server is already online, preventing accidental double-start attempts. |
+| 🐛 **Stop Button When Offline** | Stop button is now disabled when the server is already offline, preventing confusing no-op stop actions. |
+
+### ✨ Improvements
+
+| Improvement | Description |
+|-------------|-------------|
+| 🌐 **Node Default Aliases** | Admins can set a default subdomain per Pterodactyl node (e.g. `mtc.kovaihost.cloud`) in Admin Panel → Panel → Node Default Aliases. Applied automatically to all allocations on that node during sync. |
+| 📊 **Fetch Progress Bars** | "Fetch from Pterodactyl" buttons for both Eggs and Allocations now show animated progress bars while fetching and syncing. |
+| ✏️ **Per-Allocation Alias Edit** | Each allocation card now has an inline "Edit Alias" button to override the subdomain directly in Aether without modifying Pterodactyl. |
+| 🔒 **Production Safety** | `uncaughtException` handler now calls `process.exit(1)` for clean PM2 restart. Bot status endpoint secured behind `requireAdmin`. `sanitizeBody` applied consistently to admin routes. |
+
+### 🗄️ Database Changes
+
+- ✅ Added `pterodactyl_node_aliases` table (automatic migration on startup)
+
+### 🚀 How to Update
+
+```bash
+# GitHub method (recommended)
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+Or via SFTP: Download latest version, replace files (keep `database.db` and `.env`),
+run `npm install`, restart dashboard.
+
+**⚠️ Important:** Always backup `database.db` and `.env` before updating!
+
+---
+
 ## 📋 Before You Start
 
 **⚠️ IMPORTANT:** Always backup your data before updating!
