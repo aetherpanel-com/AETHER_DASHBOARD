@@ -158,6 +158,7 @@
                             <small style="color: #cbd5e1; display: block; margin-top: 4px;">
                                 <span id="resourceUnit">units</span> - Cost: <span id="costDisplay">0</span> coins
                             </small>
+                            <small id="limitWarning" style="display: none; color: #f59e0b; margin-top: 4px; display: block;"></small>
                         </div>
                         
                         <button type="submit" class="btn btn-primary">Purchase</button>
@@ -285,10 +286,15 @@
             const amount = parseInt(document.getElementById('amount').value) || 0;
             const unitSpan = document.getElementById('resourceUnit');
             const costSpan = document.getElementById('costDisplay');
+            const limitWarning = document.getElementById('limitWarning');
             
             if (!resourceType) {
                 unitSpan.textContent = 'units';
                 costSpan.textContent = '0';
+                if (limitWarning) {
+                    limitWarning.textContent = '';
+                    limitWarning.style.display = 'none';
+                }
                 return;
             }
             
@@ -320,6 +326,19 @@
             
             unitSpan.textContent = unit;
             costSpan.textContent = formatNumber(cost);
+
+            if (limitWarning) {
+                let limitMsg = '';
+                if (resourceType === 'ram' && resourcePrices.max_ram_gb > 0) {
+                    limitMsg = `Max allowed: ${resourcePrices.max_ram_gb}GB`;
+                } else if (resourceType === 'cpu' && resourcePrices.max_cpu_percent > 0) {
+                    limitMsg = `Max allowed: ${resourcePrices.max_cpu_percent}%`;
+                } else if (resourceType === 'storage' && resourcePrices.max_storage_gb > 0) {
+                    limitMsg = `Max allowed: ${resourcePrices.max_storage_gb}GB`;
+                }
+                limitWarning.textContent = limitMsg;
+                limitWarning.style.display = limitMsg ? 'block' : 'none';
+            }
         }
         
         document.getElementById('purchaseForm').addEventListener('submit', async (e) => {
@@ -425,6 +444,14 @@
                                     <span style="color: #cbd5e1;">Available Slots:</span>
                                     <strong style="color: #4caf50;">${user.available_slots || 0}</strong>
                                 </div>
+                                ${resourcePrices.max_server_slots > 0 ? `
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #cbd5e1;">Slot Limit:</span>
+                                    <strong style="color: ${(user.server_slots || 1) >= resourcePrices.max_server_slots ? '#ef4444' : '#94a3b8'};">
+                                        ${resourcePrices.max_server_slots} max
+                                        ${(user.server_slots || 1) >= resourcePrices.max_server_slots ? ' — Limit reached' : ''}
+                                    </strong>
+                                </div>` : ''}
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(124, 58, 237, 0.3);">
                                     <span style="color: #cbd5e1;">Price per Slot:</span>
                                     <strong style="color: #f8fafc;">${formatNumber(slotPrice)} coins</strong>

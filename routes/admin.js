@@ -720,7 +720,8 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
             ram_coins_per_set, ram_gb_per_set,
             cpu_coins_per_set, cpu_percent_per_set,
             storage_coins_per_set, storage_gb_per_set,
-            server_slot_price
+            server_slot_price,
+            max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots
         } = req.body;
         
         // Validate all fields are present
@@ -744,6 +745,12 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
                 message: 'Invalid price values. All values must be at least 1, and CPU % must be between 1 and 100.' 
             });
         }
+
+        // Parse limits — default to 0 (unlimited) if not provided or invalid
+        const parsedMaxRamGb = Math.max(0, parseInt(max_ram_gb) || 0);
+        const parsedMaxCpuPercent = Math.max(0, parseInt(max_cpu_percent) || 0);
+        const parsedMaxStorageGb = Math.max(0, parseInt(max_storage_gb) || 0);
+        const parsedMaxSlots = Math.max(0, parseInt(max_server_slots) || 0);
         
         // Check if prices exist
         const existing = await get('SELECT id FROM resource_prices ORDER BY id DESC LIMIT 1');
@@ -756,24 +763,30 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
                      cpu_coins_per_set = ?, cpu_percent_per_set = ?,
                      storage_coins_per_set = ?, storage_gb_per_set = ?,
                      server_slot_price = ?,
+                     max_ram_gb = ?, max_cpu_percent = ?,
+                     max_storage_gb = ?, max_server_slots = ?,
                      updated_at = CURRENT_TIMESTAMP 
                  WHERE id = ?`,
                 [ram_coins_per_set, ram_gb_per_set,
                  cpu_coins_per_set, cpu_percent_per_set,
                  storage_coins_per_set, storage_gb_per_set,
                  server_slot_price,
+                 parsedMaxRamGb, parsedMaxCpuPercent,
+                 parsedMaxStorageGb, parsedMaxSlots,
                  existing.id]
             );
         } else {
             // Create new prices
             await run(
                 `INSERT INTO resource_prices 
-                 (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                 (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [ram_coins_per_set, ram_gb_per_set,
                  cpu_coins_per_set, cpu_percent_per_set,
                  storage_coins_per_set, storage_gb_per_set,
-                 server_slot_price]
+                 server_slot_price,
+                 parsedMaxRamGb, parsedMaxCpuPercent,
+                 parsedMaxStorageGb, parsedMaxSlots]
             );
         }
         

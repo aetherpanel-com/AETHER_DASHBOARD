@@ -1788,6 +1788,33 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
             if (!user) {
                 throw new Error('User not found');
             }
+
+            // Check resource limits (0 = unlimited)
+            const limits = await get('SELECT max_ram_gb, max_cpu_percent, max_storage_gb FROM resource_prices ORDER BY id DESC LIMIT 1');
+
+            if (limits) {
+                if (resource_type === 'ram' && limits.max_ram_gb > 0) {
+                    const currentRamGb = (user.purchased_ram || 0) / 1024;
+                    if (currentRamGb + amount > limits.max_ram_gb) {
+                        const remaining = Math.max(0, limits.max_ram_gb - currentRamGb);
+                        throw new Error(`Purchase would exceed the RAM limit of ${limits.max_ram_gb}GB. You can purchase up to ${remaining.toFixed(1)}GB more.`);
+                    }
+                }
+                if (resource_type === 'cpu' && limits.max_cpu_percent > 0) {
+                    const currentCpu = user.purchased_cpu || 0;
+                    if (currentCpu + amount > limits.max_cpu_percent) {
+                        const remaining = Math.max(0, limits.max_cpu_percent - currentCpu);
+                        throw new Error(`Purchase would exceed the CPU limit of ${limits.max_cpu_percent}%. You can purchase up to ${remaining}% more.`);
+                    }
+                }
+                if (resource_type === 'storage' && limits.max_storage_gb > 0) {
+                    const currentStorageGb = (user.purchased_storage || 0) / 1024;
+                    if (currentStorageGb + amount > limits.max_storage_gb) {
+                        const remaining = Math.max(0, limits.max_storage_gb - currentStorageGb);
+                        throw new Error(`Purchase would exceed the storage limit of ${limits.max_storage_gb}GB. You can purchase up to ${remaining.toFixed(1)}GB more.`);
+                    }
+                }
+            }
             
             if (user.coins < coinsSpent) {
                 throw new Error(`Insufficient coins. You need ${coinsSpent} coins but only have ${user.coins}`);
@@ -1897,6 +1924,14 @@ router.post('/api/purchase-slot', requireAuth, purchaseLimiter, async (req, res)
             
             if (!user) {
                 throw new Error('User not found');
+            }
+
+            // Check server slot limit (0 = unlimited)
+            const slotLimits = await get('SELECT max_server_slots FROM resource_prices ORDER BY id DESC LIMIT 1');
+            if (slotLimits && slotLimits.max_server_slots > 0) {
+                if ((user.server_slots || 1) >= slotLimits.max_server_slots) {
+                    throw new Error(`You have reached the maximum server slot limit of ${slotLimits.max_server_slots}. Contact an administrator to increase your limit.`);
+                }
             }
             
             if (user.coins < slotPrice) {

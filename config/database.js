@@ -616,6 +616,10 @@ function initializeDatabase() {
                     storage_coins_per_set INTEGER DEFAULT 1,
                     storage_gb_per_set INTEGER DEFAULT 1,
                     server_slot_price INTEGER DEFAULT 100,
+                    max_ram_gb INTEGER DEFAULT 0,
+                    max_cpu_percent INTEGER DEFAULT 0,
+                    max_storage_gb INTEGER DEFAULT 0,
+                    max_server_slots INTEGER DEFAULT 0,
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             `, (err) => {
@@ -630,8 +634,8 @@ function initializeDatabase() {
                 const createDefaultPricesAndAdmin = () => {
                     db.get('SELECT id FROM resource_prices', (err, row) => {
                         if (!err && !row) {
-                            db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-                                [1, 1, 1, 1, 1, 1, 100], (err) => {
+                            db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+                                [1, 1, 1, 1, 1, 1, 100, 0, 0, 0, 0], (err) => {
                                     if (!err) {
                                         console.log('✅ Default resource prices created');
                                     }
@@ -655,6 +659,30 @@ function initializeDatabase() {
                                                     }
                                                 });
                                             }
+                                        });
+                                    }
+                                    if (!columnNames.includes('max_ram_gb')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN max_ram_gb INTEGER DEFAULT 0', (err) => {
+                                            if (err) console.error('Error adding max_ram_gb column:', err);
+                                            else console.log('✅ max_ram_gb column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('max_cpu_percent')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN max_cpu_percent INTEGER DEFAULT 0', (err) => {
+                                            if (err) console.error('Error adding max_cpu_percent column:', err);
+                                            else console.log('✅ max_cpu_percent column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('max_storage_gb')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN max_storage_gb INTEGER DEFAULT 0', (err) => {
+                                            if (err) console.error('Error adding max_storage_gb column:', err);
+                                            else console.log('✅ max_storage_gb column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('max_server_slots')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN max_server_slots INTEGER DEFAULT 0', (err) => {
+                                            if (err) console.error('Error adding max_server_slots column:', err);
+                                            else console.log('✅ max_server_slots column added to resource_prices');
                                         });
                                     }
                                 }
@@ -702,6 +730,10 @@ function initializeDatabase() {
                                     storage_coins_per_set INTEGER DEFAULT 1,
                                     storage_gb_per_set INTEGER DEFAULT 1,
                                     server_slot_price INTEGER DEFAULT 100,
+                                    max_ram_gb INTEGER DEFAULT 0,
+                                    max_cpu_percent INTEGER DEFAULT 0,
+                                    max_storage_gb INTEGER DEFAULT 0,
+                                    max_server_slots INTEGER DEFAULT 0,
                                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                                 )
                             `, (err) => {
@@ -713,8 +745,8 @@ function initializeDatabase() {
                                 console.log('✅ Table migrated successfully');
                                 
                                 // Create default prices
-                                db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-                                    [1, 1, 1, 1, 1, 1, 100], (err) => {
+                                db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+                                    [1, 1, 1, 1, 1, 1, 100, 0, 0, 0, 0], (err) => {
                                         if (!err) {
                                             console.log('✅ Default resource prices created');
                                         }

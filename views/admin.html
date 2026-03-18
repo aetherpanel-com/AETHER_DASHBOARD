@@ -366,6 +366,36 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Resource Limits Section -->
+                                <div style="margin-top: 8px; padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                    <h3 style="color: #f8fafc; margin-bottom: 8px; font-size: 18px;">Resource Limits Per User</h3>
+                                    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">
+                                        Maximum total resources a user can purchase. Set to <strong style="color: #a855f7;">0</strong> for unlimited.
+                                    </p>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="maxRamGb">Max RAM (GB)</label>
+                                            <input type="number" id="maxRamGb" min="0" value="0">
+                                            <small style="color: #cbd5e1;">0 = unlimited</small>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="maxCpuPercent">Max CPU (%)</label>
+                                            <input type="number" id="maxCpuPercent" min="0" value="0">
+                                            <small style="color: #cbd5e1;">0 = unlimited</small>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="maxStorageGb">Max Storage (GB)</label>
+                                            <input type="number" id="maxStorageGb" min="0" value="0">
+                                            <small style="color: #cbd5e1;">0 = unlimited</small>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="maxServerSlots">Max Server Slots</label>
+                                            <input type="number" id="maxServerSlots" min="0" value="0">
+                                            <small style="color: #cbd5e1;">0 = unlimited</small>
+                                        </div>
+                                    </div>
+                                </div>
                                 
                                 <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Save Prices</button>
                             </form>
@@ -1168,6 +1198,10 @@
                         document.getElementById('storageCoins').value = prices.storage_coins_per_set || 1;
                         document.getElementById('storageGB').value = prices.storage_gb_per_set || 1;
                         document.getElementById('serverSlotPrice').value = prices.server_slot_price || 100;
+                        document.getElementById('maxRamGb').value = prices.max_ram_gb || 0;
+                        document.getElementById('maxCpuPercent').value = prices.max_cpu_percent || 0;
+                        document.getElementById('maxStorageGb').value = prices.max_storage_gb || 0;
+                        document.getElementById('maxServerSlots').value = prices.max_server_slots || 0;
                         
                         // Display current pricing
                         displayCurrentPricing(prices);
@@ -1217,6 +1251,16 @@
                     </div>
                     <div style="color: #94a3b8; font-size: 14px;">Users can purchase additional server slots at this price</div>
                 </div>
+                ${(prices.max_ram_gb || prices.max_cpu_percent || prices.max_storage_gb || prices.max_server_slots) ? `
+                <div style="margin-top: 16px; padding: 12px; background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px;">
+                    <strong style="color: #a855f7; font-size: 13px;">Active Limits Per User</strong>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; font-size: 13px; color: #cbd5e1;">
+                        <span>RAM: ${prices.max_ram_gb > 0 ? prices.max_ram_gb + 'GB max' : 'Unlimited'}</span>
+                        <span>CPU: ${prices.max_cpu_percent > 0 ? prices.max_cpu_percent + '% max' : 'Unlimited'}</span>
+                        <span>Storage: ${prices.max_storage_gb > 0 ? prices.max_storage_gb + 'GB max' : 'Unlimited'}</span>
+                        <span>Slots: ${prices.max_server_slots > 0 ? prices.max_server_slots + ' max' : 'Unlimited'}</span>
+                    </div>
+                </div>` : ''}
             `;
         }
         
@@ -1231,7 +1275,11 @@
                 cpu_percent_per_set: parseInt(document.getElementById('cpuPercent').value),
                 storage_coins_per_set: parseInt(document.getElementById('storageCoins').value),
                 storage_gb_per_set: parseInt(document.getElementById('storageGB').value),
-                server_slot_price: parseInt(document.getElementById('serverSlotPrice').value)
+                server_slot_price: parseInt(document.getElementById('serverSlotPrice').value),
+                max_ram_gb: parseInt(document.getElementById('maxRamGb').value) || 0,
+                max_cpu_percent: parseInt(document.getElementById('maxCpuPercent').value) || 0,
+                max_storage_gb: parseInt(document.getElementById('maxStorageGb').value) || 0,
+                max_server_slots: parseInt(document.getElementById('maxServerSlots').value) || 0,
             };
             
             // Validate prices

@@ -2,7 +2,7 @@
 
 Complete guide for setting up and managing your Aether Dashboard after installation.
 
-**Version:** 1.4.4 | **Status:** Production Ready ✅
+**Version:** 1.4.5 | **Status:** Production Ready ✅
 
 > **New to Aether Dashboard?** Complete the installation steps in [README.md](README.md) first, then return here to set up your admin panel.
 
@@ -152,6 +152,28 @@ Configure how many coins users pay per unit for:
 
 > Tip: Check the **Current Pricing** section below the form to see what
 > users are currently paying before changing prices.
+
+### Resource Limits Per User
+
+Below the pricing form is a **Resource Limits** section. This sets a ceiling
+on the total amount of each resource any single user can accumulate through
+purchases.
+
+| Field | Description |
+|-------|-------------|
+| **Max RAM (GB)** | Maximum total RAM a user can own. e.g. `32` = 32GB cap. |
+| **Max CPU (%)** | Maximum total CPU a user can own. e.g. `400` = 400% cap. |
+| **Max Storage (GB)** | Maximum total storage a user can own. e.g. `100` = 100GB cap. |
+| **Max Server Slots** | Maximum server slots a user can own. e.g. `5` = 5 slots max. |
+
+Set any value to **0** to disable that limit (unlimited).
+
+> These limits apply to the **total purchased amount**, not to individual
+> servers. A user with a 32GB RAM limit and three servers using 8GB each
+> has used 24GB — they can still purchase 8GB more, but not 16GB.
+
+Limits are enforced on the server side — users cannot bypass them by
+submitting requests directly to the API.
 
 ---
 
@@ -438,4 +460,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.4.4
+**Last Updated:** Version 1.4.5

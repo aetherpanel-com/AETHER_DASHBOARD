@@ -4,6 +4,53 @@
 
 ---
 
+## Aether Dashboard v1.4.5
+
+### 🔒 Resource Purchase Limits
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Admins can now cap how much of each resource a user is allowed to accumulate
+through the store. This prevents a single user from purchasing unlimited
+resources and monopolising the platform.
+
+### ✨ New Features
+
+| Feature | Description |
+|---------|-------------|
+| 🔒 **Resource Purchase Limits** | Admins can set a maximum per-user cap for RAM (GB), CPU (%), Storage (GB), and Server Slots. Configured in Admin Panel → Store Management → Resource Limits. |
+| 0️⃣ **Zero = Unlimited** | Setting any limit to `0` disables that cap entirely — fully backwards compatible with existing installations. No data migration required. |
+| ⚠️ **Limit Warnings in Store** | The Resource Store now shows users their limit and warns them when a purchase would exceed it, before they attempt to buy. |
+| 📊 **Limit Summary in Admin** | The Current Pricing section in Store Management now displays active limits so admins can see them at a glance. |
+
+### 🗄️ Database Changes
+
+- ✅ Added `max_ram_gb` column to `resource_prices` table (auto-migration, default `0` = unlimited)
+- ✅ Added `max_cpu_percent` column to `resource_prices` table (auto-migration, default `0` = unlimited)
+- ✅ Added `max_storage_gb` column to `resource_prices` table (auto-migration, default `0` = unlimited)
+- ✅ Added `max_server_slots` column to `resource_prices` table (auto-migration, default `0` = unlimited)
+
+All migrations run automatically on server startup. No manual steps required.
+
+### 🚀 How to Update
+
+```bash
+# GitHub method (recommended)
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+Or via SFTP: Download latest version, replace files (keep `database.db` and `.env`),
+run `npm install`, restart dashboard.
+
+**⚠️ Important:** Always backup `database.db` and `.env` before updating!
+
+---
+
 ## Aether Dashboard v1.4.4
 
 ### 🐛 Server Details Polish & Subdomain Addressing
