@@ -354,6 +354,45 @@ BOT_API_PORT=4000
 
 ---
 
+## Aether Dashboard v1.4.3
+
+### 🛠️ Admin UX, Server Status & Addressing Fixes
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+This patch release focuses on day-to-day usability for admins and fixes several server lifecycle edge cases around addressing, uptime, and status transitions.
+
+### ✨ What's New
+
+- **Admin Stat Trends:** The Overview cards now show weekly deltas for total users and total servers.
+- **Faster User Management:** Added live search, role filtering, and a searchable username picker for coin adjustments.
+- **Tab Persistence:** Admin tabs now store the active tab in the URL hash so reloads reopen the same section.
+- **Theme Editor Preview:** Added a live mini sidebar preview for sidebar/background color changes.
+
+### 🖥️ Server Management Fixes
+
+- **Resolved Server Address Fallbacks:** Server details now try to resolve and cache missing addresses instead of staying stuck on "Address not available".
+- **`ip_alias` / Subdomain Support:** New and existing servers now prefer allocation `ip_alias` values (subdomains) over raw IPs when available.
+- **Correct Offline Mapping:** `unknown` server states are now treated as **Offline** instead of incorrectly showing **Installing**.
+- **Better Uptime States:** Offline servers now show a clear offline uptime message, while freshly started servers show a starting state until uptime is reported.
+- **Safer Temporary Error Handling:** Temporary Pterodactyl polling failures now show **Checking...** instead of falsely implying the server is still installing.
+
+### 🎨 UI Improvements
+
+- **Server Details Enhancements:** Added copy-address support and better status/power-action feedback.
+- **Admin Allocations Visibility:** The allocations list now clearly shows whether each allocation has a configured `ip_alias` subdomain or will fall back to a raw IP.
+- **Cleaner Admin Layout:** Removed the duplicate Linkvertise configuration form from the main Admin Panel so Linkvertise settings live only under **Integrations -> Linkvertise**.
+
+### 🧩 Backwards Compatibility
+
+- No database migration required.
+- Existing servers can refresh their stored address by opening the server details page after allocations have been synced.
+- For subdomain addresses to appear, `ip_alias` must be configured in Pterodactyl and synced into the local `pterodactyl_allocations` table.
+
+---
+
 ## Aether Dashboard v1.4.2
 
 ### 🎨 Installer UX Refresh & Stability Tweaks
@@ -1150,7 +1189,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.4.2
+**Last Updated:** Version 1.4.3
 
 **Made with ❤️ for free hosting providers**
 

@@ -177,6 +177,56 @@ Stop that process
 
 ---
 
+### "Server shows raw IP instead of my subdomain"
+
+**Problem:** The server address is showing a raw IP like `1.2.3.4:25565` instead of your preferred subdomain.
+
+**Checklist:**
+- ✅ The allocation has an `ip_alias` configured in the Pterodactyl admin panel
+- ✅ Allocations were synced from `Admin Panel -> Panel`
+- ✅ You reopened the server details page so the dashboard could re-resolve the address
+
+**Fix:**
+
+1. **Set `ip_alias` in Pterodactyl:**
+   - Go to `Nodes -> Allocations`
+   - Edit the allocation and set the alias/subdomain you want users to see
+
+2. **Sync allocations into the dashboard:**
+   - Open `Admin Panel -> Panel`
+   - Fetch and sync allocations so the local `pterodactyl_allocations` table stores the alias
+
+3. **Reload the server details page:**
+   - Existing servers can refresh and cache the alias-based address the next time their details page is opened
+
+---
+
+### "Server is stuck on Installing or uptime never changes"
+
+**Problem:** The server status stays on `Installing` / `Checking...`, or uptime does not update as expected.
+
+**Expected behavior in v1.4.3:**
+- `installing` = the server is still being provisioned by Pterodactyl
+- `checking` = a temporary API issue while retrying
+- `unknown` = treated as **Offline**, not still installing
+
+**Fix:**
+
+1. **Wait for the install script to finish** if the server was just created.
+2. **Check the server directly in Pterodactyl** to confirm whether it is `offline`, `running`, or still installing.
+3. **Check dashboard logs:**
+   ```bash
+   pm2 logs aether-dashboard --lines 100
+   ```
+4. **If the server is ready but never started:**
+   - Refresh the details page
+   - It should now show **Offline** with an offline uptime message
+5. **If you keep seeing `Checking...`:**
+   - Verify your Pterodactyl URL and API keys in `Admin Panel -> Panel`
+   - Confirm the panel is reachable from the VPS
+
+---
+
 ### "Cannot access dashboard from browser"
 
 **Check these things:**
@@ -237,7 +287,7 @@ Stop that process
 ### "Linkvertise not giving coins"
 
 **Checklist:**
-- ✅ Linkvertise configuration is saved in Admin Panel
+- ✅ Linkvertise configuration is saved in `Admin Panel -> Integrations -> Linkvertise`
 - ✅ Link is marked as "Active" in Admin Panel
 - ✅ Cooldown timer has expired (if applicable)
 - ✅ Check server logs: `pm2 logs aether-dashboard`
@@ -766,7 +816,7 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.4.2
+**Last Updated:** Version 1.4.3
 
 **Made with ❤️ for free hosting providers**
 

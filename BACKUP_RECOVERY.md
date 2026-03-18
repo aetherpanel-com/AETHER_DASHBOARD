@@ -8,6 +8,8 @@
 
 **This guide is for DASHBOARD backups** (your `database.db` file).
 
+**Version 1.4.3 note:** This release does not change the backup format or recovery steps. Your normal `database.db` and `.env` backup routine is still valid before updating.
+
 **For GAME SERVER backups**, use the new Backup System feature:
 1. Go to any server → Click "📊 Live Stats"
 2. Scroll down to "Backup System" section
@@ -416,7 +418,7 @@ crontab -e
 
 ---
 
-**Last Updated:** Version 1.4.0
+**Last Updated:** Version 1.4.3
 
 **Made with ❤️ for free hosting providers**
 
