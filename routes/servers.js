@@ -7,6 +7,9 @@ const path = require('path');
 const { query, get, run, transaction } = require('../config/database');
 const { serverCreationLimiter, purchaseLimiter } = require('../middleware/rateLimit');
 const pterodactyl = require('../config/pterodactyl');
+const { logActivity } = require('./activity');
+const { markStep } = require('./onboarding');
+const { getServerHealthTimeline } = require('../config/healthPoller');
 
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
@@ -469,6 +472,25 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
                 console.log(`Server created successfully: ID ${serverRecordId}, Pterodactyl ID ${pterodactyl_id}`);
                 
                 if (!res.headersSent) {
+                    // Activity feed
+                    try {
+                        await logActivity(
+                            req.session.user.id,
+                            'server_created',
+                            `Created server "${name}"`,
+                            { server_id: serverRecordId }
+                        );
+                    } catch (e) {
+                        // best-effort only
+                    }
+
+                    // Onboarding checklist: created first server
+                    try {
+                        await markStep(req.session.user.id, 2);
+                    } catch (e) {
+                        // best-effort only
+                    }
+
                     res.json({ 
                         success: true, 
                         message: 'Server created successfully',
@@ -505,6 +527,25 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
             // Pterodactyl is not configured - server record was already inserted in transaction
             // Just return success response
             if (!res.headersSent) {
+                // Activity feed
+                try {
+                    await logActivity(
+                        req.session.user.id,
+                        'server_created',
+                        `Created server "${name}"`,
+                        { server_id: serverRecordId }
+                    );
+                } catch (e) {
+                    // best-effort only
+                }
+
+                    // Onboarding checklist: created first server
+                    try {
+                        await markStep(req.session.user.id, 2);
+                    } catch (e) {
+                        // best-effort only
+                    }
+
                 res.json({ 
                     success: true, 
                     message: 'Server created successfully',
@@ -672,6 +713,23 @@ router.post('/api/power/:id', requireAuth, async (req, res) => {
             restart: 'Server is restarting...',
             kill: 'Server has been force killed'
         };
+
+        // Activity feed
+        try {
+            const type =
+                action === 'start' ? 'server_started' :
+                action === 'restart' ? 'server_restarted' :
+                'server_stopped';
+
+            await logActivity(
+                req.session.user.id,
+                type,
+                `${type === 'server_started' ? 'Server started' : type === 'server_restarted' ? 'Server restarted' : 'Server stopped'}: "${server.name}"`,
+                { server_id: server.id, action }
+            );
+        } catch (e) {
+            // best-effort only
+        }
         
         res.json({ 
             success: true, 
@@ -1545,6 +1603,134 @@ router.get('/api/status/:id', requireAuth, async (req, res) => {
     }
 });
 
+// API endpoint to get live resource usage warnings
+// Used for lightweight warnings on the servers list page.
+router.get('/api/resource-warning/:serverId', requireAuth, async (req, res) => {
+    try {
+        const serverId = parseInt(req.params.serverId, 10);
+        if (!serverId) {
+            return res.status(400).json({ success: false, warnings: [] });
+        }
+
+        // Verify ownership
+        const server = await get(
+            'SELECT id, ram, cpu, storage, pterodactyl_identifier FROM servers WHERE id = ? AND user_id = ?',
+            [serverId, req.session.user.id]
+        );
+
+        if (!server) {
+            return res.status(404).json({ success: false, warnings: [] });
+        }
+
+        // If Pterodactyl is not configured, return empty (no error).
+        const configured = await pterodactyl.isConfigured();
+        if (!configured) {
+            return res.json({ success: true, warnings: [] });
+        }
+
+        const serverIdentifier = server.pterodactyl_identifier;
+        if (!serverIdentifier) {
+            return res.json({ success: true, warnings: [] });
+        }
+
+        const pteroUserId = req.session.user?.pterodactyl_user_id || null;
+        if (!pteroUserId) {
+            return res.json({ success: true, warnings: [] });
+        }
+
+        const result = await pterodactyl.getServerResources(serverIdentifier, pteroUserId);
+
+        if (!result?.success || result.isTransient) {
+            return res.json({ success: true, warnings: [] });
+        }
+
+        const resources =
+            result.data?.attributes?.resources ||
+            result.data?.resources ||
+            null;
+
+        const memoryBytes = resources?.memory_bytes;
+        const cpuAbsolute = resources?.cpu_absolute;
+        const diskBytes = resources?.disk_bytes;
+
+        // Ensure we have a usable payload.
+        if (
+            typeof memoryBytes !== 'number' &&
+            typeof cpuAbsolute !== 'number' &&
+            typeof diskBytes !== 'number'
+        ) {
+            return res.json({ success: true, warnings: [] });
+        }
+
+        const warnings = [];
+
+        const thresholds = [
+            { min: 90, level: 'critical' },
+            { min: 80, level: 'warning' }
+        ];
+
+        const pushWarning = (type, pct) => {
+            if (!Number.isFinite(pct)) return;
+            const level =
+                pct >= 90 ? 'critical' :
+                pct >= 80 ? 'warning' :
+                null;
+            if (!level) return;
+            warnings.push({ type, level, pct: Math.round(pct) });
+        };
+
+        // RAM: server.ram is stored in MB
+        if (typeof memoryBytes === 'number' && server.ram > 0) {
+            const ramPct = (memoryBytes / (server.ram * 1024 * 1024)) * 100;
+            pushWarning('ram', ramPct);
+        }
+
+        // CPU: cpu_absolute is compared against server.cpu (configured as %)
+        if (typeof cpuAbsolute === 'number' && server.cpu > 0) {
+            const cpuPct = (cpuAbsolute / server.cpu) * 100;
+            pushWarning('cpu', cpuPct);
+        }
+
+        // Disk: server.storage is stored in MB
+        if (typeof diskBytes === 'number' && server.storage > 0) {
+            const diskPct = (diskBytes / (server.storage * 1024 * 1024)) * 100;
+            pushWarning('disk', diskPct);
+        }
+
+        return res.json({ success: true, warnings });
+    } catch (error) {
+        // Requirement: don't error for “unavailable resources”; return empty warnings.
+        console.error('Error fetching resource warnings:', error);
+        return res.json({ success: true, warnings: [] });
+    }
+});
+
+// API endpoint to get server health timeline snapshots
+router.get('/api/health-timeline/:serverId', requireAuth, async (req, res) => {
+    try {
+        const serverId = parseInt(req.params.serverId, 10);
+        if (!serverId) {
+            return res.status(400).json({ success: false, message: 'Invalid server ID' });
+        }
+
+        // Verify ownership
+        const owned = await get(
+            'SELECT id FROM servers WHERE id = ? AND user_id = ?',
+            [serverId, req.session.user.id]
+        );
+
+        if (!owned) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+
+        const timeline = await getServerHealthTimeline(serverId, 24);
+        res.json({ success: true, timeline });
+    } catch (error) {
+        console.error('Error fetching health timeline:', error);
+        res.status(500).json({ success: false, message: 'Error fetching health timeline' });
+    }
+});
+
 // REMOVED FOR V1: Upgrade and Sync endpoints removed for production stability
 // These features have been fully removed from the codebase
 
@@ -1569,6 +1755,13 @@ router.get('/api/details/:id', requireAuth, async (req, res) => {
                 success: false, 
                 message: 'Server not found' 
             });
+        }
+
+        // Onboarding checklist: visited server details
+        try {
+            await markStep(req.session.user.id, 3);
+        } catch (e) {
+            // best-effort only
         }
         
         res.json({ 
@@ -1877,6 +2070,37 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
         
         // Update session
         req.session.user.coins = updatedUser.coins;
+
+        // Activity feed
+        try {
+            const resourceLabel =
+                resource_type === 'ram' ? 'RAM' :
+                resource_type === 'cpu' ? 'CPU' :
+                resource_type === 'storage' ? 'Storage' :
+                resource_type;
+
+            const humanAmount =
+                resource_type === 'ram' ? `${amount} GB` :
+                resource_type === 'storage' ? `${amount} GB` :
+                resource_type === 'cpu' ? `${amount}%` :
+                `${amount}`;
+
+            await logActivity(
+                req.session.user.id,
+                'resource_purchased',
+                `Purchased ${humanAmount} ${resourceLabel}`,
+                { type: resource_type, amount }
+            );
+        } catch (e) {
+            // best-effort only
+        }
+
+        // Onboarding checklist: purchased first resources
+        try {
+            await markStep(req.session.user.id, 1);
+        } catch (e) {
+            // best-effort only
+        }
         
         res.json({ 
             success: true, 

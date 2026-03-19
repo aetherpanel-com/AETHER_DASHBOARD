@@ -137,6 +137,19 @@
             
             <!-- Dashboard Content -->
             <div class="dashboard-content" id="dashboardContent">
+                <div id="onboarding-container"></div>
+                <div id="daily-reward-container"></div>
+                
+                <div class="card" style="margin-top: 16px;">
+                    <div style="display:flex; align-items:center; justify-content: space-between; gap: 12px;">
+                        <div class="card-header" style="margin: 0;">📋 Recent Activity</div>
+                        <button class="btn btn-secondary" type="button" onclick="loadActivityFeed()" style="white-space: nowrap;">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div id="activity-feed-container"></div>
+                </div>
+
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon">🖥️</div>
@@ -178,6 +191,11 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/main.js"></script>
     <script src="/js/dashboard.js"></script>
+    <script src="/js/dailyReward.js"></script>
+    <script src="/js/activityFeed.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/onboarding.js"></script>
+    <script src="/js/maintenanceBanner.js"></script>
     <script src="/js/theme.js"></script>
     <script>
         // Initialize dashboard page
@@ -192,6 +210,11 @@
             const socket = io({
                 transports: ['websocket']
             });
+
+            // Join user room for notifications + allow notification JS to attach listeners
+            window.socket = socket;
+            socket.emit('join_user_room', { userId: window.CURRENT_USER_ID });
+            document.dispatchEvent(new CustomEvent('socketReady', { detail: socket }));
             
             socket.on('connect', () => {
                 console.log('[WebSocket] Connected');

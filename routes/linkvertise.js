@@ -6,6 +6,8 @@ const router = express.Router();
 const path = require('path');
 const { query, get, run, transaction } = require('../config/database');
 const { linkvertiseLimiter } = require('../middleware/rateLimit');
+const { logActivity } = require('./activity');
+const { markStep } = require('./onboarding');
 
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
@@ -194,6 +196,25 @@ router.post('/api/complete', requireAuth, linkvertiseLimiter, async (req, res) =
         
         // Update session (only after successful transaction)
         req.session.user.coins = (req.session.user.coins || 0) + coinsEarned;
+
+        // Activity feed
+        try {
+            await logActivity(
+                req.session.user.id,
+                'linkvertise_completed',
+                `Earned ${coinsEarned} coins via Linkvertise`,
+                { coins: coinsEarned }
+            );
+        } catch (e) {
+            // Best-effort only
+        }
+
+        // Onboarding checklist: earned first coins
+        try {
+            await markStep(req.session.user.id, 0);
+        } catch (e) {
+            // Best-effort only
+        }
         
         res.json({ 
             success: true, 

@@ -262,6 +262,13 @@ const serverRoutes = require('./routes/servers');
 const linkvertiseRoutes = require('./routes/linkvertise');
 const communityRoutes = require('./routes/community');
 const adminRoutes = require('./routes/admin');
+const dailyRewardRoutes = require('./routes/dailyReward');
+const adminV15Routes = require('./routes/adminV15');
+const referralRoutes = require('./routes/referral');
+const activityRoutes = require('./routes/activity');
+const notificationsRoutes = require('./routes/notifications');
+const onboardingRoutes = require('./routes/onboarding');
+const { maintenanceStatusHandler } = require('./routes/maintenance');
 const discordRoutes = require('./routes/discord');
 const botRoutes = require('./routes/bot');
 
@@ -271,6 +278,12 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/servers', serverRoutes);
 app.use('/linkvertise', linkvertiseRoutes);
 app.use('/community', communityRoutes);
+app.use('/daily-reward', dailyRewardRoutes);
+app.use('/admin/api/v15', adminV15Routes);
+app.use('/referral', referralRoutes);
+app.use('/activity', activityRoutes);
+app.use('/notifications', notificationsRoutes);
+app.use('/onboarding', onboardingRoutes);
 app.use('/admin', adminRoutes);
 app.use('/api/discord', discordRoutes);
 app.use('/api/bot', botRoutes);
@@ -285,6 +298,9 @@ app.get('/health', (req, res) => {
         uptime: process.uptime()
     });
 });
+
+// Public maintenance status (no auth)
+app.get('/maintenance/api/status', maintenanceStatusHandler);
 
 // Home route - redirect to login if not authenticated, otherwise to dashboard
 app.get('/', (req, res) => {
@@ -332,9 +348,23 @@ app.set('io', io);
 const statusPoller = require('./config/statusPoller');
 statusPoller.initialize(io);
 
+// Record health timeline snapshots periodically
+try {
+    const healthPoller = require('./config/healthPoller');
+    healthPoller.start();
+} catch (e) {
+    console.error('[healthPoller] Failed to start:', e);
+}
+
 // Minimal WebSocket connection handler (Phase 1 + Phase 2 + Phase 3)
 io.on('connection', (socket) => {
     console.log('[WebSocket] Client connected:', socket.id);
+
+    socket.on('join_user_room', (data) => {
+        if (data && data.userId) {
+            socket.join('user:' + data.userId);
+        }
+    });
 
     // Phase 2: Server subscription events
     socket.on('subscribe_server', async (data) => {

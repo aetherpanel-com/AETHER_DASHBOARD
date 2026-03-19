@@ -10,6 +10,46 @@ const { get, run } = require('../config/database');
 const { sanitizeBody, validateSignup, validateLogin } = require('../middleware/validation');
 const { authLimiter } = require('../middleware/rateLimit');
 const pterodactyl = require('../config/pterodactyl');
+const referral = require('./referral');
+
+const referralChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function generateReferralCodeFromUserId(userId, attempt = 0) {
+    let n = Math.max(0, parseInt(userId) + attempt);
+    let code = '';
+    do {
+        code = referralChars[n % referralChars.length] + code;
+        n = Math.floor(n / referralChars.length);
+    } while (n > 0);
+
+    while (code.length < 6) code = referralChars[0] + code;
+    if (code.length > 8) code = code.slice(-8);
+    return code;
+}
+
+async function ensureUserReferralCode(userId) {
+    // Best-effort: if the column doesn't exist (very old DB), we just skip.
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const candidate = generateReferralCodeFromUserId(userId, attempt);
+        const existing = await get(
+            'SELECT id FROM users WHERE referral_code = ? AND id != ?',
+            [candidate, userId]
+        );
+
+        if (!existing) {
+            try {
+                await run(
+                    'UPDATE users SET referral_code = ? WHERE id = ?',
+                    [candidate, userId]
+                );
+            } catch (e) {
+                // ignore if referral columns are missing
+            }
+            return candidate;
+        }
+    }
+    return null;
+}
 
 // Middleware to check if user is logged in
 function requireAuth(req, res, next) {
@@ -35,6 +75,22 @@ router.get('/signup', (req, res) => {
         return res.redirect('/dashboard');
     }
     res.sendFile(path.join(__dirname, '../views/signup.html'));
+});
+
+// Referral register landing page
+// Stores `ref` in session and forwards the user to the normal signup page.
+router.get('/register', (req, res) => {
+    // If already logged in, redirect to dashboard
+    if (req.session.user) {
+        return res.redirect('/dashboard');
+    }
+
+    const ref = req.query?.ref;
+    if (typeof ref === 'string' && ref.trim()) {
+        req.session.pending_referral_code = ref.trim();
+    }
+
+    return res.redirect('/auth/signup');
 });
 
 // Logout
@@ -217,6 +273,34 @@ router.post('/signup', authLimiter, sanitizeBody, validateSignup, async (req, re
             server_slots: 1  // Default for new users
         };
 
+        // Referral setup (generate referral_code + apply referral bonus if `ref` is provided)
+        try {
+            await ensureUserReferralCode(userId);
+        } catch (e) {
+            // Best-effort only
+        }
+
+        const refCode =
+            req.body?.ref ||
+            req.query?.ref ||
+            req.session?.pending_referral_code ||
+            null;
+
+        if (req.session?.pending_referral_code) {
+            delete req.session.pending_referral_code;
+        }
+
+        if (refCode) {
+            try {
+                await referral.processReferral(userId, refCode, req.app);
+                // Keep session coins in sync (processReferral may have awarded coins)
+                const updatedUser = await get('SELECT coins FROM users WHERE id = ?', [userId]);
+                if (updatedUser) req.session.user.coins = updatedUser.coins;
+            } catch (e) {
+                // Referral is best-effort; don't fail signup.
+            }
+        }
+
         res.json({ 
             success: true, 
             message: 'Account created successfully',
@@ -228,6 +312,89 @@ router.post('/signup', authLimiter, sanitizeBody, validateSignup, async (req, re
         res.status(500).json({ 
             success: false, 
             message: 'An error occurred during signup' 
+        });
+    }
+});
+
+// Alias endpoint: POST /register (supports API callers providing { ref } in body/query)
+router.post('/register', authLimiter, sanitizeBody, validateSignup, async (req, res) => {
+    try {
+        const { username, email, password, ref } = req.body;
+
+        // Validate input
+        if (!username || !email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Username, email, and password are required'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters long'
+            });
+        }
+
+        const existingUsername = await get('SELECT id FROM users WHERE username = ?', [username]);
+        if (existingUsername) {
+            return res.status(400).json({ success: false, message: 'Username already exists' });
+        }
+
+        const existingEmail = await get('SELECT id FROM users WHERE email = ?', [email]);
+        if (existingEmail) {
+            return res.status(400).json({ success: false, message: 'Email already exists' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const result = await run(
+            'INSERT INTO users (username, email, password, coins) VALUES (?, ?, ?, ?)',
+            [username, email, hashedPassword, 0]
+        );
+
+        const userId = result.lastID;
+        let pterodactylUserId = null;
+
+        // Create session with base user fields first (mirrors signup route)
+        req.session.user = {
+            id: userId,
+            username,
+            email,
+            coins: 0,
+            is_admin: false,
+            discord_id: null,
+            pterodactyl_user_id: pterodactylUserId,
+            server_slots: 1
+        };
+
+        // Referral code generation + optional referral bonus
+        try {
+            await ensureUserReferralCode(userId);
+        } catch (e) {
+            // Best-effort only
+        }
+        const refCode = req.body?.ref || req.query?.ref;
+        if (refCode) {
+            try {
+                await referral.processReferral(userId, refCode, req.app);
+                const updatedUser = await get('SELECT coins, referral_code FROM users WHERE id = ?', [userId]);
+                if (updatedUser) req.session.user.coins = updatedUser.coins;
+            } catch (e) {
+                // Best-effort only
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Account created successfully',
+            user: req.session.user
+        });
+    } catch (error) {
+        console.error('Register error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'An error occurred during registration'
         });
     }
 });

@@ -89,8 +89,353 @@ function initializeDatabase() {
                                 }
                             });
                         });
+
+                        // Daily login rewards (streak fields)
+                        // Default 0 / null-safe strings so existing users are unaffected.
+                        if (!columnNames.includes('streak_day')) {
+                            try {
+                                console.log(`🔄 Adding streak_day column to users table...`);
+                                db.run(`ALTER TABLE users ADD COLUMN streak_day INTEGER DEFAULT 0`, (err) => {
+                                    if (err) console.error('Error adding streak_day column:', err);
+                                    else console.log('✅ streak_day column added to users table');
+                                });
+                            } catch (e) {
+                                console.error('Error adding streak_day column:', e);
+                            }
+                        }
+
+                        if (!columnNames.includes('streak_last_claim')) {
+                            try {
+                                console.log(`🔄 Adding streak_last_claim column to users table...`);
+                                db.run(`ALTER TABLE users ADD COLUMN streak_last_claim TEXT`, (err) => {
+                                    if (err) console.error('Error adding streak_last_claim column:', err);
+                                    else console.log('✅ streak_last_claim column added to users table');
+                                });
+                            } catch (e) {
+                                console.error('Error adding streak_last_claim column:', e);
+                            }
+                        }
+
+                        // User onboarding checklist (bit flags)
+                        if (!columnNames.includes('onboarding_flags')) {
+                            try {
+                                console.log(`🔄 Adding onboarding_flags column to users table...`);
+                                db.run(`ALTER TABLE users ADD COLUMN onboarding_flags INTEGER DEFAULT 0`, (err) => {
+                                    if (err) console.error('Error adding onboarding_flags column:', err);
+                                    else console.log('✅ onboarding_flags column added to users table');
+                                });
+                            } catch (e) {
+                                console.error('Error adding onboarding_flags column:', e);
+                            }
+                        }
+
+                        // Referral system columns
+                        if (!columnNames.includes('referral_code')) {
+                            try {
+                                console.log(`🔄 Adding referral_code column to users table...`);
+                                db.run(`ALTER TABLE users ADD COLUMN referral_code TEXT`, (err) => {
+                                    if (err) console.error('Error adding referral_code column:', err);
+                                    else console.log('✅ referral_code column added to users table');
+                                });
+                            } catch (e) {
+                                console.error('Error adding referral_code column:', e);
+                            }
+                        }
+
+                        if (!columnNames.includes('referred_by')) {
+                            try {
+                                console.log(`🔄 Adding referred_by column to users table...`);
+                                db.run(`ALTER TABLE users ADD COLUMN referred_by INTEGER`, (err) => {
+                                    if (err) console.error('Error adding referred_by column:', err);
+                                    else console.log('✅ referred_by column added to users table');
+                                });
+                            } catch (e) {
+                                console.error('Error adding referred_by column:', e);
+                            }
+                        }
+
+                        if (!columnNames.includes('referral_coins_earned')) {
+                            try {
+                                console.log(`🔄 Adding referral_coins_earned column to users table...`);
+                                db.run(`ALTER TABLE users ADD COLUMN referral_coins_earned INTEGER DEFAULT 0`, (err) => {
+                                    if (err) console.error('Error adding referral_coins_earned column:', err);
+                                    else console.log('✅ referral_coins_earned column added to users table');
+                                });
+                            } catch (e) {
+                                console.error('Error adding referral_coins_earned column:', e);
+                            }
+                        }
+
+                        // Generate referral codes for existing users missing referral_code
+                        const referralChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                        function encodeReferralCodeFromUserId(userId, attempt = 0) {
+                            let n = Math.max(0, parseInt(userId) + attempt);
+                            let code = '';
+                            do {
+                                code = referralChars[n % referralChars.length] + code;
+                                n = Math.floor(n / referralChars.length);
+                            } while (n > 0);
+
+                            // Ensure a readable length (6-8 chars) with left padding.
+                            while (code.length < 6) code = referralChars[0] + code;
+                            if (code.length > 8) code = code.slice(-8);
+                            return code;
+                        }
+
+                        // Best-effort generation; if collisions happen, we retry with a small attempt offset.
+                        // This is deterministic and based on the user ID (plus an attempt offset for collision avoidance).
+                        db.all('SELECT id FROM users WHERE referral_code IS NULL', (err, rows) => {
+                            if (err) return;
+
+                            const getAsync = (sql, params = []) => new Promise((resolve, reject) => {
+                                db.get(sql, params, (gErr, row) => gErr ? reject(gErr) : resolve(row));
+                            });
+
+                            const runAsync = (sql, params = []) => new Promise((resolve, reject) => {
+                                db.run(sql, params, function(rErr) {
+                                    rErr ? reject(rErr) : resolve(this);
+                                });
+                            });
+
+                            (async () => {
+                                for (const row of rows) {
+                                    const targetId = row.id;
+
+                                    for (let attempt = 0; attempt < 10; attempt++) {
+                                        const candidate = encodeReferralCodeFromUserId(targetId, attempt);
+                                        const existing = await getAsync(
+                                            'SELECT id FROM users WHERE referral_code = ? AND id != ?',
+                                            [candidate, targetId]
+                                        );
+
+                                        if (!existing) {
+                                            await runAsync(
+                                                'UPDATE users SET referral_code = ? WHERE id = ? AND referral_code IS NULL',
+                                                [candidate, targetId]
+                                            );
+                                            break;
+                                        }
+                                    }
+                                }
+                            })().catch(() => {
+                                // ignore best-effort generation failures
+                            });
+                        });
                     }
                 });
+
+                // Create daily login reward tables + seed defaults
+                db.run(`
+                    CREATE TABLE IF NOT EXISTS daily_reward_config (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        day_number INTEGER UNIQUE,
+                        coins INTEGER,
+                        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                `, (err) => {
+                    if (err) {
+                        console.error('Error creating daily_reward_config table:', err);
+                        return;
+                    }
+
+                    const seedRewards = [
+                        [1, 50],
+                        [2, 100],
+                        [3, 150],
+                        [4, 200],
+                        [5, 250],
+                        [6, 300],
+                        [7, 500]
+                    ];
+
+                    seedRewards.forEach(([dayNumber, coins]) => {
+                        db.run(
+                            `INSERT OR IGNORE INTO daily_reward_config (day_number, coins) VALUES (?, ?)`,
+                            [dayNumber, coins],
+                            (err) => {
+                                if (err) console.error('Error seeding daily_reward_config:', err);
+                            }
+                        );
+                    });
+                });
+
+                db.run(`
+                    CREATE TABLE IF NOT EXISTS feature_flags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT UNIQUE,
+                        enabled INTEGER DEFAULT 1,
+                        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                `, (err) => {
+                    if (err) {
+                        console.error('Error creating feature_flags table:', err);
+                        return;
+                    }
+
+                    db.run(
+                        `INSERT OR IGNORE INTO feature_flags (name, enabled) VALUES ('daily_rewards', 1)`,
+                        [],
+                        (err) => {
+                            if (err) console.error('Error seeding feature_flags:', err);
+                        }
+                    );
+
+                    // Seed referral_system feature flag
+                    db.run(
+                        `INSERT OR IGNORE INTO feature_flags (name, enabled) VALUES ('referral_system', 1)`,
+                        [],
+                        (err) => {
+                            if (err) console.error('Error seeding referral_system feature_flags:', err);
+                        }
+                    );
+                });
+
+                // Referral configuration table
+                db.run(`
+                    CREATE TABLE IF NOT EXISTS referral_config (
+                        id INTEGER PRIMARY KEY,
+                        referrer_reward INTEGER DEFAULT 100,
+                        referee_reward INTEGER DEFAULT 50,
+                        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                `, (err) => {
+                    if (err) {
+                        console.error('Error creating referral_config table:', err);
+                        return;
+                    }
+
+                    // Seed a single row with defaults.
+                    db.run(
+                        `INSERT OR IGNORE INTO referral_config (id, referrer_reward, referee_reward) VALUES (1, 100, 50)`,
+                        [],
+                        (seedErr) => {
+                            if (seedErr) console.error('Error seeding referral_config:', seedErr);
+                        }
+                    );
+                });
+            });
+
+            // Activity feed (per-user user activity history)
+            db.run(`
+                CREATE TABLE IF NOT EXISTS activity_feed (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    type TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    meta TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating activity_feed table:', err);
+                    return;
+                }
+                console.log('✅ activity_feed table created/verified');
+            });
+
+            // Notifications (supports per-user + global notifications)
+            db.run(`
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    type TEXT DEFAULT 'info',
+                    title TEXT,
+                    message TEXT,
+                    is_read INTEGER DEFAULT 0,
+                    is_global INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating notifications table:', err);
+                    return;
+                }
+                console.log('✅ notifications table created/verified');
+            });
+
+            // Per-user read state for global notifications
+            db.run(`
+                CREATE TABLE IF NOT EXISTS notification_reads (
+                    user_id INTEGER NOT NULL,
+                    notification_id INTEGER NOT NULL,
+                    read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, notification_id),
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating notification_reads table:', err);
+                    return;
+                }
+                console.log('✅ notification_reads table created/verified');
+            });
+
+            // Server health timeline recorder
+            db.run(`
+                CREATE TABLE IF NOT EXISTS server_health_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    server_id INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating server_health_logs table:', err);
+                    return;
+                }
+
+                // Keep an index for efficient timeline queries.
+                db.run(
+                    `CREATE INDEX IF NOT EXISTS idx_server_health_logs_server_id_recorded_at
+                     ON server_health_logs (server_id, recorded_at DESC)`,
+                    (idxErr) => {
+                        if (idxErr) {
+                            console.error('Error creating idx_server_health_logs index:', idxErr);
+                        } else {
+                            console.log('✅ server_health_logs index created/verified');
+                        }
+                    }
+                );
+            });
+
+            // Maintenance mode schedule windows
+            db.run(`
+                CREATE TABLE IF NOT EXISTS maintenance_schedule (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT DEFAULT 'Scheduled Maintenance',
+                    message TEXT,
+                    starts_at DATETIME,
+                    ends_at DATETIME,
+                    is_active INTEGER DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating maintenance_schedule table:', err);
+                    return;
+                }
+                console.log('✅ maintenance_schedule table created/verified');
+            });
+
+            // Admin broadcast messages (global announcements)
+            db.run(`
+                CREATE TABLE IF NOT EXISTS broadcast_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT,
+                    message TEXT,
+                    segment TEXT DEFAULT 'all',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating broadcast_messages table:', err);
+                    return;
+                }
+                console.log('✅ broadcast_messages table created/verified');
             });
 
             // Create Servers table

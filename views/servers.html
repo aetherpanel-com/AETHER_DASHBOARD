@@ -352,6 +352,9 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/main.js"></script>
     <script src="/js/dashboard.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/serverHealthTimeline.js"></script>
+    <script src="/js/maintenanceBanner.js"></script>
     <script src="/js/theme.js"></script>
     <script>
         // Initialize on page load
@@ -379,6 +382,11 @@
             socket = io({
                 transports: ['websocket']
             });
+
+            // Join user room for notifications + allow notification JS to attach listeners
+            window.socket = socket;
+            socket.emit('join_user_room', { userId: window.CURRENT_USER_ID });
+            document.dispatchEvent(new CustomEvent('socketReady', { detail: socket }));
             
             socket.on('connect', () => {
                 console.log('[WebSocket] Connected');
@@ -743,6 +751,8 @@
                                         <span class="status-text">Checking...</span>
                                     </span>
                                 </div>
+                                <div data-health-server-id="${server.id}" style="display:flex;align-items:center;gap:2px;margin-top:8px;min-height:22px;"></div>
+                                <div id="res-warn-${server.id}" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;"></div>
                                 ${server.public_address ? 
                                     `<p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 16px; font-weight: 500;">
                                         🌐 Server Address: ${escapeHtml(server.public_address)}
@@ -797,6 +807,12 @@
             html += '</div>';
             container.innerHTML = html;
             
+            window.initHealthTimelines && window.initHealthTimelines();
+
+            // Load resource warnings (RAM/CPU/Disk) as warning chips.
+            window._resourceWarningServers = servers;
+            loadResourceWarnings && loadResourceWarnings();
+            
             // Load initial status for all servers (immediate HTTP fetch)
             // This ensures status is displayed immediately while WebSocket updates handle real-time changes
             servers.forEach(server => {
@@ -829,6 +845,65 @@
             } else {
                 console.log('[WebSocket] Socket not connected yet, subscriptions will be sent after connection');
             }
+        }
+
+        async function loadResourceWarnings() {
+            const servers = window._resourceWarningServers || [];
+            if (!servers.length) return;
+
+            const ids = servers.map(s => s.id).filter(Boolean);
+
+            const results = await Promise.all(ids.map(async (id) => {
+                try {
+                    const resp = await fetch(`/servers/api/resource-warning/${id}`, {
+                        credentials: 'same-origin'
+                    });
+                    if (!resp.ok) return { id, warnings: [] };
+                    const data = await resp.json().catch(() => ({}));
+                    return { id, warnings: Array.isArray(data.warnings) ? data.warnings : [] };
+                } catch (e) {
+                    return { id, warnings: [] };
+                }
+            }));
+
+            results.forEach(({ id, warnings }) => {
+                const el = document.getElementById(`res-warn-${id}`);
+                if (!el) return;
+
+                // Clear then render.
+                el.innerHTML = '';
+
+                if (!warnings || !warnings.length) return;
+
+                warnings.forEach((w) => {
+                    const typeLabel =
+                        w.type === 'ram' ? 'RAM' :
+                        w.type === 'cpu' ? 'CPU' :
+                        w.type === 'disk' ? 'Disk' :
+                        String(w.type || '').toUpperCase();
+
+                    const level = String(w.level || '').toLowerCase();
+                    const isCritical = level === 'critical';
+
+                    const icon = isCritical ? '🔴' : '⚠️';
+                    const bg = isCritical ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)';
+                    const border = isCritical ? 'rgba(239, 68, 68, 0.35)' : 'rgba(245, 158, 11, 0.35)';
+                    const color = isCritical ? '#fee2e2' : '#fef3c7';
+
+                    const chip = document.createElement('span');
+                    chip.style.padding = '6px 10px';
+                    chip.style.borderRadius = '999px';
+                    chip.style.background = bg;
+                    chip.style.border = `1px solid ${border}`;
+                    chip.style.color = color;
+                    chip.style.fontSize = '12px';
+                    chip.style.fontWeight = '900';
+                    chip.style.whiteSpace = 'nowrap';
+                    chip.textContent = `${icon} ${typeLabel} ${Math.round(w.pct || 0)}%`;
+
+                    el.appendChild(chip);
+                });
+            });
         }
         
         // Create server form handler

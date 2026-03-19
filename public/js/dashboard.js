@@ -9,6 +9,9 @@ async function loadUserData() {
         if (response.ok) {
             const data = await response.json();
             if (data.user) {
+                // Expose for pages that need the user id for Socket.IO rooms.
+                window.CURRENT_USER_ID = data.user.id;
+
                 // Update username if element exists (only on dashboard page)
                 const usernameElement = document.getElementById('username');
                 if (usernameElement) {

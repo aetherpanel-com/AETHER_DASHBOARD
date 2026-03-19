@@ -135,6 +135,10 @@
                 <h1>Aether Dashboard</h1>
                 <p>Create your account</p>
             </div>
+
+            <div id="referralBanner" style="display:none; margin-bottom: 16px; padding: 12px 14px; border-radius: 12px; background: rgba(16, 185, 129, 0.10); border: 1px solid rgba(16, 185, 129, 0.30); color: #d1fae5; font-size: 14px;">
+                You were referred by a friend! Sign up to claim your bonus.
+            </div>
             
             <form id="signupForm">
                 <div class="form-group">
@@ -178,6 +182,38 @@
     <script src="/js/main.js"></script>
     <script src="/js/theme.js"></script>
     <script>
+        function getReferralCodeFromUrl() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const ref = params.get('ref');
+                return (ref && typeof ref === 'string' && ref.trim()) ? ref.trim() : null;
+            } catch {
+                return null;
+            }
+        }
+
+        function ensureReferralHiddenInput(refCode) {
+            const form = document.getElementById('signupForm');
+            if (!form) return;
+
+            let input = form.querySelector('input[name="ref"]');
+            if (!input) {
+                input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ref';
+                form.appendChild(input);
+            }
+            input.value = refCode || '';
+        }
+
+        // If the user arrives with ?ref=CODE, store it as a hidden field and show a banner.
+        const refFromUrl = getReferralCodeFromUrl();
+        if (refFromUrl) {
+            ensureReferralHiddenInput(refFromUrl);
+            const banner = document.getElementById('referralBanner');
+            if (banner) banner.style.display = 'block';
+        }
+
         // Signup form handler
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -193,7 +229,8 @@
             const formData = {
                 username: document.getElementById('username').value,
                 email: document.getElementById('email').value,
-                password: password
+                password: password,
+                ref: (document.querySelector('#signupForm input[name="ref"]')?.value || null)
             };
             
             try {

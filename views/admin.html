@@ -171,6 +171,10 @@
                             <button class="tab-btn" onclick="showTab('servers', this)">Servers</button>
                             <button class="tab-btn" onclick="showTab('coins', this)">Coin Management</button>
                             <button class="tab-btn" onclick="showTab('store', this)">Store Management</button>
+                            <button class="tab-btn" onclick="showTab('dailyRewards', this)">🎁 Daily Rewards</button>
+                            <button class="tab-btn" onclick="showTab('referral', this)">👥 Referral</button>
+                            <button class="tab-btn" onclick="showTab('maintenance', this)">🔧 Maintenance</button>
+                            <button class="tab-btn" onclick="showTab('broadcast', this)">📢 Broadcast</button>
                             <button class="tab-btn" onclick="showTab('templates', this)">Server Templates</button>
                             <button class="tab-btn" onclick="showTab('panel', this)">Panel</button>
                         </div>
@@ -409,6 +413,213 @@
                         </div>
                     </div>
                     
+                    <!-- Daily Rewards Tab -->
+                    <div id="dailyRewardsTab" class="tab-content" style="display: none;">
+                        <div class="card" style="margin-bottom: 20px;">
+                            <div class="card-header">🎁 Daily Rewards</div>
+                            <p style="color: #cbd5e1; margin-bottom: 20px;">
+                                Configure daily login reward streaks. Users receive rewards once per day.
+                            </p>
+
+                            <div style="margin-bottom: 18px; padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                <div style="display:flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div>
+                                        <div style="color: #f8fafc; font-weight: 800; font-size: 14px;">Feature Enabled</div>
+                                        <div style="color: #94a3b8; font-size: 13px; margin-top: 4px;">Disable to turn off daily rewards entirely.</div>
+                                    </div>
+                                    <label style="display:flex; align-items:center; gap: 10px; cursor: pointer;">
+                                        <input type="checkbox" id="dailyRewardsEnabled" onchange="saveDailyRewardsEnabled()" style="width: 18px; height: 18px; accent-color: #7c3aed;">
+                                        <span style="color: #cbd5e1; font-size: 14px;">Daily Rewards</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div style="padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; margin-bottom: 18px;">
+                                <div style="display:flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div>
+                                        <div style="color:#f8fafc; font-weight: 900; font-size: 16px;">Reward Amounts</div>
+                                        <div style="color:#94a3b8; font-size: 13px; margin-top: 4px;">Coins awarded for each streak day (Day 1 → Day 7).</div>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="dailyRewardDay1">Day 1</label>
+                                        <input type="number" id="dailyRewardDay1" min="0" value="50" style="width: 100%;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="dailyRewardDay2">Day 2</label>
+                                        <input type="number" id="dailyRewardDay2" min="0" value="100" style="width: 100%;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="dailyRewardDay3">Day 3</label>
+                                        <input type="number" id="dailyRewardDay3" min="0" value="150" style="width: 100%;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="dailyRewardDay4">Day 4</label>
+                                        <input type="number" id="dailyRewardDay4" min="0" value="200" style="width: 100%;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="dailyRewardDay5">Day 5</label>
+                                        <input type="number" id="dailyRewardDay5" min="0" value="250" style="width: 100%;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="dailyRewardDay6">Day 6</label>
+                                        <input type="number" id="dailyRewardDay6" min="0" value="300" style="width: 100%;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="dailyRewardDay7">Day 7 🌟</label>
+                                        <input type="number" id="dailyRewardDay7" min="0" value="500" style="width: 100%;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; margin-bottom: 18px;">
+                                <div style="color:#f8fafc; font-weight: 900; font-size: 16px;">Live Preview</div>
+                                <div style="color:#94a3b8; font-size: 13px; margin-top: 4px;">Updated instantly as you edit amounts.</div>
+                                <div id="dailyRewardsPreviewRow" style="margin-top: 14px; display:flex; gap: 12px; flex-wrap: wrap;"></div>
+                            </div>
+
+                            <button type="button" class="btn btn-primary" id="saveDailyRewardsBtn" style="width: 100%; padding: 12px 16px;">
+                                Save Rewards
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Referral Tab -->
+                    <div id="referralTab" class="tab-content" style="display: none;">
+                        <div class="card" style="margin-bottom: 20px;">
+                            <div class="card-header">👥 Referral System</div>
+                            <p style="color: #cbd5e1; margin-bottom: 20px;">
+                                Configure referral rewards for inviting new users.
+                            </p>
+
+                            <div style="margin-bottom: 18px; padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                <div style="display:flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <div>
+                                        <div style="color: #f8fafc; font-weight: 800; font-size: 14px;">Feature Enabled</div>
+                                        <div style="color: #94a3b8; font-size: 13px; margin-top: 4px;">Disable to turn off the referral system entirely.</div>
+                                    </div>
+                                    <label style="display:flex; align-items:center; gap: 10px; cursor: pointer;">
+                                        <input type="checkbox" id="referralEnabled" onchange="saveReferralEnabled()" style="width: 18px; height: 18px; accent-color: #7c3aed;">
+                                        <span style="color: #cbd5e1; font-size: 14px;">Referral System</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div style="padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; margin-bottom: 18px;">
+                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="referrerReward">Referrer reward (coins)</label>
+                                        <input type="number" id="referrerReward" min="0" value="100" style="width: 100%;">
+                                        <small style="color: #cbd5e1;">Coins awarded to the inviter</small>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="refereeReward">Referee reward (coins)</label>
+                                        <input type="number" id="refereeReward" min="0" value="50" style="width: 100%;">
+                                        <small style="color: #cbd5e1;">Coins awarded to the new user on signup</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-primary" id="saveReferralBtn" style="width: 100%; padding: 12px 16px;">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Maintenance Tab -->
+                    <div id="maintenanceTab" class="tab-content" style="display: none;">
+                        <div class="card" style="margin-bottom: 20px;">
+                            <div class="card-header">🔧 Maintenance</div>
+                            <p style="color: #cbd5e1; margin-bottom: 20px;">
+                                Schedule maintenance windows. When active, a banner will appear for all users.
+                            </p>
+
+                            <div style="background: rgba(30, 30, 50, 0.5); padding: 16px; border-radius: 12px; border: 1px solid rgba(124, 58, 237, 0.2); margin-bottom: 18px;">
+                                <h4 style="color: #f8fafc; margin: 0 0 16px 0;">Schedule a Maintenance Window</h4>
+
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                                    <div class="form-group">
+                                        <label for="maintenanceTitle">Title</label>
+                                        <input type="text" id="maintenanceTitle" placeholder="Scheduled Maintenance" style="width: 100%;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="maintenanceEnd">Start / End</label>
+                                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                            <input type="datetime-local" id="maintenanceStart" style="flex: 1; min-width: 210px;" />
+                                            <input type="datetime-local" id="maintenanceEnd" style="flex: 1; min-width: 210px;" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 12px;">
+                                    <label for="maintenanceMessage">Message</label>
+                                    <textarea id="maintenanceMessage" rows="3" placeholder="What will be affected? (required)" style="width: 100%; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; color: #f8fafc; padding: 8px;"></textarea>
+                                </div>
+
+                                <button type="button" class="btn btn-primary" id="maintenanceScheduleBtn" style="width: 100%; padding: 12px 16px;">
+                                    📅 Schedule
+                                </button>
+                            </div>
+
+                            <div id="maintenanceWindowsList" style="padding: 16px; background: rgba(30, 30, 50, 0.5); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 12px;">
+                                <p style="margin: 0; color: #94a3b8;">Loading maintenance windows...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Broadcast Tab -->
+                    <div id="broadcastTab" class="tab-content" style="display: none;">
+                        <div class="card" style="margin-bottom: 20px;">
+                            <div class="card-header">📢 Broadcast</div>
+                            <p style="color: #cbd5e1; margin-bottom: 20px;">
+                                Send a global broadcast message to show up in users' notification bell.
+                            </p>
+
+                            <div style="background: rgba(30, 30, 50, 0.5); padding: 16px; border-radius: 12px; border: 1px solid rgba(124, 58, 237, 0.2); margin-bottom: 18px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                                    <div class="form-group">
+                                        <label for="broadcastTitle">Title</label>
+                                        <input type="text" id="broadcastTitle" placeholder="Server Update" style="width: 100%;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="broadcastType">Type</label>
+                                        <select id="broadcastType" style="width: 100%;">
+                                            <option value="info">Info</option>
+                                            <option value="success">Success</option>
+                                            <option value="warning">Warning</option>
+                                            <option value="error">Alert</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="grid-column: 1 / -1;">
+                                        <label for="broadcastSegment">Segment</label>
+                                        <select id="broadcastSegment" style="width: 100%;">
+                                            <option value="all">All users</option>
+                                            <option value="has_servers">Users with servers</option>
+                                            <option value="no_servers">Users without servers</option>
+                                            <option value="zero_coins">Users with 0 coins</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group" style="margin-top: 12px;">
+                                    <label for="broadcastMessage">Message</label>
+                                    <textarea id="broadcastMessage" rows="4" placeholder="Write the broadcast message..." style="width: 100%; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 6px; color: #f8fafc; padding: 8px;" required></textarea>
+                                </div>
+
+                                <button type="button" class="btn btn-primary" id="sendBroadcastBtn" style="width: 100%; padding: 12px 16px;">
+                                    📢 Send Broadcast
+                                </button>
+                            </div>
+
+                            <div id="broadcastHistoryContainer">
+                                <div class="card-header" style="margin-bottom: 12px;">Broadcast History</div>
+                                <div id="broadcastHistoryList" style="color: #94a3b8;">Loading history...</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Server Templates Tab -->
                     <div id="templatesTab" class="tab-content" style="display: none;">
                         <div class="card" style="margin-bottom: 20px;">
@@ -740,6 +951,8 @@
 
     <script src="/js/main.js"></script>
     <script src="/js/dashboard.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/maintenanceBanner.js"></script>
     <script src="/js/theme.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -866,7 +1079,7 @@
 
             // Restore tab from URL hash on load
             const hash = window.location.hash.replace('#', '');
-            const validTabs = ['users', 'servers', 'coins', 'store', 'templates', 'panel'];
+            const validTabs = ['users', 'servers', 'coins', 'store', 'dailyRewards', 'referral', 'maintenance', 'broadcast', 'templates', 'panel'];
             if (hash && validTabs.includes(hash)) {
                 const btn = Array.from(document.querySelectorAll('.tab-btn'))
                     .find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${hash}'`));
@@ -912,6 +1125,14 @@
                 loadAllServers();
             } else if (tabName === 'store') {
                 loadStorePrices();
+            } else if (tabName === 'dailyRewards') {
+                loadDailyRewardsConfig();
+            } else if (tabName === 'referral') {
+                loadReferralConfig();
+            } else if (tabName === 'maintenance') {
+                loadMaintenanceWindows();
+            } else if (tabName === 'broadcast') {
+                loadBroadcastHistory();
             } else if (tabName === 'templates') {
                 loadTemplates();
                 loadEggsForTemplates();
@@ -919,6 +1140,515 @@
                 loadPanelConfig();
                 loadPanelSettings();
                 loadNodeAliases();
+            }
+        }
+
+        // Daily Rewards (Admin) Functions
+        let _dailyRewardsListenersAttached = false;
+        let _dailyRewardsIgnoreToggle = false;
+
+        function getDailyRewardsByDayFromInputs() {
+            const byDay = Array(8).fill(0); // 1..7
+            const rewards = [];
+
+            for (let day = 1; day <= 7; day++) {
+                const inputId = `dailyRewardDay${day}`;
+                const el = document.getElementById(inputId);
+                const raw = el ? parseInt(el.value) : 0;
+                const coins = Math.max(0, Number.isFinite(raw) ? raw : 0);
+                byDay[day] = coins;
+                rewards.push({ day_number: day, coins });
+            }
+
+            return { byDay, rewards };
+        }
+
+        function renderDailyRewardsPreview(byDay) {
+            const row = document.getElementById('dailyRewardsPreviewRow');
+            if (!row) return;
+
+            const boxes = [];
+            for (let day = 1; day <= 7; day++) {
+                const coins = byDay[day] || 0;
+                const label = day === 7 ? `Day ${day} 🌟` : `Day ${day}`;
+
+                boxes.push(`
+                    <div style="
+                        flex: 1;
+                        min-width: 120px;
+                        padding: 12px;
+                        background: rgba(30, 30, 50, 0.45);
+                        border: 1px solid rgba(124, 58, 237, 0.25);
+                        border-radius: 12px;
+                        text-align: center;
+                    ">
+                        <div style="color: #cbd5e1; font-size: 13px; font-weight: 800;">${escapeHtml(label)}</div>
+                        <div style="margin-top: 6px; font-size: 18px; color: #f8fafc; font-weight: 900;">
+                            ${escapeHtml(coins)} <span style="font-size: 12px; color: #94a3b8; font-weight: 700;">coins</span>
+                        </div>
+                    </div>
+                `);
+            }
+
+            row.innerHTML = boxes.join('');
+        }
+
+        function updateDailyRewardsPreviewFromInputs() {
+            const { byDay } = getDailyRewardsByDayFromInputs();
+            renderDailyRewardsPreview(byDay);
+        }
+
+        async function loadDailyRewardsConfig() {
+            try {
+                const response = await apiFetch('/admin/api/v15/daily-rewards');
+                if (!response || !response.ok) return;
+
+                const data = await response.json();
+
+                const enabledEl = document.getElementById('dailyRewardsEnabled');
+                const inputsByDay = [];
+                for (let day = 1; day <= 7; day++) {
+                    inputsByDay.push(document.getElementById(`dailyRewardDay${day}`));
+                }
+
+                const rewardsByDay = Array(8).fill(0);
+                (data.rewards || []).forEach(r => {
+                    const d = parseInt(r.day_number);
+                    const c = parseInt(r.coins);
+                    if (d >= 1 && d <= 7 && !Number.isNaN(c)) rewardsByDay[d] = c;
+                });
+
+                _dailyRewardsIgnoreToggle = true;
+                if (enabledEl) enabledEl.checked = !!data.enabled;
+                _dailyRewardsIgnoreToggle = false;
+
+                for (let day = 1; day <= 7; day++) {
+                    if (inputsByDay[day - 1]) {
+                        inputsByDay[day - 1].value = rewardsByDay[day] || 0;
+                    }
+                }
+
+                renderDailyRewardsPreview(rewardsByDay);
+
+                if (!_dailyRewardsListenersAttached) {
+                    // Live preview updates as inputs change
+                    for (let day = 1; day <= 7; day++) {
+                        const input = document.getElementById(`dailyRewardDay${day}`);
+                        if (input) {
+                            input.addEventListener('input', () => updateDailyRewardsPreviewFromInputs());
+                        }
+                    }
+
+                    const saveBtn = document.getElementById('saveDailyRewardsBtn');
+                    if (saveBtn) {
+                        saveBtn.addEventListener('click', saveDailyRewards);
+                    }
+
+                    _dailyRewardsListenersAttached = true;
+                }
+            } catch (error) {
+                console.error('Error loading daily rewards config:', error);
+            }
+        }
+
+        async function saveDailyRewardsEnabled() {
+            try {
+                if (_dailyRewardsIgnoreToggle) return;
+                const enabledEl = document.getElementById('dailyRewardsEnabled');
+                const enabled = enabledEl ? !!enabledEl.checked : false;
+
+                const response = await apiFetch('/admin/api/v15/daily-rewards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    showNotification('Daily rewards feature updated', 'success');
+                } else {
+                    showNotification(data.message || 'Failed to update daily rewards feature', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving daily rewards enabled:', error);
+                showNotification('Error saving daily rewards feature', 'error');
+            }
+        }
+
+        async function saveDailyRewards() {
+            try {
+                const enabledEl = document.getElementById('dailyRewardsEnabled');
+                const enabled = enabledEl ? !!enabledEl.checked : false;
+
+                const { rewards } = getDailyRewardsByDayFromInputs();
+
+                const response = await apiFetch('/admin/api/v15/daily-rewards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled, rewards })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    showNotification('Daily rewards saved successfully', 'success');
+                    await loadDailyRewardsConfig();
+                } else {
+                    showNotification(data.message || 'Failed to save daily rewards', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving daily rewards:', error);
+                showNotification('Error saving daily rewards', 'error');
+            }
+        }
+
+        // Referral (Admin) Functions
+        let _referralListenersAttached = false;
+        let _referralIgnoreToggle = false;
+
+        async function loadReferralConfig() {
+            try {
+                const response = await apiFetch('/admin/api/v15/referral');
+                if (!response || !response.ok) return;
+
+                const data = await response.json();
+
+                const enabledEl = document.getElementById('referralEnabled');
+                const referrerEl = document.getElementById('referrerReward');
+                const refereeEl = document.getElementById('refereeReward');
+
+                _referralIgnoreToggle = true;
+                if (enabledEl) enabledEl.checked = !!data.enabled;
+                _referralIgnoreToggle = false;
+
+                if (referrerEl) referrerEl.value = data.referrer_reward ?? 0;
+                if (refereeEl) refereeEl.value = data.referee_reward ?? 0;
+
+                if (!_referralListenersAttached) {
+                    const saveBtn = document.getElementById('saveReferralBtn');
+                    if (saveBtn) saveBtn.addEventListener('click', saveReferralConfig);
+                    _referralListenersAttached = true;
+                }
+            } catch (error) {
+                console.error('Error loading referral config:', error);
+            }
+        }
+
+        async function saveReferralEnabled() {
+            try {
+                if (_referralIgnoreToggle) return;
+                const enabledEl = document.getElementById('referralEnabled');
+                const enabled = enabledEl ? !!enabledEl.checked : false;
+
+                const response = await apiFetch('/admin/api/v15/referral', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    showNotification('Referral feature updated', 'success');
+                } else {
+                    showNotification(data.message || 'Failed to update referral feature', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving referral enabled:', error);
+                showNotification('Error saving referral feature', 'error');
+            }
+        }
+
+        async function saveReferralConfig() {
+            try {
+                const enabledEl = document.getElementById('referralEnabled');
+                const referrerEl = document.getElementById('referrerReward');
+                const refereeEl = document.getElementById('refereeReward');
+
+                const enabled = enabledEl ? !!enabledEl.checked : false;
+                const referrer_reward = Math.max(0, parseInt(referrerEl?.value) || 0);
+                const referee_reward = Math.max(0, parseInt(refereeEl?.value) || 0);
+
+                const response = await apiFetch('/admin/api/v15/referral', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled, referrer_reward, referee_reward })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    showNotification('Referral settings saved successfully', 'success');
+                    await loadReferralConfig();
+                } else {
+                    showNotification(data.message || 'Failed to save referral settings', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving referral config:', error);
+                showNotification('Error saving referral settings', 'error');
+            }
+        }
+        
+        // Maintenance (Admin) Functions
+        let _maintenanceListenersAttached = false;
+
+        function renderMaintenanceStatusBadge(windowRow, nowMs) {
+            const isActive = Number(windowRow?.is_active || 0) === 1;
+            const startsMs = windowRow?.starts_at ? new Date(windowRow.starts_at).getTime() : NaN;
+            const endsMs = windowRow?.ends_at ? new Date(windowRow.ends_at).getTime() : NaN;
+
+            if (!isActive) {
+                return `<span style="padding: 6px 10px; border-radius: 999px; background: rgba(148, 163, 184, 0.15); border: 1px solid rgba(148, 163, 184, 0.25); color: #cbd5e1; font-size: 12px; font-weight: 800;">Cancelled</span>`;
+            }
+
+            if (Number.isFinite(startsMs) && Number.isFinite(endsMs)) {
+                if (nowMs >= startsMs && nowMs <= endsMs) {
+                    return `<span style="padding: 6px 10px; border-radius: 999px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.28); color: #ef4444; font-size: 12px; font-weight: 900;">Active</span>`;
+                }
+                if (nowMs < startsMs) {
+                    return `<span style="padding: 6px 10px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.28); color: #f59e0b; font-size: 12px; font-weight: 900;">Upcoming</span>`;
+                }
+                return `<span style="padding: 6px 10px; border-radius: 999px; background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.25); color: #94a3b8; font-size: 12px; font-weight: 900;">Ended</span>`;
+            }
+
+            return `<span style="padding: 6px 10px; border-radius: 999px; background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.25); color: #94a3b8; font-size: 12px; font-weight: 900;">Scheduled</span>`;
+        }
+
+        async function loadMaintenanceWindows() {
+            try {
+                const listEl = document.getElementById('maintenanceWindowsList');
+                if (!listEl) return;
+
+                listEl.innerHTML = `<p style="margin: 0; color: #94a3b8;">Loading maintenance windows...</p>`;
+
+                const response = await apiFetch('/admin/api/v15/maintenance');
+                if (!response || !response.ok) return;
+
+                const data = await response.json().catch(() => ({}));
+                const windows = data.windows || [];
+                const nowMs = Date.now();
+
+                if (!windows.length) {
+                    listEl.innerHTML = `<p style="margin: 0; color: #94a3b8;">No scheduled maintenance windows.</p>`;
+                    return;
+                }
+
+                listEl.innerHTML = windows.map(w => {
+                    const title = escapeHtml(w.title || 'Scheduled Maintenance');
+                    const message = escapeHtml(w.message || '');
+                    const starts = w.starts_at ? new Date(w.starts_at).toLocaleString() : '-';
+                    const ends = w.ends_at ? new Date(w.ends_at).toLocaleString() : '-';
+                    const statusBadge = renderMaintenanceStatusBadge(w, nowMs);
+
+                    const cancelBtn = Number(w.is_active || 0) === 1
+                        ? `<button class="btn" style="background: #dc2626; border-color: #dc2626; color: white; padding: 8px 10px; border-radius: 10px; font-weight: 800; font-size: 12px;"
+                                   onclick="cancelMaintenanceWindow(${w.id})">Cancel</button>`
+                        : '';
+
+                    return `
+                        <div style="padding: 14px; background: rgba(30, 30, 50, 0.5); border: 1px solid rgba(124, 58, 237, 0.18); border-radius: 12px; margin-bottom: 12px;">
+                            <div style="display:flex; justify-content: space-between; align-items:flex-start; gap: 12px; flex-wrap: wrap;">
+                                <div>
+                                    <div style="color:#f8fafc; font-size: 14px; font-weight: 900; margin-bottom: 6px;">${title}</div>
+                                    <div style="color:#cbd5e1; font-size: 13px; margin-bottom: 8px; max-width: 680px; white-space: pre-wrap;">${message}</div>
+                                    <div style="color:#94a3b8; font-size: 12px;">
+                                        Time: ${escapeHtml(starts)} → ${escapeHtml(ends)}
+                                    </div>
+                                </div>
+                                <div style="display:flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                                    ${statusBadge}
+                                    ${cancelBtn}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                if (!_maintenanceListenersAttached) {
+                    const scheduleBtn = document.getElementById('maintenanceScheduleBtn');
+                    if (scheduleBtn) {
+                        scheduleBtn.addEventListener('click', scheduleMaintenanceWindow);
+                    }
+                    _maintenanceListenersAttached = true;
+                }
+            } catch (error) {
+                console.error('Error loading maintenance windows:', error);
+            }
+        }
+
+        async function scheduleMaintenanceWindow() {
+            try {
+                const titleEl = document.getElementById('maintenanceTitle');
+                const messageEl = document.getElementById('maintenanceMessage');
+                const startEl = document.getElementById('maintenanceStart');
+                const endEl = document.getElementById('maintenanceEnd');
+
+                const title = titleEl ? titleEl.value : '';
+                const message = messageEl ? messageEl.value : '';
+                const starts_at = startEl ? startEl.value : '';
+                const ends_at = endEl ? endEl.value : '';
+
+                if (!message || String(message).trim() === '') {
+                    showNotification('Message is required for maintenance', 'error');
+                    return;
+                }
+                if (!starts_at || !ends_at) {
+                    showNotification('Start and end datetime are required', 'error');
+                    return;
+                }
+
+                const response = await apiFetch('/admin/api/v15/maintenance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message, starts_at, ends_at })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    showNotification('Maintenance window scheduled', 'success');
+                    // Refresh list after scheduling
+                    await loadMaintenanceWindows();
+                } else {
+                    showNotification(data.message || 'Failed to schedule maintenance', 'error');
+                }
+            } catch (error) {
+                console.error('Error scheduling maintenance:', error);
+                showNotification('An error occurred while scheduling maintenance', 'error');
+            }
+        }
+
+        async function cancelMaintenanceWindow(id) {
+            try {
+                if (!id) return;
+
+                const response = await apiFetch(`/admin/api/v15/maintenance/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.success) {
+                    showNotification('Maintenance window cancelled', 'success');
+                    await loadMaintenanceWindows();
+                } else {
+                    showNotification(data.message || 'Failed to cancel maintenance', 'error');
+                }
+            } catch (error) {
+                console.error('Error cancelling maintenance:', error);
+                showNotification('An error occurred while cancelling maintenance', 'error');
+            }
+        }
+
+        // Broadcast (Admin) Functions
+        let _broadcastListenersAttached = false;
+
+        async function loadBroadcastHistory() {
+            try {
+                const container = document.getElementById('broadcastHistoryList');
+                if (!container) return;
+
+                container.innerHTML = '<p style="margin: 0; color: #94a3b8;">Loading broadcasts...</p>';
+
+                const response = await apiFetch('/admin/api/v15/broadcast/history');
+                if (!response || !response.ok) return;
+
+                const data = await response.json().catch(() => ({}));
+                const broadcasts = data.broadcasts || [];
+
+                if (!broadcasts.length) {
+                    container.innerHTML = '<p style="margin: 0; color: #94a3b8;">No broadcasts found.</p>';
+                    return;
+                }
+
+                const escapeAndTruncate = (value, max = 90) => {
+                    const s = escapeHtml(value ?? '');
+                    if (s.length <= max) return s;
+                    return s.slice(0, max) + '...';
+                };
+
+                let html = '<div class="table-scroll-container"><table class="admin-table">';
+                html += '<thead><tr><th>Title</th><th>Message</th><th>Segment</th><th>Sent</th></tr></thead><tbody>';
+
+                broadcasts.forEach(b => {
+                    const title = escapeHtml(b.title || '');
+                    const message = escapeAndTruncate(b.message || '', 80);
+                    const seg = String(b.segment || 'all');
+                    const segmentLabel =
+                        seg === 'all' ? 'All users' :
+                        seg === 'has_servers' ? 'Users with servers' :
+                        seg === 'no_servers' ? 'Users without servers' :
+                        seg === 'zero_coins' ? 'Users with 0 coins' :
+                        seg;
+                    const segment = escapeHtml(segmentLabel);
+                    const sent = b.created_at ? escapeHtml(formatDate(b.created_at)) : '-';
+
+                    html += `
+                        <tr>
+                            <td>${title}</td>
+                            <td>${message}</td>
+                            <td>${segment}</td>
+                            <td>${sent}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+
+                if (!_broadcastListenersAttached) {
+                    const sendBtn = document.getElementById('sendBroadcastBtn');
+                    if (sendBtn) {
+                        sendBtn.addEventListener('click', sendBroadcast);
+                    }
+                    _broadcastListenersAttached = true;
+                }
+            } catch (error) {
+                console.error('Error loading broadcast history:', error);
+            }
+        }
+
+        async function sendBroadcast() {
+            try {
+                const titleEl = document.getElementById('broadcastTitle');
+                const messageEl = document.getElementById('broadcastMessage');
+                const typeEl = document.getElementById('broadcastType');
+                const segmentEl = document.getElementById('broadcastSegment');
+
+                const title = titleEl ? titleEl.value : '';
+                const message = messageEl ? messageEl.value : '';
+                const type = typeEl ? typeEl.value : 'info';
+                const segment = segmentEl ? segmentEl.value : 'all';
+
+                if (!message || String(message).trim() === '') {
+                    showNotification('Message is required for broadcast', 'error');
+                    return;
+                }
+
+                const response = await apiFetch('/admin/api/v15/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message, type, segment })
+                });
+
+                let data = {};
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    data = {};
+                }
+
+                if (response && response.ok && data && data.success) {
+                    showNotification('Broadcast sent successfully', 'success');
+
+                    // Clear form + reload history.
+                    if (messageEl) messageEl.value = '';
+                    if (titleEl) titleEl.value = '';
+                    if (segmentEl) segmentEl.value = 'all';
+                    if (typeEl) typeEl.value = 'info';
+
+                    await loadBroadcastHistory();
+                } else {
+                    showNotification(data?.message || 'Failed to send broadcast', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending broadcast:', error);
+                showNotification('An error occurred while sending broadcast', 'error');
             }
         }
         

@@ -380,6 +380,8 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/main.js"></script>
     <script src="/js/dashboard.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/maintenanceBanner.js"></script>
     <script src="/js/theme.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -655,6 +657,11 @@
             const socket = io({
                 transports: ['websocket']
             });
+
+            // Join user room for notifications + allow notification JS to attach listeners
+            window.socket = socket;
+            socket.emit('join_user_room', { userId: window.CURRENT_USER_ID });
+            document.dispatchEvent(new CustomEvent('socketReady', { detail: socket }));
             
             socket.on('connect', () => {
                 console.log('[WebSocket] Connected to Discord chat');
