@@ -53,8 +53,16 @@ router.get('/api/status', requireAuth, async (req, res) => {
             streak = 0;
         }
 
-        // "If last_claim was NOT yesterday, next streak resets to day 1."
-        nextDay = lastClaim === yesterday ? Math.min(storedStreakDay + 1, 7) : 1;
+        if (claimed) {
+            // Already claimed today — next day is the one after current streak
+            nextDay = storedStreakDay >= 7 ? 1 : storedStreakDay + 1;
+        } else if (lastClaim === yesterday) {
+            // Streak continuing — next claim will be the next day
+            nextDay = storedStreakDay >= 7 ? 1 : storedStreakDay + 1;
+        } else {
+            // Streak broken or fresh start
+            nextDay = 1;
+        }
 
         const rewards = await query(
             `SELECT day_number, coins FROM daily_reward_config ORDER BY day_number ASC`
@@ -107,7 +115,7 @@ router.post('/api/claim', requireAuth, async (req, res) => {
             const lastClaim = user.streak_last_claim || null;
             const storedStreakDay = Number(user.streak_day || 0);
 
-            const nextDay = lastClaim === yesterday ? Math.min(storedStreakDay + 1, 7) : 1;
+            const nextDay = lastClaim === yesterday ? (storedStreakDay >= 7 ? 1 : storedStreakDay + 1) : 1;
 
             const rewardRow = await get(
                 `SELECT coins FROM daily_reward_config WHERE day_number = ?`,
