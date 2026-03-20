@@ -773,7 +773,7 @@
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 200px;">
                                     <label style="font-size: 13px; color: #94a3b8;">Default Alias (hostname only, no port)</label>
-                                    <input type="text" id="nodeAliasValue" placeholder="e.g. mtc.kovaihost.cloud"
+                                    <input type="text" id="nodeAliasValue" placeholder="Enter your node FQDN here"
                                         style="width: 100%; padding: 10px; background: var(--input-bg, rgba(30,30,50,0.4));
                                                border: 1px solid var(--input-border, rgba(124,58,237,0.3));
                                                border-radius: 8px; color: var(--input-text, #f8fafc); font-size: 14px;">
@@ -1131,6 +1131,11 @@
                 loadReferralConfig();
             } else if (tabName === 'maintenance') {
                 loadMaintenanceWindows();
+                if (!_maintenanceListenersAttached) {
+                    const scheduleBtn = document.getElementById('maintenanceScheduleBtn');
+                    if (scheduleBtn) scheduleBtn.addEventListener('click', scheduleMaintenanceWindow);
+                    _maintenanceListenersAttached = true;
+                }
             } else if (tabName === 'broadcast') {
                 loadBroadcastHistory();
                 if (!_broadcastListenersAttached) {
@@ -1465,14 +1470,6 @@
                         </div>
                     `;
                 }).join('');
-
-                if (!_maintenanceListenersAttached) {
-                    const scheduleBtn = document.getElementById('maintenanceScheduleBtn');
-                    if (scheduleBtn) {
-                        scheduleBtn.addEventListener('click', scheduleMaintenanceWindow);
-                    }
-                    _maintenanceListenersAttached = true;
-                }
             } catch (error) {
                 console.error('Error loading maintenance windows:', error);
             }
@@ -1487,8 +1484,8 @@
 
                 const title = titleEl ? titleEl.value : '';
                 const message = messageEl ? messageEl.value : '';
-                const starts_at = startEl ? startEl.value : '';
-                const ends_at = endEl ? endEl.value : '';
+                const starts_at = startEl && startEl.value ? new Date(startEl.value).toISOString() : '';
+                const ends_at = endEl && endEl.value ? new Date(endEl.value).toISOString() : '';
 
                 if (!message || String(message).trim() === '') {
                     showNotification('Message is required for maintenance', 'error');
