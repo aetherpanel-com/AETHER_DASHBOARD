@@ -1133,6 +1133,11 @@
                 loadMaintenanceWindows();
             } else if (tabName === 'broadcast') {
                 loadBroadcastHistory();
+                if (!_broadcastListenersAttached) {
+                    const sendBtn = document.getElementById('sendBroadcastBtn');
+                    if (sendBtn) sendBtn.addEventListener('click', sendBroadcast);
+                    _broadcastListenersAttached = true;
+                }
             } else if (tabName === 'templates') {
                 loadTemplates();
                 loadEggsForTemplates();
@@ -1591,13 +1596,6 @@
                 html += '</tbody></table></div>';
                 container.innerHTML = html;
 
-                if (!_broadcastListenersAttached) {
-                    const sendBtn = document.getElementById('sendBroadcastBtn');
-                    if (sendBtn) {
-                        sendBtn.addEventListener('click', sendBroadcast);
-                    }
-                    _broadcastListenersAttached = true;
-                }
             } catch (error) {
                 console.error('Error loading broadcast history:', error);
             }
@@ -3384,6 +3382,16 @@
                 showNotification('Error deleting template', 'error');
             }
         }
+
+        // Initialize Socket.IO on admin page so broadcast toasts work
+        (function initAdminSocket() {
+            if (typeof io === 'undefined') return;
+            const socket = io({ transports: ['websocket', 'polling'] });
+            window.socket = socket;
+            socket.on('connect', () => {
+                document.dispatchEvent(new CustomEvent('socketReady', { detail: socket }));
+            });
+        })();
         
     </script>
     <style>
