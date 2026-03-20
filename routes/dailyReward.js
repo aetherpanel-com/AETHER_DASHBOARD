@@ -5,7 +5,6 @@ const router = express.Router();
 
 const { get, query, run, transaction } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { logActivity } = require('./activity');
 
 function utcDateString(date = new Date()) {
     // YYYY-MM-DD in UTC
@@ -138,18 +137,6 @@ router.post('/api/claim', requireAuth, async (req, res) => {
 
             return { coinsAwarded, newBalance: newBalanceRow?.coins || 0, nextDay };
         });
-
-        // Activity feed
-        try {
-            await logActivity(
-                req.session.user.id,
-                'daily_reward',
-                `Claimed Day ${result.nextDay} reward — +${result.coinsAwarded} coins`,
-                { day: result.nextDay, coins: result.coinsAwarded }
-            );
-        } catch (e) {
-            // Best-effort only
-        }
 
         return res.json({
             success: true,

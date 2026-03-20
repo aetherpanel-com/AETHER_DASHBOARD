@@ -315,25 +315,6 @@ function initializeDatabase() {
                 });
             });
 
-            // Activity feed (per-user user activity history)
-            db.run(`
-                CREATE TABLE IF NOT EXISTS activity_feed (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    type TEXT NOT NULL,
-                    message TEXT NOT NULL,
-                    meta TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                )
-            `, (err) => {
-                if (err) {
-                    console.error('Error creating activity_feed table:', err);
-                    return;
-                }
-                console.log('✅ activity_feed table created/verified');
-            });
-
             // Notifications (supports per-user + global notifications)
             db.run(`
                 CREATE TABLE IF NOT EXISTS notifications (

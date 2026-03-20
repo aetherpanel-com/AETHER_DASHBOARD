@@ -7,7 +7,6 @@ const path = require('path');
 const { query, get, run, transaction } = require('../config/database');
 const { serverCreationLimiter, purchaseLimiter } = require('../middleware/rateLimit');
 const pterodactyl = require('../config/pterodactyl');
-const { logActivity } = require('./activity');
 const { markStep } = require('./onboarding');
 const { getServerHealthTimeline } = require('../config/healthPoller');
 
@@ -472,18 +471,6 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
                 console.log(`Server created successfully: ID ${serverRecordId}, Pterodactyl ID ${pterodactyl_id}`);
                 
                 if (!res.headersSent) {
-                    // Activity feed
-                    try {
-                        await logActivity(
-                            req.session.user.id,
-                            'server_created',
-                            `Created server "${name}"`,
-                            { server_id: serverRecordId }
-                        );
-                    } catch (e) {
-                        // best-effort only
-                    }
-
                     // Onboarding checklist: created first server
                     try {
                         await markStep(req.session.user.id, 2);
@@ -527,18 +514,6 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
             // Pterodactyl is not configured - server record was already inserted in transaction
             // Just return success response
             if (!res.headersSent) {
-                // Activity feed
-                try {
-                    await logActivity(
-                        req.session.user.id,
-                        'server_created',
-                        `Created server "${name}"`,
-                        { server_id: serverRecordId }
-                    );
-                } catch (e) {
-                    // best-effort only
-                }
-
                     // Onboarding checklist: created first server
                     try {
                         await markStep(req.session.user.id, 2);
@@ -714,23 +689,6 @@ router.post('/api/power/:id', requireAuth, async (req, res) => {
             kill: 'Server has been force killed'
         };
 
-        // Activity feed
-        try {
-            const type =
-                action === 'start' ? 'server_started' :
-                action === 'restart' ? 'server_restarted' :
-                'server_stopped';
-
-            await logActivity(
-                req.session.user.id,
-                type,
-                `${type === 'server_started' ? 'Server started' : type === 'server_restarted' ? 'Server restarted' : 'Server stopped'}: "${server.name}"`,
-                { server_id: server.id, action }
-            );
-        } catch (e) {
-            // best-effort only
-        }
-        
         res.json({ 
             success: true, 
             message: actionMessages[action],
@@ -2070,30 +2028,6 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
         
         // Update session
         req.session.user.coins = updatedUser.coins;
-
-        // Activity feed
-        try {
-            const resourceLabel =
-                resource_type === 'ram' ? 'RAM' :
-                resource_type === 'cpu' ? 'CPU' :
-                resource_type === 'storage' ? 'Storage' :
-                resource_type;
-
-            const humanAmount =
-                resource_type === 'ram' ? `${amount} GB` :
-                resource_type === 'storage' ? `${amount} GB` :
-                resource_type === 'cpu' ? `${amount}%` :
-                `${amount}`;
-
-            await logActivity(
-                req.session.user.id,
-                'resource_purchased',
-                `Purchased ${humanAmount} ${resourceLabel}`,
-                { type: resource_type, amount }
-            );
-        } catch (e) {
-            // best-effort only
-        }
 
         // Onboarding checklist: purchased first resources
         try {

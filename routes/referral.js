@@ -5,7 +5,6 @@ const router = express.Router();
 
 const { get, run, transaction } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
-const { logActivity } = require('./activity');
 
 const referralChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -146,25 +145,6 @@ async function processReferral(newUserId, refCode, app) {
 
     if (!applied) {
         return { enabled: true, applied: false, reason: 'Already referred' };
-    }
-
-    // Activity feed logging (best-effort)
-    try {
-        await logActivity(
-            referrer.id,
-            'referral_bonus',
-            `Referral bonus earned (code ${cleanCode}) — +${referrerReward} coins`,
-            { ref_code: cleanCode, coins: referrerReward, referee_user_id: newUserId }
-        );
-
-        await logActivity(
-            newUserId,
-            'referral_bonus',
-            `Referral signup bonus — +${refereeReward} coins`,
-            { ref_code: cleanCode, coins: refereeReward, referrer_user_id: referrer.id }
-        );
-    } catch (e) {
-        // ignore
     }
 
     return {
