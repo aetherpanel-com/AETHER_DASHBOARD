@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { get, run, transaction } = require('../config/database');
+const { get, query, run, transaction } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
 
 const referralChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
