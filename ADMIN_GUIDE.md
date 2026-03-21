@@ -2,7 +2,7 @@
 
 Complete guide for setting up and managing your Aether Dashboard after installation.
 
-**Version:** 1.4.5 | **Status:** Production Ready ✅
+**Version:** 1.5.0 | **Status:** Production Ready ✅
 
 > **New to Aether Dashboard?** Complete the installation steps in [README.md](README.md) first, then return here to set up your admin panel.
 
@@ -24,6 +24,10 @@ Complete guide for setting up and managing your Aether Dashboard after installat
 12. [Integrations — Linkvertise](#-integrations--linkvertise)
 13. [Integrations — Discord](#-integrations--discord)
 14. [Admin Setup Checklist](#-admin-setup-checklist)
+- [Daily Rewards Tab](#-daily-rewards-tab)
+- [Referral Tab](#-referral-tab)
+- [Maintenance Tab](#-maintenance-tab)
+- [Broadcast Tab](#-broadcast-tab)
 
 ---
 
@@ -40,10 +44,14 @@ sequence (e.g. creating templates before syncing eggs) will cause errors.
 5. Fetch & Sync Eggs (Game Types)     → Admin Panel → Panel → Game Types (Eggs)
 6. Configure Store prices             → Admin Panel → Store Management
 7. Create Server Templates            → Admin Panel → Server Templates
-8. Configure Linkvertise              → Admin Panel → Integrations → Linkvertise
-9. (Optional) Set up Discord bot      → Admin Panel → Integrations → Discord
-10. (Optional) Customise theme        → Admin Panel → Admin Settings → Themes
-11. (Optional) Customise branding     → Admin Panel → Admin Settings → Branding
+8. Configure Daily Rewards            → Admin Panel → Daily Rewards tab
+9. Configure Referral System          → Admin Panel → Referral tab
+10. Configure Linkvertise             → Admin Panel → Integrations → Linkvertise
+11. (Optional) Set up Discord bot     → Admin Panel → Integrations → Discord
+12. (Optional) Schedule Maintenance   → Admin Panel → Maintenance tab
+13. (Optional) Send Broadcasts        → Admin Panel → Broadcast tab
+14. (Optional) Customise theme        → Admin Panel → Admin Settings → Themes
+15. (Optional) Customise branding     → Admin Panel → Admin Settings → Branding
 ```
 
 ---
@@ -424,6 +432,61 @@ See the full bot setup instructions in [README.md](README.md) under
 
 ---
 
+## 🎁 Daily Rewards Tab
+
+Configure the streak-based daily login reward system.
+
+- **Feature Enabled toggle** — enables or disables the entire daily reward system for all users
+- **Reward Amounts** — set the coin amount for each day (Day 1 through Day 7)
+- Day 7 is highlighted with a ⭐ as the streak completion bonus
+- Click **Save Rewards** to apply changes immediately
+
+> Users must claim their reward each day before midnight UTC. Missing a day resets their streak to Day 1.
+
+---
+
+## 👥 Referral Tab
+
+Configure the referral coin reward system.
+
+- **Feature Enabled toggle** — enables or disables the referral system for all users
+- **Referrer Reward** — coins awarded to the user who shared the referral link
+- **Referee Reward** — coins awarded to the new user who signs up via the link
+- Click **Save Referral Config** to apply
+
+> Users find their referral link on their Profile page. The link pre-fills the signup form automatically.
+
+---
+
+## 🔧 Maintenance Tab
+
+Schedule and manage platform maintenance windows.
+
+- **Title** — short name for the maintenance (e.g. "Database Upgrade")
+- **Start / End** — datetime-local picker for the window start and end
+- **Message** — description shown in the banner to users
+- Click **Schedule** to save the window
+
+When a window is active (current time is between start and end), a **red sticky banner** appears at the top of all dashboard pages. When a window is upcoming, an **amber banner** with a countdown appears instead.
+
+Click **Cancel** on any window to deactivate it early.
+
+---
+
+## 📢 Broadcast Tab
+
+Send platform-wide announcements to users.
+
+- **Title** — heading shown in the notification bell
+- **Type** — Info / Success / Warning / Alert (controls colour and icon)
+- **Segment** — All users / Users with servers / Users without servers / Users with 0 coins
+- **Message** — body of the announcement
+- Click **Send Broadcast** to deliver immediately
+
+Broadcasts are stored in the notification bell for all users and also appear as a live toast popup for any user currently online at the time of sending. A **Broadcast History** table shows all previously sent broadcasts.
+
+---
+
 ## ✅ Admin Setup Checklist
 
 Use this checklist when setting up a fresh installation:
@@ -444,6 +507,8 @@ Use this checklist when setting up a fresh installation:
 - [ ] Applied a custom theme (Admin Settings → Themes)
 - [ ] Configured Discord bot (Integrations → Discord)
 - [ ] Set Default Nest ID and Location ID (Panel tab → Pterodactyl Settings)
+- [ ] Configured Daily Rewards amounts (Daily Rewards tab)
+- [ ] Enabled Referral System and set reward amounts (Referral tab)
 
 ---
 
@@ -460,4 +525,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.4.5
+**Last Updated:** Version 1.5.0

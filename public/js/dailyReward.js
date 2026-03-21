@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const boxes = [];
         for (let day = 1; day <= maxDay; day++) {
             const coinAmount = rewardsByDay[day] || 0;
-            const isCompleted = day < streak;
-            const isHighlight = day === highlightDay && !Number.isNaN(highlightDay);
+            const isCompleted = claimed ? day <= streak : day < streak;
+            const isHighlight = !isCompleted && day === highlightDay && !Number.isNaN(highlightDay);
             const isFuture = day > highlightDay;
 
             let bg = 'rgba(30, 30, 50, 0.45)';

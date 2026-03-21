@@ -4,6 +4,60 @@
 
 ---
 
+## Aether Dashboard v1.5.0
+
+### 🚀 Platform Enhancement Update
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.5 is a major feature release adding seven new platform features focused on user engagement, admin operations, and real-time feedback.
+
+### ✨ New Features
+
+| Feature | Description |
+|---------|-------------|
+| 🎁 **Daily Login Rewards** | Streak-based daily coin rewards (Day 1–7). Configurable per-day amounts. Admin toggle. |
+| 👥 **User Referral System** | Unique referral links, signup attribution, configurable coin bonuses for referrer and referee. |
+| 🔔 **Notification Centre** | Persistent bell across all pages, unread badge, slide-out drawer, real-time toasts via Socket.IO. Supports per-user and global notifications. |
+| 📢 **Admin Bulk Broadcast** | Send announcements to all users or by segment. Delivered via notification bell and live Socket.IO toast. History tab for audit trail. |
+| 🔧 **Scheduled Maintenance** | Admin-defined windows with start/end times. Sticky banner auto-appears for users when active or upcoming. |
+| 📊 **Server Health Timeline** | 24-bar timeline strip on each server card. Background poller every 5 minutes. 24-hour history retained per server. |
+| ⚠️ **Resource Usage Warnings** | Live RAM/CPU/disk chips on server cards. Warning at 80%, critical at 90%. Pulled from Pterodactyl in real time. |
+
+### 🗄️ Database Changes
+
+- ✅ Added `daily_reward_config` table — stores per-day coin amounts
+- ✅ Added `feature_flags` table — controls daily_rewards and referral_system toggles
+- ✅ Added `referral_config` table — stores referrer/referee reward amounts
+- ✅ Added `notifications` table — stores per-user and global notifications
+- ✅ Added `notification_reads` table — tracks read state for global notifications per user
+- ✅ Added `maintenance_schedule` table — stores scheduled maintenance windows
+- ✅ Added `broadcast_messages` table — audit log for admin broadcasts
+- ✅ Added `server_health_logs` table — stores per-server health snapshots
+- ✅ Added `streak_day`, `streak_last_claim` columns to `users` table
+- ✅ Added `onboarding_flags` column to `users` table
+- ✅ Added `referral_code`, `referred_by`, `referral_coins_earned` columns to `users` table
+
+All migrations run automatically on server startup. No manual steps required.
+
+### 🚀 How to Update
+```bash
+# GitHub method (recommended)
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+Or via SFTP: Download latest version, replace files (keep `database.db` and `.env`),
+run `npm install`, restart dashboard.
+
+**⚠️ Important:** Always backup `database.db` and `.env` before updating!
+
+---
+
 ## Aether Dashboard v1.4.5
 
 ### 🔒 Resource Purchase Limits
@@ -1285,7 +1339,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.4.3
+**Last Updated:** Version 1.5.0
 
 **Made with ❤️ for free hosting providers**
 

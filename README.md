@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.4.5
+**Version:** 1.5.0
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.4.5):** Resource purchase limits — admins can now cap how much RAM, CPU, storage, and server slots each user is allowed to purchase. Limits are configured per-platform in the Store Management tab. Setting any limit to 0 means unlimited. See [Changelog](UPDATES.md#aether-dashboard-v145) for details.
+**🔧 Latest Update (v1.5.0):** Major feature update — daily login rewards, referral system, notification centre, scheduled maintenance, server health timeline, resource usage warnings, and admin bulk broadcast. See [Changelog](UPDATES.md#aether-dashboard-v150) for details.
 
 ---
 
@@ -37,20 +37,30 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 ---
 
-## ✨ What's New in Version 1.4
+## ✨ What's New in Version 1.5
 
-**Discord Integration Update** - Connect your Discord server to your dashboard for automated rewards and real-time chat!
+**Platform Enhancement Update** — v1.5 adds a full suite of engagement, monetisation, and operational features to the dashboard, making it the most complete version yet.
 
-### 🎮 Discord Features
+### 🎁 Daily Login Rewards
+Streak-based daily reward system. Users earn configurable coin amounts for each consecutive day they log in (Day 1–7). Admins configure coin amounts per day and can enable/disable the feature from the Admin Panel → Daily Rewards tab.
 
-| Feature | Description |
-|---------|-------------|
-| 💰 **Invite Rewards** | Users earn coins when someone joins Discord using their invite link |
-| 🔄 **Auto Deduction** | Rewards automatically removed if invited user leaves the server |
-| 💬 **Real-time Chat** | Discord chat mirrored in dashboard Community page |
-| 📤 **Bidirectional Chat** | Send messages from dashboard to Discord and vice versa |
-| 🏆 **Leaderboard** | Track top inviters with live leaderboard |
-| 🛡️ **Abuse Protection** | Duplicate invite joins detected and prevented |
+### 👥 User Referral System
+Users get a unique referral link they can share. When someone signs up using their link, both the referrer and the new user earn configurable coin bonuses. Admins configure rewards from Admin Panel → Referral tab.
+
+### 🔔 Notification Centre
+A persistent notification bell in the header across all dashboard pages. Supports per-user and global (broadcast) notifications with unread badge counts, a slide-out drawer, and real-time toast popups via Socket.IO.
+
+### 📢 Admin Bulk Broadcast
+Admins can send announcements to all users (or a segment) from Admin Panel → Broadcast tab. Broadcasts are delivered as global notifications in the notification bell and as live toasts via Socket.IO.
+
+### 🔧 Scheduled Maintenance
+Admins can schedule maintenance windows with a start and end time from Admin Panel → Maintenance tab. A sticky banner automatically appears across all pages for users when a window is active or upcoming.
+
+### 📊 Server Health Timeline
+A 24-bar health timeline strip appears on each server card, showing the last 24 polling snapshots (online/offline/starting). The poller runs every 5 minutes in the background and stores history in the database.
+
+### ⚠️ Resource Usage Warnings
+Live RAM, CPU, and disk usage chips on server cards. Yellow chips appear at 80% usage, red at 90%. Data is pulled from Pterodactyl in real time.
 
 ---
 
@@ -1700,4 +1710,4 @@ MIT License - Feel free to use, modify, and distribute!
 
 **Made with ❤️ for free hosting providers. Start earning revenue today!** 🚀💰
 
-**Version 1.4.5** - Production Ready ✅
+**Version 1.5.0** - Production Ready ✅

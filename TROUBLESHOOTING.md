@@ -495,6 +495,78 @@ pm2 restart aether-dashboard
 
 ---
 
+## 🚀 New Features Troubleshooting (Version 1.5)
+
+### "Daily rewards claim button does nothing"
+
+**Checklist:**
+- ✅ Daily Rewards feature is enabled in Admin Panel → Daily Rewards tab
+- ✅ Reward amounts are configured and saved
+- ✅ User has not already claimed today (banner shows "Come back tomorrow!")
+- ✅ Check browser console for errors
+
+**Fix:**
+1. Verify feature is enabled in Admin Panel → Daily Rewards
+2. Restart dashboard: `pm2 restart aether-dashboard`
+3. Check logs: `pm2 logs aether-dashboard`
+
+---
+
+### "Referral link not awarding coins"
+
+**Checklist:**
+- ✅ Referral System is enabled in Admin Panel → Referral tab
+- ✅ Reward amounts are set (non-zero)
+- ✅ New user signed up using the referral link (not an existing user)
+- ✅ Same user cannot be referred twice
+
+**Fix:**
+1. Verify feature is enabled in Admin Panel → Referral
+2. Confirm the new user used the correct referral link on the signup page
+3. Check logs: `pm2 logs aether-dashboard`
+
+---
+
+### "Notification bell not showing on some pages"
+
+**Checklist:**
+- ✅ `notifications.js` script is loaded on the page
+- ✅ `socket.io.js` is loaded before `notifications.js`
+- ✅ Socket.IO connection is established (check browser console)
+
+**Fix:**
+- The bell requires both `notifications.js` and a Socket.IO connection on every page.
+- Check the page's HTML for the required script tags in this order:
+  1. `/socket.io/socket.io.js`
+  2. `/js/main.js`
+  3. `/js/dashboard.js`
+  4. `/js/notifications.js`
+
+---
+
+### "Maintenance banner not appearing"
+
+**Checklist:**
+- ✅ Maintenance window is scheduled and active (current time is within start/end range)
+- ✅ `maintenanceBanner.js` is loaded on the page
+- ✅ Window has not been cancelled
+
+**Fix:**
+1. Check Admin Panel → Maintenance tab to confirm the window exists and is not cancelled
+2. Verify the start/end times are correct (stored in UTC)
+3. Confirm `maintenanceBanner.js` script tag is present in the page HTML
+
+---
+
+### "Broadcast sent but users don't see it"
+
+**Checklist:**
+- ✅ Users are online when broadcast is sent (live toast requires active Socket.IO connection)
+- ✅ Offline users will see the broadcast in their notification bell on next page load
+- ✅ Check that `notifications.js` is loaded on the page users are viewing
+
+---
+
 ## 🚀 New Features Troubleshooting (Version 1.3+)
 
 ### "Discord bot not connecting" (Version 1.4+)
@@ -816,7 +888,7 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.4.3
+**Last Updated:** Version 1.5.0
 
 **Made with ❤️ for free hosting providers**
 

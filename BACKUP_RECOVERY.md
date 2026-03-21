@@ -8,7 +8,7 @@
 
 **This guide is for DASHBOARD backups** (your `database.db` file).
 
-**Version 1.4.3 note:** This release does not change the backup format or recovery steps. Your normal `database.db` and `.env` backup routine is still valid before updating.
+**Version 1.5.0 note:** v1.5 adds several new database tables (notifications, daily_reward_config, referral_config, etc.) that are created automatically on startup. Your normal `database.db` and `.env` backup routine is still valid before updating. No additional files need to be backed up.
 
 **For GAME SERVER backups**, use the new Backup System feature:
 1. Go to any server → Click "📊 Live Stats"
@@ -418,7 +418,7 @@ crontab -e
 
 ---
 
-**Last Updated:** Version 1.4.3
+**Last Updated:** Version 1.5.0
 
 **Made with ❤️ for free hosting providers**
 
