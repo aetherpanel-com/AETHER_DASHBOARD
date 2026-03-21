@@ -222,6 +222,18 @@
             checkAdminAccess();
             loadBrandingSettings();
             
+            // Socket.IO for notifications
+            if (typeof io !== 'undefined') {
+                const socket = io({ transports: ['websocket', 'polling'] });
+                window.socket = socket;
+                socket.on('connect', () => {
+                    if (window.CURRENT_USER_ID) {
+                        socket.emit('join_user_room', { userId: window.CURRENT_USER_ID });
+                    }
+                    document.dispatchEvent(new CustomEvent('socketReady', { detail: socket }));
+                });
+            }
+            
             // Load resource prices
             try {
                 const pricesResponse = await fetch('/servers/api/resource-prices');

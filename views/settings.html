@@ -170,6 +170,8 @@
     
     <script src="/js/main.js"></script>
     <script src="/js/dashboard.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/notifications.js"></script>
     <script src="/js/maintenanceBanner.js"></script>
     <script src="/js/theme.js"></script>
     <script>
@@ -178,6 +180,18 @@
             await loadUserData();
             checkAdminAccess();
             loadBrandingSettings();
+            
+            // Socket.IO for notifications
+            if (typeof io !== 'undefined') {
+                const socket = io({ transports: ['websocket', 'polling'] });
+                window.socket = socket;
+                socket.on('connect', () => {
+                    if (window.CURRENT_USER_ID) {
+                        socket.emit('join_user_room', { userId: window.CURRENT_USER_ID });
+                    }
+                    document.dispatchEvent(new CustomEvent('socketReady', { detail: socket }));
+                });
+            }
             
             // Load current email
             const userResponse = await fetch('/dashboard/api/user');
