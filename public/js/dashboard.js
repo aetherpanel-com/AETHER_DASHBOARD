@@ -126,44 +126,36 @@ async function loadBrandingSettings() {
         if (response.ok) {
             const data = await response.json();
             if (data.success && data.settings) {
-                // Update dashboard name in sidebar
-                const sidebarTitle = document.querySelector('.sidebar-header h2');
-                if (sidebarTitle && data.settings.dashboard_name) {
-                    sidebarTitle.textContent = data.settings.dashboard_name;
+                const settings = data.settings;
+                const brandedName = settings.dashboard_name || 'Aether Dashboard';
+                const brandedLogo = settings.logo_path || '/assets/defaults/aether-dashboard-logo.png';
+                const brandedFavicon = settings.favicon_path || '/assets/defaults/aether-dashboard-favicon.ico';
+                const brandedShape = settings.logo_shape || 'square';
+
+                const logoById = document.getElementById('sidebar-logo');
+                const nameById = document.getElementById('sidebar-name');
+                const faviconLink = document.querySelector('link[rel="icon"]');
+
+                if (logoById) {
+                    logoById.src = brandedLogo;
                 }
-                
-                // Update page title
-                if (data.settings.dashboard_name) {
-                    const pageTitle = document.querySelector('title');
-                    if (pageTitle) {
-                        const currentPage = pageTitle.textContent.split(' - ')[1] || '';
-                        pageTitle.textContent = currentPage ? `${currentPage} - ${data.settings.dashboard_name}` : data.settings.dashboard_name;
-                    }
+                if (nameById) {
+                    nameById.textContent = brandedName;
                 }
-                
-                // Update logo
-                if (data.settings.logo_path) {
-                    const logos = document.querySelectorAll('.dashboard-logo, .login-logo, .signup-logo');
-                    logos.forEach(logo => {
-                        logo.src = data.settings.logo_path;
-                    });
+                if (faviconLink) {
+                    faviconLink.href = brandedFavicon;
                 }
-                
-                // Apply logo shape
-                if (data.settings.logo_shape) {
-                    applyLogoShapeToAll(data.settings.logo_shape);
-                } else {
-                    // Default to square if no shape is set
-                    applyLogoShapeToAll('square');
+
+                if (document.title) {
+                    document.title = document.title.replace('Aether Dashboard', brandedName);
                 }
-                
-                // Update favicon
-                if (data.settings.favicon_path) {
-                    const faviconLink = document.querySelector('link[rel="icon"]');
-                    if (faviconLink) {
-                        faviconLink.href = data.settings.favicon_path;
-                    }
-                }
+
+                // Keep compatibility with pages that have multiple logos.
+                document.querySelectorAll('.dashboard-logo, .login-logo, .signup-logo').forEach(logo => {
+                    if (logo !== logoById) logo.src = brandedLogo;
+                });
+
+                applyLogoShapeToAll(brandedShape);
             }
         }
     } catch (error) {

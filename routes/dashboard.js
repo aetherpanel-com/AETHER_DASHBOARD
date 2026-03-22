@@ -4,6 +4,8 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const { db } = require('../config/database');
+const { sendBrandedView } = require('../config/brandingHelper');
 
 // Middleware to check if user is logged in
 // We'll create this in Phase 3, for now just a placeholder
@@ -16,17 +18,17 @@ const requireAuth = (req, res, next) => {
 
 // Main dashboard page
 router.get('/', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/dashboard.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/dashboard.html'));
 });
 
 // Profile page
 router.get('/profile', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/profile.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/profile.html'));
 });
 
 // Settings page
 router.get('/settings', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/settings.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/settings.html'));
 });
 
 // API endpoint to get current user data

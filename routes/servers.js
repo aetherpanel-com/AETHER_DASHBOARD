@@ -9,6 +9,8 @@ const { serverCreationLimiter, purchaseLimiter } = require('../middleware/rateLi
 const pterodactyl = require('../config/pterodactyl');
 const { markStep } = require('./onboarding');
 const { getServerHealthTimeline } = require('../config/healthPoller');
+const { db } = require('../config/database');
+const { sendBrandedView } = require('../config/brandingHelper');
 
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
@@ -20,22 +22,22 @@ const requireAuth = (req, res, next) => {
 
 // Servers management page
 router.get('/', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/servers.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/servers.html'));
 });
 
 // Create server page
 router.get('/create', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/servers.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/servers.html'));
 });
 
 // Resource store page
 router.get('/store', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/resource-store.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/resource-store.html'));
 });
 
 // Server details page (real-time stats)
 router.get('/view/:id', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/server-details.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/server-details.html'));
 });
 
 // API endpoint to get user's servers

@@ -5,7 +5,8 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const axios = require('axios');
-const { query, get } = require('../config/database');
+const { db, query, get } = require('../config/database');
+const { sendBrandedView } = require('../config/brandingHelper');
 
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
@@ -17,7 +18,7 @@ const requireAuth = (req, res, next) => {
 
 // Community page
 router.get('/', requireAuth, async (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/community.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/community.html'));
 });
 
 // GET /api/community/discord-config

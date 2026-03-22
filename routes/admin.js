@@ -6,8 +6,9 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs').promises;
 const multer = require('multer');
-const { query, get, run, transaction } = require('../config/database');
+const { db, query, get, run, transaction } = require('../config/database');
 const { sanitizeBody } = require('../middleware/validation');
+const { sendBrandedView } = require('../config/brandingHelper');
 
 // Configure multer for file uploads (configure once, use multiple times)
 const uploadPath = path.join(__dirname, '../public/assets/branding');
@@ -74,7 +75,7 @@ const requireAdmin = (req, res, next) => {
 
 // Admin dashboard page
 router.get('/', requireAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/admin.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/admin.html'));
 });
 
 // Admin settings page (redirects to themes)
@@ -84,22 +85,22 @@ router.get('/settings', requireAdmin, (req, res) => {
 
 // Admin themes page
 router.get('/settings/themes', requireAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/admin-themes.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/admin-themes.html'));
 });
 
 // Admin branding page
 router.get('/settings/branding', requireAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/admin-branding.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/admin-branding.html'));
 });
 
 // Admin integrations - Linkvertise page
 router.get('/integrations/linkvertise', requireAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/admin-integrations-linkvertise.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/admin-integrations-linkvertise.html'));
 });
 
 // Admin integrations - Discord page
 router.get('/integrations/discord', requireAdmin, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/admin-integrations-discord.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/admin-integrations-discord.html'));
 });
 
 // API endpoint to get system statistics

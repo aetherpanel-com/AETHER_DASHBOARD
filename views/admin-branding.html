@@ -13,8 +13,8 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <img src="/assets/defaults/aether-dashboard-logo.png" alt="Aether Dashboard" class="dashboard-logo" id="sidebarLogo">
-                <h2 id="sidebarTitle">Aether Dashboard</h2>
+                <img src="/assets/defaults/aether-dashboard-logo.png" alt="Dashboard Logo" class="dashboard-logo" id="sidebar-logo">
+                <h2 id="sidebar-name">Aether Dashboard</h2>
             </div>
             
             <nav class="sidebar-nav">
@@ -281,7 +281,7 @@
                         if (data.settings.dashboard_name) {
                             document.getElementById('dashboardName').value = data.settings.dashboard_name;
                             // Update sidebar title
-                            const sidebarTitle = document.getElementById('sidebarTitle');
+                            const sidebarTitle = document.getElementById('sidebar-name');
                             if (sidebarTitle) {
                                 sidebarTitle.textContent = data.settings.dashboard_name;
                             }
@@ -290,7 +290,7 @@
                         // Set logo preview
                         if (data.settings.logo_path) {
                             document.getElementById('logoPreview').src = data.settings.logo_path;
-                            const sidebarLogo = document.getElementById('sidebarLogo');
+                            const sidebarLogo = document.getElementById('sidebar-logo');
                             if (sidebarLogo) {
                                 sidebarLogo.src = data.settings.logo_path;
                             }
@@ -321,7 +321,7 @@
         // Apply logo shape to preview and sidebar
         function applyLogoShape(shape) {
             const logoPreview = document.getElementById('logoPreview');
-            const sidebarLogo = document.getElementById('sidebarLogo');
+            const sidebarLogo = document.getElementById('sidebar-logo');
             
             // Remove all shape classes
             const shapes = ['square', 'circle', 'rounded', 'triangle', 'hexagon', 'diamond'];
@@ -411,7 +411,7 @@
                 if (data.success) {
                     showNotification('Branding settings saved successfully! Please refresh the page to see changes.', 'success');
                     // Update sidebar title immediately
-                    const sidebarTitle = document.getElementById('sidebarTitle');
+                    const sidebarTitle = document.getElementById('sidebar-name');
                     if (sidebarTitle) {
                         sidebarTitle.textContent = dashboardName;
                     }
@@ -459,3 +459,4 @@
     </script>
 </body>
 </html>
+

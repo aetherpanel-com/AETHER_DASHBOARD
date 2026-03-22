@@ -4,9 +4,10 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { query, get, run, transaction } = require('../config/database');
+const { db, query, get, run, transaction } = require('../config/database');
 const { linkvertiseLimiter } = require('../middleware/rateLimit');
 const { markStep } = require('./onboarding');
+const { sendBrandedView } = require('../config/brandingHelper');
 
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
@@ -18,7 +19,7 @@ const requireAuth = (req, res, next) => {
 
 // Linkvertise page
 router.get('/', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, '../views/linkvertise.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/linkvertise.html'));
 });
 
 // API endpoint to get available links

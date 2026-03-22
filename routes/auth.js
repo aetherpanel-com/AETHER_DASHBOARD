@@ -6,11 +6,12 @@ const router = express.Router();
 const path = require('path');
 const bcrypt = require('bcrypt');
 const passport = require('passport');
-const { get, run } = require('../config/database');
+const { db, get, run } = require('../config/database');
 const { sanitizeBody, validateSignup, validateLogin } = require('../middleware/validation');
 const { authLimiter } = require('../middleware/rateLimit');
 const pterodactyl = require('../config/pterodactyl');
 const referral = require('./referral');
+const { sendBrandedView } = require('../config/brandingHelper');
 
 const referralChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -65,7 +66,7 @@ router.get('/login', (req, res) => {
     if (req.session.user) {
         return res.redirect('/dashboard');
     }
-    res.sendFile(path.join(__dirname, '../views/login.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/login.html'));
 });
 
 // Signup page
@@ -74,7 +75,7 @@ router.get('/signup', (req, res) => {
     if (req.session.user) {
         return res.redirect('/dashboard');
     }
-    res.sendFile(path.join(__dirname, '../views/signup.html'));
+    sendBrandedView(res, db, path.join(__dirname, '../views/signup.html'));
 });
 
 // Referral register landing page
