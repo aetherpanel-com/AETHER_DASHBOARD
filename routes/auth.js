@@ -11,6 +11,7 @@ const { sanitizeBody, validateSignup, validateLogin } = require('../middleware/v
 const { authLimiter } = require('../middleware/rateLimit');
 const pterodactyl = require('../config/pterodactyl');
 const referral = require('./referral');
+const { generatePanelPassword } = require('../utils/helpers');
 const { sendBrandedView } = require('../config/brandingHelper');
 
 const referralChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -244,9 +245,9 @@ router.post('/signup', authLimiter, sanitizeBody, validateSignup, async (req, re
                     
                     if (pterodactylUser.success && pterodactylUser.data) {
                         pterodactylUserId = pterodactylUser.data.id || pterodactylUser.data.attributes?.id;
-                        // Update user with Pterodactyl user ID
-                        await run('UPDATE users SET pterodactyl_user_id = ? WHERE id = ?', 
-                            [pterodactylUserId, userId]);
+                        // Update user with Pterodactyl user ID and store plain panel password
+                        await run('UPDATE users SET pterodactyl_user_id = ?, panel_password = ? WHERE id = ?', 
+                            [pterodactylUserId, password, userId]);
                     } else {
                         console.warn('Failed to create Pterodactyl user:', pterodactylUser.error || pterodactylUser.message);
                     }
@@ -357,6 +358,38 @@ router.post('/register', authLimiter, sanitizeBody, validateSignup, async (req, 
         const userId = result.lastID;
         let pterodactylUserId = null;
 
+        // Attempt to create Pterodactyl user (mirrors signup route)
+        try {
+            const isConfigured = await pterodactyl.isConfigured();
+            if (isConfigured) {
+                const existingUser = await pterodactyl.getPterodactylUserByEmail(email);
+                if (!existingUser.success) {
+                    const names = username.split(' ');
+                    const firstName = names[0] || username;
+                    const lastName = names.slice(1).join(' ') || 'User';
+
+                    const pterodactylUser = await pterodactyl.createPterodactylUser({
+                        email: email,
+                        username: username,
+                        first_name: firstName,
+                        last_name: lastName,
+                        password: password
+                    });
+                    if (pterodactylUser.success && pterodactylUser.data) {
+                        pterodactylUserId = pterodactylUser.data.id || pterodactylUser.data.attributes?.id;
+                        await run('UPDATE users SET pterodactyl_user_id = ?, panel_password = ? WHERE id = ?', 
+                            [pterodactylUserId, password, userId]);
+                    }
+                } else {
+                    pterodactylUserId = existingUser.data.id || existingUser.data.attributes?.id;
+                    await run('UPDATE users SET pterodactyl_user_id = ?, panel_password = ? WHERE id = ?', 
+                        [pterodactylUserId, password, userId]);
+                }
+            }
+        } catch (e) {
+            // Do not fail register flow on Pterodactyl errors
+        }
+
         // Create session with base user fields first (mirrors signup route)
         req.session.user = {
             id: userId,
@@ -457,6 +490,28 @@ router.get('/discord/callback',
                 server_slots: req.user.server_slots || 1
             };
             
+            // Ensure Pterodactyl account exists for Discord users
+            try {
+                const isConfigured = await pterodactyl.isConfigured();
+                if (isConfigured && !req.user.pterodactyl_user_id) {
+                    const panelPassword = generatePanelPassword();
+                    const pterodactylUser = await pterodactyl.createPterodactylUser({
+                        email: req.user.email,
+                        username: req.user.username,
+                        first_name: req.user.username,
+                        last_name: 'User',
+                        password: panelPassword
+                    });
+                    if (pterodactylUser.success && pterodactylUser.data) {
+                        const pteroId = pterodactylUser.data.id || pterodactylUser.data.attributes?.id;
+                        await run('UPDATE users SET pterodactyl_user_id = ?, panel_password = ? WHERE id = ?', [pteroId, panelPassword, req.user.id]);
+                        req.session.user.pterodactyl_user_id = pteroId;
+                    }
+                }
+            } catch (e) {
+                console.error('Discord Pterodactyl user creation error:', e);
+            }
+
             res.redirect('/dashboard');
         } catch (error) {
             console.error('Discord callback error:', error);

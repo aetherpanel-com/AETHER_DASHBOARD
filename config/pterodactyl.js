@@ -1146,6 +1146,13 @@ async function createPterodactylUser(userData) {
     return await makeRequest('POST', '/application/users', userData);
 }
 
+// Update user in Pterodactyl (ALL fields required by Pterodactyl API)
+async function updatePterodactylUser(userId, userData) {
+    // userData MUST include: email, username, first_name, last_name, password
+    // Pterodactyl returns 422 if any of these are missing
+    return await makeRequest('PATCH', `/application/users/${userId}`, userData);
+}
+
 // Get user by external ID (useful for linking dashboard users to Pterodactyl)
 async function getPterodactylUserByExternalId(externalId) {
     try {
@@ -1287,6 +1294,7 @@ module.exports = {
     getAllocationsForNode,
     getAllAllocations,
     createPterodactylUser,
+    updatePterodactylUser,
     getPterodactylUserByEmail,
     getPterodactylUserByExternalId,
     // File Manager (Feature 5)

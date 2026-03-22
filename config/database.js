@@ -77,6 +77,9 @@ function initializeDatabase() {
                         if (!columnNames.includes('client_api_key')) {
                             columnsToAdd.push({ name: 'client_api_key', type: 'TEXT' });
                         }
+                        if (!columnNames.includes('panel_password')) {
+                            columnsToAdd.push({ name: 'panel_password', type: 'TEXT' });
+                        }
                         
                         // Add missing columns
                         columnsToAdd.forEach(col => {

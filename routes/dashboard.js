@@ -4,6 +4,10 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const bcrypt = require('bcrypt');
+const { get, run } = require('../config/database');
+const pterodactyl = require('../config/pterodactyl');
+const { generatePanelPassword } = require('../utils/helpers');
 const { db } = require('../config/database');
 const { sendBrandedView } = require('../config/brandingHelper');
 
@@ -34,10 +38,12 @@ router.get('/settings', requireAuth, (req, res) => {
 // API endpoint to get current user data
 router.get('/api/user', requireAuth, async (req, res) => {
     try {
-        const { get, query } = require('../config/database');
+        const { query } = require('../config/database');
         
         // Get latest user data from database (including server_slots and purchased resources)
-        const user = await get('SELECT id, username, email, coins, is_admin, server_slots, discord_id, purchased_ram, purchased_cpu, purchased_storage, created_at FROM users WHERE id = ?', [req.session.user.id]);
+        const user = await get(`SELECT 
+            id, username, email, coins, is_admin, server_slots, discord_id, purchased_ram, purchased_cpu, purchased_storage, created_at, password
+        FROM users WHERE id = ?`, [req.session.user.id]);
         
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -80,7 +86,8 @@ router.get('/api/user', requireAuth, async (req, res) => {
                     ram: (user.purchased_ram || 0) - (usedResources.used_ram || 0),
                     cpu: (user.purchased_cpu || 0) - (usedResources.used_cpu || 0),
                     storage: (user.purchased_storage || 0) - (usedResources.used_storage || 0)
-                }
+                },
+                has_password: !!user.password
             }
         });
     } catch (error) {
@@ -93,10 +100,9 @@ router.get('/api/user', requireAuth, async (req, res) => {
 router.post('/api/change-password', requireAuth, async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
-        const bcrypt = require('bcrypt');
-        const { get, run } = require('../config/database');
+        const userRow = await get('SELECT password FROM users WHERE id = ?', [req.session.user.id]);
         
-        if (!currentPassword || !newPassword) {
+        if (!newPassword) {
             return res.status(400).json({ success: false, message: 'All fields are required' });
         }
         
@@ -104,33 +110,96 @@ router.post('/api/change-password', requireAuth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
         }
         
-        // Get user from database
-        const user = await get('SELECT * FROM users WHERE id = ?', [req.session.user.id]);
-        
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
-        
-        // Check if user has a password (Discord users might not have one)
-        if (!user.password) {
-            return res.status(400).json({ success: false, message: 'Please set a password first' });
-        }
-        
-        // Verify current password
-        const passwordMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!passwordMatch) {
-            return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+        const isDiscordUser = !userRow || !userRow.password;
+        if (!isDiscordUser) {
+            if (!currentPassword) {
+                return res.status(400).json({ success: false, message: 'Current password is required' });
+            }
+            const passwordMatch = await bcrypt.compare(currentPassword, userRow.password);
+            if (!passwordMatch) {
+                return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+            }
         }
         
         // Hash new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
         // Update password
-        await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+        await run('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, req.session.user.id]);
         
         res.json({ success: true, message: 'Password updated successfully' });
     } catch (error) {
         console.error('Change password error:', error);
+        res.status(500).json({ success: false, message: 'An error occurred' });
+    }
+});
+
+// Panel credentials
+router.get('/api/panel-credentials', requireAuth, async (req, res) => {
+    try {
+        const user = await get('SELECT email, username, panel_password, pterodactyl_user_id FROM users WHERE id = ?', [req.session.user.id]);
+        const pteroConfig = await get('SELECT panel_url FROM pterodactyl_config LIMIT 1');
+        res.json({
+            success: true,
+            credentials: {
+                panelUrl: pteroConfig && pteroConfig.panel_url ? pteroConfig.panel_url : null,
+                email: user ? user.email : null,
+                username: user ? user.username : null,
+                password: user ? (user.panel_password || null) : null,
+                hasPanelAccount: !!(user && user.pterodactyl_user_id)
+            }
+        });
+    } catch (error) {
+        console.error('panel-credentials error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch panel credentials' });
+    }
+});
+
+router.post('/api/set-panel-password', requireAuth, async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+
+        const user = await get('SELECT username, email, pterodactyl_user_id FROM users WHERE id = ?', [req.session.user.id]);
+
+        if (!user || !user.pterodactyl_user_id) {
+            return res.status(400).json({ success: false, message: 'No panel account linked' });
+        }
+
+        if (newPassword && newPassword.trim().length > 0 && newPassword.trim().length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: 'Panel password must be at least 8 characters'
+            });
+        }
+
+        const password = (newPassword && newPassword.trim().length >= 8)
+            ? newPassword.trim()
+            : generatePanelPassword();
+
+        const names = (user.username || '').split(' ');
+        const firstName = names[0] || user.username;
+        const lastName = names.slice(1).join(' ') || 'User';
+
+        const result = await pterodactyl.updatePterodactylUser(user.pterodactyl_user_id, {
+            email: user.email,
+            username: user.username,
+            first_name: firstName,
+            last_name: lastName,
+            password: password
+        });
+
+        if (!result || !result.success) {
+            console.error('Pterodactyl updatePterodactylUser failed:', result && result.error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to update panel password. ' + ((result && result.error) || '')
+            });
+        }
+
+        await run('UPDATE users SET panel_password = ? WHERE id = ?', [password, req.session.user.id]);
+        res.json({ success: true, password: password });
+    } catch (error) {
+        console.error('set-panel-password error:', error);
         res.status(500).json({ success: false, message: 'An error occurred' });
     }
 });
