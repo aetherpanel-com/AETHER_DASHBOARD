@@ -4,6 +4,51 @@
 
 ---
 
+## Aether Dashboard v1.5.1
+
+### 🐛 Patch Release
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.5.1 is a patch release fixing UI and UX issues introduced in v1.5.0,
+with no breaking changes and no manual migration steps required.
+
+### Bug Fixes & Improvements
+
+| Fix | Description |
+|-----|-------------|
+| 🎨 **Branding Flash (FOUC)** | Fixed flash of default logo/name/favicon on every page load. Branding is now injected server-side before first paint — zero flash on hard refresh. |
+| 🔑 **Panel Login Credentials** | Users can now view their game panel login credentials (URL, email, password) directly from Settings → Panel Login Credentials. |
+| 🔐 **Set / Reset Panel Password** | Users can type a custom panel password (min 8 chars) or click Generate for a random one, then Save to apply it instantly to Pterodactyl. |
+| 👤 **Discord User Password Change** | Discord-only users (no dashboard password set) no longer see the "Current Password" field — they can set a new dashboard password directly. |
+| 🤖 **Panel Account for Discord Users** | Discord OAuth users now automatically get a Pterodactyl panel account created on first login if one does not already exist. |
+
+### 🔧 Technical Changes
+
+- Added `updatePterodactylUser()` to `config/pterodactyl.js` (PATCH `/application/users/{id}`)
+- Added `panel_password` column to `users` table via auto-migration in `config/database.js`
+- Added `GET /dashboard/api/panel-credentials` route in `routes/dashboard.js`
+- Added `POST /dashboard/api/set-panel-password` route in `routes/dashboard.js`
+- Added `has_password` boolean to `GET /dashboard/api/user` response
+- Added `generatePanelPassword()` to `utils/helpers.js`, imported by `auth.js` and `dashboard.js`
+- Server-side branding injection via `getBrandingSync` + `fs.readFileSync` in all page routes
+- Sidebar logo and name now have `id="sidebar-logo"` and `id="sidebar-name"` for reliable JS targeting
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**⚠️ No manual database changes needed** — the `panel_password` column is
+added automatically on startup if it does not exist.
+
+---
+
 ## Aether Dashboard v1.5.0
 
 ### 🚀 Platform Enhancement Update

@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.5.0
+**Version:** 1.5.1
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.5.0):** Major feature update — daily login rewards, referral system, notification centre, scheduled maintenance, server health timeline, resource usage warnings, and admin bulk broadcast. See [Changelog](UPDATES.md#aether-dashboard-v150) for details.
+**🔧 Latest Update (v1.5.1):** Patch release — branding flash fix, panel credentials for users, Discord user password improvements. See Changelog for details.
 
 ---
 
