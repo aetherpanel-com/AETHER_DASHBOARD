@@ -607,6 +607,161 @@ router.delete('/api/delete/:id', requireAuth, async (req, res) => {
     }
 });
 
+// Update server resources (RAM/CPU/Storage) and restart
+router.post('/api/update-resources/:id', requireAuth, async (req, res) => {
+    try {
+        const serverId = req.params.id;
+        const { ram, cpu, storage } = req.body;
+
+        if (ram === undefined || cpu === undefined || storage === undefined) {
+            return res.status(400).json({ success: false, message: 'RAM, CPU, and Storage are required' });
+        }
+
+        const ramMB = parseInt(ram);
+        const cpuPct = parseInt(cpu);
+        const storageMB = parseInt(storage);
+
+        if (isNaN(ramMB) || isNaN(cpuPct) || isNaN(storageMB)) {
+            return res.status(400).json({ success: false, message: 'Invalid RAM, CPU, or Storage values' });
+        }
+
+        if (ramMB < 1024) {
+            return res.status(400).json({ success: false, message: 'RAM must be at least 1GB' });
+        }
+        if (cpuPct < 100) {
+            return res.status(400).json({ success: false, message: 'CPU must be at least 100%' });
+        }
+        if (storageMB < 5120) {
+            return res.status(400).json({ success: false, message: 'Storage must be at least 5GB' });
+        }
+
+        // Verify ownership and get current server values
+        const server = await get('SELECT * FROM servers WHERE id = ? AND user_id = ?', [serverId, req.session.user.id]);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+
+        // Get user's purchased resources
+        const user = await get('SELECT purchased_ram, purchased_cpu, purchased_storage FROM users WHERE id = ?', [req.session.user.id]);
+
+        // Calculate resources used by OTHER servers (exclude current server from sum)
+        const otherUsed = await get(`
+            SELECT
+                COALESCE(SUM(ram), 0)     as used_ram,
+                COALESCE(SUM(cpu), 0)     as used_cpu,
+                COALESCE(SUM(storage), 0) as used_storage
+            FROM servers
+            WHERE user_id = ? AND id != ?
+        `, [req.session.user.id, serverId]);
+
+        const availableRam     = (user?.purchased_ram     || 0) - (otherUsed?.used_ram     || 0);
+        const availableCpu     = (user?.purchased_cpu     || 0) - (otherUsed?.used_cpu     || 0);
+        const availableStorage = (user?.purchased_storage || 0) - (otherUsed?.used_storage || 0);
+
+        if (ramMB > availableRam) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient RAM. You have ${Math.round(availableRam / 1024)}GB available across your pool.`
+            });
+        }
+        if (cpuPct > availableCpu) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient CPU. You have ${availableCpu}% available across your pool.`
+            });
+        }
+        if (storageMB > availableStorage) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient Storage. You have ${Math.round(availableStorage / 1024)}GB available across your pool.`
+            });
+        }
+
+        // Update Pterodactyl if configured and server has an internal ID
+        if (await pterodactyl.isConfigured() && server.pterodactyl_id) {
+            // Fetch server details to get allocation ID and current feature limits
+            const serverDetails = await pterodactyl.getServerDetails(server.pterodactyl_id);
+            if (!serverDetails.success) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to fetch server details from panel'
+                });
+            }
+
+            const serverAttrs = serverDetails.data?.attributes || serverDetails.data;
+            const currentLimits = serverAttrs.limits || {};
+            const currentFeatureLimits = serverAttrs.feature_limits || {};
+
+            // Read the primary allocation ID directly from attributes.allocation
+            // This is always a flat integer on the attributes object, even when
+            // relationships.allocations.data is empty — do NOT use getPrimaryAllocation()
+            const allocationId = serverAttrs.allocation;
+            if (!allocationId) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Could not determine server allocation. Please check the Pterodactyl panel.'
+                });
+            }
+
+            // Call PATCH /application/servers/{id}/build directly with all required fields
+            const pteroResult = await pterodactyl.makeRequest(
+                'PATCH',
+                `/application/servers/${server.pterodactyl_id}/build`,
+                {
+                    allocation:   parseInt(allocationId),
+                    oom_disabled: serverAttrs.oom_disabled ?? false,
+                    limits: {
+                        memory: ramMB,
+                        swap:   currentLimits.swap ?? 0,
+                        disk:   storageMB,
+                        io:     currentLimits.io   ?? 500,
+                        cpu:    cpuPct
+                    },
+                    feature_limits: {
+                        databases:   currentFeatureLimits.databases   ?? 0,
+                        allocations: currentFeatureLimits.allocations ?? 1,
+                        backups:     currentFeatureLimits.backups      ?? 0
+                    }
+                }
+            );
+
+            if (!pteroResult || !pteroResult.success) {
+                console.error('build update failed:', pteroResult);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to update server resources in panel. ' + (pteroResult?.error || '')
+                });
+            }
+        }
+
+        // Update local DB
+        await run('UPDATE servers SET ram = ?, cpu = ?, storage = ? WHERE id = ?', [ramMB, cpuPct, storageMB, serverId]);
+
+        // Restart server if it has an identifier (best-effort)
+        let restarted = false;
+        if (await pterodactyl.isConfigured() && server.pterodactyl_identifier) {
+            try {
+                const restartResult = await pterodactyl.sendServerPowerSignal(server.pterodactyl_identifier, 'restart');
+                restarted = !!(restartResult && restartResult.success);
+            } catch (e) {
+                console.warn('Restart after resource update failed (non-fatal):', e?.message || e);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: restarted
+                ? 'Resources updated and server is restarting to apply changes.'
+                : 'Resources updated successfully. Restart the server to apply changes.',
+            restarted,
+            server: { id: serverId, ram: ramMB, cpu: cpuPct, storage: storageMB }
+        });
+    } catch (error) {
+        console.error('update-resources error:', error);
+        res.status(500).json({ success: false, message: 'An error occurred while updating resources' });
+    }
+});
+
 // ============================================
 // FEATURE 1: Quick Action Buttons - Power Control
 // ============================================

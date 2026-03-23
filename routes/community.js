@@ -130,9 +130,14 @@ router.get('/invites/stats', requireAuth, async (req, res) => {
         
         const invites = inviteCountResult && inviteCountResult.length > 0 ? inviteCountResult[0].count : 0;
         
-        // Get reward per invite from Discord config
-        const discordConfig = await get('SELECT reward_per_invite FROM discord_config ORDER BY id DESC LIMIT 1');
-        const rewardPerInvite = discordConfig ? (discordConfig.reward_per_invite || 100) : 100;
+        // Get reward per invite from Discord config (safe fallback if table is missing)
+        let discordConfig = null;
+        try {
+            discordConfig = await get('SELECT reward_per_invite FROM discord_config ORDER BY id DESC LIMIT 1');
+        } catch (e) {
+            // discord_config table may not exist yet
+        }
+        const rewardPerInvite = discordConfig ? (discordConfig.reward_per_invite || 0) : 0;
         
         // Calculate coins earned (invites * reward per invite)
         const coinsEarned = invites * rewardPerInvite;
@@ -158,21 +163,26 @@ router.get('/invites/stats', requireAuth, async (req, res) => {
 router.get('/invites/leaderboard', requireAuth, async (req, res) => {
     try {
         // Query to get invite counts per inviter
-        // Group by inviter, count invites, and calculate coins earned
-        // Default reward per invite is 100 coins
+        // Group by inviter, count invites
         const leaderboardData = await query(`
             SELECT 
                 di.inviter,
-                COUNT(*) as invites,
-                COUNT(*) * 100 as coins_earned
+                COUNT(*) as invites
             FROM discord_invites di
             WHERE di.rewarded = 1
             GROUP BY di.inviter
             ORDER BY invites DESC
             LIMIT 10
         `);
-        
-        const { get } = require('../config/database');
+
+        // Get reward per invite from Discord config (safe fallback if table is missing)
+        let rewardConfig = null;
+        try {
+            rewardConfig = await get('SELECT reward_per_invite FROM discord_config ORDER BY id DESC LIMIT 1');
+        } catch (e) {
+            // discord_config table may not exist yet
+        }
+        const rewardPerInvite = rewardConfig ? (rewardConfig.reward_per_invite || 0) : 0;
         
         // Get usernames from users table for each inviter
         const leaderboard = await Promise.all(
@@ -188,7 +198,7 @@ router.get('/invites/leaderboard', requireAuth, async (req, res) => {
                         userId: user.id,
                         username: user.username,
                         invites: item.invites,
-                        coins: item.coins_earned
+                        coins: item.invites * rewardPerInvite
                     };
                 }
                 // If user doesn't exist, still return the data but with inviter as username
@@ -196,7 +206,7 @@ router.get('/invites/leaderboard', requireAuth, async (req, res) => {
                     userId: null,
                     username: item.inviter,
                     invites: item.invites,
-                    coins: item.coins_earned
+                    coins: item.invites * rewardPerInvite
                 };
             })
         );

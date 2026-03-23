@@ -407,7 +407,7 @@
             // Load invite statistics
             async function loadInviteStats() {
                 try {
-                    const response = await apiFetch('/api/invites/stats');
+                    const response = await apiFetch('/community/invites/stats');
                     if (!response || !response.ok) {
                         console.error('Failed to load invite stats');
                         return;
@@ -443,7 +443,7 @@
             // Load Discord config to check if chat is enabled
             async function loadDiscordConfig() {
                 try {
-                    const response = await apiFetch('/api/community/discord-config');
+                    const response = await apiFetch('/community/discord-config');
                     if (!response || !response.ok) {
                         console.error('Failed to load Discord config');
                         return;
@@ -537,7 +537,7 @@
                 
                 try {
                     // Send message to dashboard API
-                    const response = await apiFetch('/api/community/send-message', {
+                    const response = await apiFetch('/community/send-message', {
                         method: 'POST',
                         body: JSON.stringify({
                             username: currentUsername,
@@ -587,7 +587,7 @@
             // Load leaderboard data
             async function loadLeaderboard() {
                 try {
-                    const response = await apiFetch('/api/invites/leaderboard');
+                    const response = await apiFetch('/community/invites/leaderboard');
                     if (!response || !response.ok) {
                         console.error('Failed to load leaderboard');
                         return;

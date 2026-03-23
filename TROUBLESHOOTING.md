@@ -512,6 +512,32 @@ pm2 restart aether-dashboard
 
 ---
 
+### "Invited user keeps rejoining but inviter stops getting coins"
+
+**This is expected behaviour (abuse protection):**
+
+After v1.5.2, a 24-hour cooldown is enforced between a user leaving and rejoining before a new reward is granted. This prevents join/leave farming.
+
+- If the user left and rejoined **within 24 hours** → no reward, this is correct
+- If the user left and rejoined **after 24 hours** → reward should be granted; check bot and dashboard logs if it is not
+
+**Checklist:**
+- ✅ Bot is running and connected: `pm2 logs aether-discord-bot`
+- ✅ Dashboard is accessible from the bot
+- ✅ `BOT_API_KEY` matches in both `.env` files
+- ✅ Check dashboard logs: `pm2 logs aether-dashboard`
+
+---
+
+### "Deduct Per Leave is deducting the wrong amount"
+
+**Checklist:**
+- ✅ If **Deduct Per Leave** is set to `0` in Admin Panel → Integrations → Discord, the system deducts the exact coins that were awarded when the user joined (stored per-record)
+- ✅ If you changed the **Reward per Invite** after a user already joined, the old reward amount is still what gets deducted (not the new setting) — this is correct behaviour
+- ✅ If you set a fixed **Deduct Per Leave** value, that fixed amount is always deducted regardless of how much was awarded
+
+---
+
 ### "Referral link not awarding coins"
 
 **Checklist:**
@@ -888,7 +914,7 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.5.0
+**Last Updated:** Version 1.5.2
 
 **Made with ❤️ for free hosting providers**
 

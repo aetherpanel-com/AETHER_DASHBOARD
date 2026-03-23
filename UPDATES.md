@@ -4,6 +4,59 @@
 
 ---
 
+## Aether Dashboard v1.5.2
+
+### 🔒 Discord Invite Security & Controls
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.5.2 is a security and control patch for the Discord invite reward system, closing an exploit and giving admins precise control over coin deductions.
+
+### 🐛 Bug Fixes & Security
+
+| Fix | Description |
+|-----|-------------|
+| 🔒 **Invite Farming Exploit Fixed** | Users could previously farm coins by repeatedly joining and leaving Discord. Invite records are now kept with a `left_at` timestamp instead of being deleted, and a 24-hour cooldown is enforced before a rejoin can earn a reward again. |
+| 🪙 **Exact Coin Deduction** | Deduction on leave now uses the exact `coins_awarded` recorded at join time instead of the current `reward_per_invite` setting — prevents over- or under-deduction if the admin changes the reward amount after the join. |
+| 🛡️ **Coins Cannot Go Negative** | Deductions now use `MAX(0, coins - ?)` — a user's balance can never be driven below zero. |
+| 📋 **New Invite Cache Events** | Discord bot now listens to `inviteCreate` and `inviteDelete` events so newly created invites are tracked immediately without requiring a bot restart. |
+
+### ✨ New Feature
+
+| Feature | Description |
+|---------|-------------|
+| ⚙️ **Deduct Per Leave (Admin Setting)** | Admins can now set a custom **Deduct Per Leave** coin amount in Admin Panel → Integrations → Discord. Set to `0` (default) to deduct the exact amount awarded at join. Set to any positive value to deduct a fixed amount instead — useful for partial deductions (e.g. reward 50, deduct 25). |
+
+### 🗄️ Database Changes
+
+- ✅ Added `deduct_per_invite` column to `discord_config` table (auto-migration, default `0`)
+- ✅ Added `coins_awarded` column to `discord_invites` table (auto-migration, default `0`)
+- ✅ Added `left_at` column to `discord_invites` table (auto-migration, default `NULL`)
+
+All migrations run automatically on server startup. No manual steps required.
+
+### 🔄 Behaviour Changes
+
+- Invite records are **no longer deleted** when a user leaves — they are marked with `rewarded = 0` and `left_at = <timestamp>` for cooldown tracking
+- A user who leaves and rejoins within **24 hours** will not trigger a reward for the inviter
+- A user who leaves and rejoins after 24 hours **will** re-trigger the reward (record is updated in place)
+- The leaderboard and invite stats correctly exclude left users (`WHERE rewarded = 1`) — no change needed there
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+pm2 restart aether-discord-bot
+```
+
+**⚠️ No manual database changes needed** — all new columns are added automatically on startup.
+
+---
+
 ## Aether Dashboard v1.5.1
 
 ### 🐛 Patch Release
@@ -1384,7 +1437,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.5.0
+**Last Updated:** Version 1.5.2
 
 **Made with ❤️ for free hosting providers**
 

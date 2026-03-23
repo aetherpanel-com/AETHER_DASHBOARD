@@ -624,6 +624,8 @@ function initializeDatabase() {
                     joined_user TEXT NOT NULL,
                     invite_code TEXT NOT NULL,
                     rewarded INTEGER DEFAULT 1,
+                    coins_awarded INTEGER DEFAULT 0,
+                    left_at INTEGER DEFAULT NULL,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             `, (err) => {
@@ -633,6 +635,13 @@ function initializeDatabase() {
                     return;
                 }
                 console.log('✅ Discord_Invites table created/verified');
+
+                db.run("ALTER TABLE discord_invites ADD COLUMN coins_awarded INTEGER DEFAULT 0", (err) => {
+                    // Column may already exist, ignore error
+                });
+                db.run("ALTER TABLE discord_invites ADD COLUMN left_at INTEGER DEFAULT NULL", (err) => {
+                    // Column may already exist, ignore error
+                });
             });
 
             // Create Discord_Config table
@@ -645,6 +654,7 @@ function initializeDatabase() {
                     reward_per_invite INTEGER DEFAULT 100,
                     enable_chat INTEGER DEFAULT 1,
                     enable_invite_rewards INTEGER DEFAULT 1,
+                    deduct_per_invite INTEGER DEFAULT 0,
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
@@ -655,12 +665,16 @@ function initializeDatabase() {
                     return;
                 }
                 console.log('✅ Discord_Config table created/verified');
+
+                db.run("ALTER TABLE discord_config ADD COLUMN deduct_per_invite INTEGER DEFAULT 0", (err) => {
+                    // Column may already exist, ignore error
+                });
                 
                 // Create default config if it doesn't exist
                 db.get('SELECT id FROM discord_config', (err, row) => {
                     if (!err && !row) {
-                        db.run('INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards) VALUES (?, ?, ?, ?, ?, ?)', 
-                            ['', '', '', 100, 1, 1], (err) => {
+                        db.run('INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards, deduct_per_invite) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+                            ['', '', '', 100, 1, 1, 0], (err) => {
                                 if (!err) {
                                     console.log('✅ Default Discord config created');
                                 }

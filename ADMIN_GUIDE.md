@@ -2,7 +2,7 @@
 
 Complete guide for setting up and managing your Aether Dashboard after installation.
 
-**Version:** 1.5.0 | **Status:** Production Ready ✅
+**Version:** 1.5.2 | **Status:** Production Ready ✅
 
 > **New to Aether Dashboard?** Complete the installation steps in [README.md](README.md) first, then return here to set up your admin panel.
 
@@ -416,6 +416,7 @@ currently connected and sending heartbeats. It updates every 10 seconds.
 | **Bot Token** | Stored in the bot's `.env` file only — not here |
 | **Enable Invite Rewards** | Toggle the coin reward system on/off |
 | **Reward per Invite** | Coins awarded per successful invite join |
+| **Deduct per Leave** | Coins deducted when an invited user leaves. Set to `0` to deduct the exact amount that was awarded at join time. Set to any positive value to deduct a fixed amount instead (e.g. set to `25` when reward is `50` for a partial deduction). |
 | **Enable Chat Bridge** | Mirror Discord messages to the Community page |
 | **Chat Channel ID** | Discord channel ID to bridge messages from/to |
 
@@ -424,7 +425,8 @@ currently connected and sending heartbeats. It updates every 10 seconds.
 2. Someone joins your Discord using that link
 3. The bot detects which invite was used and calls the dashboard API
 4. The inviting user receives the configured coin reward automatically
-5. If the invited user leaves Discord, the coins are automatically deducted
+5. If the invited user leaves Discord, coins are automatically deducted (exact amount awarded, or the configured Deduct per Leave amount)
+6. A 24-hour cooldown prevents the same user from repeatedly joining and leaving to farm coins
 
 ### Setting Up the Discord Bot
 See the full bot setup instructions in [README.md](README.md) under
@@ -525,4 +527,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.5.0
+**Last Updated:** Version 1.5.2

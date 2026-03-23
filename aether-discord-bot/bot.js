@@ -138,6 +138,17 @@ client.once('ready', async () => {
     });
 });
 
+// Event: Cache newly created invites so they can be tracked
+client.on('inviteCreate', (invite) => {
+    inviteCache.set(invite.code, invite.uses || 0);
+    console.log(`New invite cached: ${invite.code}`);
+});
+
+// Event: Remove deleted invites from cache
+client.on('inviteDelete', (invite) => {
+    inviteCache.delete(invite.code);
+    console.log(`Invite removed from cache: ${invite.code}`);
+});
 // Event: Handle when a new member joins the server
 client.on('guildMemberAdd', async (member) => {
     // Check if invite rewards are enabled

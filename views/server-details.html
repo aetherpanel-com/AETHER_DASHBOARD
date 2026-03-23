@@ -487,21 +487,57 @@
                         </p>
                     </div>
                     
-                    <!-- Server Limits -->
+                    <!-- Server Limits + Edit -->
                     <div class="card" style="margin-top: 20px;">
-                        <div class="card-header">Server Limits</div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 16px;">
+                        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                            <span>Server Resources</span>
+                            <button onclick="toggleEditResources()" id="toggleEditBtn"
+                                class="btn btn-secondary" style="font-size:12px;padding:6px 14px;">
+                                ✏️ Edit Resources
+                            </button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 16px;" id="limitsDisplay">
                             <div>
-                                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Max RAM</div>
+                                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">RAM</div>
                                 <div style="color: #f8fafc; font-size: 18px; font-weight: 600;" id="maxRam">-</div>
                             </div>
                             <div>
-                                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Max CPU</div>
+                                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">CPU</div>
                                 <div style="color: #f8fafc; font-size: 18px; font-weight: 600;" id="maxCpu">-</div>
                             </div>
                             <div>
-                                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Max Storage</div>
+                                <div style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Storage</div>
                                 <div style="color: #f8fafc; font-size: 18px; font-weight: 600;" id="maxStorage">-</div>
+                            </div>
+                        </div>
+                        <div id="editResourcesForm" style="display:none;margin-top:20px;border-top:1px solid rgba(124,58,237,0.2);padding-top:20px;">
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:16px;">
+                                <div>
+                                    <label style="display:block;color:#94a3b8;font-size:12px;margin-bottom:4px;">RAM (GB)</label>
+                                    <input type="number" id="detailRamInput" min="1" step="1"
+                                        style="width:100%;padding:10px;background:rgba(10,14,39,0.6);border:1px solid rgba(124,58,237,0.3);border-radius:6px;color:#f8fafc;">
+                                </div>
+                                <div>
+                                    <label style="display:block;color:#94a3b8;font-size:12px;margin-bottom:4px;">CPU (%)</label>
+                                    <input type="number" id="detailCpuInput" min="100" step="100"
+                                        style="width:100%;padding:10px;background:rgba(10,14,39,0.6);border:1px solid rgba(124,58,237,0.3);border-radius:6px;color:#f8fafc;">
+                                </div>
+                                <div>
+                                    <label style="display:block;color:#94a3b8;font-size:12px;margin-bottom:4px;">Storage (GB)</label>
+                                    <input type="number" id="detailStorageInput" min="5" step="1"
+                                        style="width:100%;padding:10px;background:rgba(10,14,39,0.6);border:1px solid rgba(124,58,237,0.3);border-radius:6px;color:#f8fafc;">
+                                </div>
+                            </div>
+                            <div style="background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:8px;padding:10px;margin-bottom:14px;">
+                                <p style="color:#fbbf24;font-size:12px;margin:0;">
+                                    ⚠️ The server will restart automatically after saving to apply the new resource limits.
+                                </p>
+                            </div>
+                            <div style="display:flex;gap:10px;">
+                                <button onclick="saveDetailResources()" id="saveDetailResourcesBtn" class="btn btn-primary">
+                                    Save & Restart
+                                </button>
+                                <button onclick="toggleEditResources()" class="btn btn-secondary">Cancel</button>
                             </div>
                         </div>
                     </div>
@@ -559,6 +595,75 @@
             // Start auto-refresh
             refreshInterval = setInterval(refreshStats, 5000);
         });
+
+        function toggleEditResources() {
+            const form = document.getElementById('editResourcesForm');
+            const btn  = document.getElementById('toggleEditBtn');
+            const isHidden = form.style.display === 'none';
+
+            if (isHidden) {
+                document.getElementById('detailRamInput').value     = Math.round((serverData?.ram || 0) / 1024);
+                document.getElementById('detailCpuInput').value     = serverData?.cpu || 100;
+                document.getElementById('detailStorageInput').value = Math.round((serverData?.storage || 0) / 1024);
+                form.style.display = 'block';
+                btn.textContent = '✕ Cancel Edit';
+            } else {
+                form.style.display = 'none';
+                btn.textContent = '✏️ Edit Resources';
+            }
+        }
+
+        async function saveDetailResources() {
+            const ramGB     = parseFloat(document.getElementById('detailRamInput').value);
+            const cpuPct    = parseInt(document.getElementById('detailCpuInput').value);
+            const storageGB = parseFloat(document.getElementById('detailStorageInput').value);
+
+            if (!ramGB || ramGB < 1) { showNotification('RAM must be at least 1GB', 'error'); return; }
+            if (!cpuPct || cpuPct < 100) { showNotification('CPU must be at least 100%', 'error'); return; }
+            if (!storageGB || storageGB < 5) { showNotification('Storage must be at least 5GB', 'error'); return; }
+
+            const btn = document.getElementById('saveDetailResourcesBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const res = await fetch(`/servers/api/update-resources/${serverId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ram:     Math.round(ramGB * 1024),
+                        cpu:     cpuPct,
+                        storage: Math.round(storageGB * 1024)
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    serverData.ram     = Math.round(ramGB * 1024);
+                    serverData.cpu     = cpuPct;
+                    serverData.storage = Math.round(storageGB * 1024);
+
+                    document.getElementById('maxRam').textContent     = `${ramGB}GB`
+                    document.getElementById('maxCpu').textContent     = `${cpuPct}%`
+                    document.getElementById('maxStorage').textContent = `${storageGB}GB`
+
+                    document.getElementById('editResourcesForm').style.display = 'none';
+                    document.getElementById('toggleEditBtn').textContent = '✏️ Edit Resources';
+
+                    showNotification(data.message, 'success');
+                    if (data.restarted && typeof updateStatusBadge === 'function') {
+                        updateStatusBadge('starting');
+                    }
+                } else {
+                    showNotification(data.message || 'Failed to update resources', 'error');
+                }
+            } catch (e) {
+                showNotification('An error occurred', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save & Restart';
+            }
+        }
         
         async function loadPanelUrl() {
             try {
@@ -825,9 +930,11 @@
         
         function updateStats(resources) {
             // CPU
-            const cpuPercent = Math.min(resources.cpu_absolute || 0, 100);
-            document.getElementById('cpuValue').textContent = `${cpuPercent.toFixed(1)}%`;
-            document.getElementById('cpuProgress').style.width = `${cpuPercent}%`;
+                const cpuLimit = (serverData && serverData.cpu) ? serverData.cpu : 100;
+                const cpuRaw = resources.cpu_absolute || 0;
+                const cpuPercent = Math.min((cpuRaw / cpuLimit) * 100, 100);
+                document.getElementById('cpuValue').textContent = `${cpuRaw.toFixed(1)}%`;
+                document.getElementById('cpuProgress').style.width = `${cpuPercent}%`;
             
             // RAM
             const ramBytes = resources.memory_bytes || 0;

@@ -55,7 +55,7 @@ router.post('/invite-used', verifyBotAuth, async (req, res) => {
         console.log(`Joined User: ${joined_user}`);
         
         // Check if invite rewards are enabled
-        const discordConfig = await get('SELECT enable_invite_rewards, reward_per_invite FROM discord_config ORDER BY id DESC LIMIT 1');
+        const discordConfig = await get('SELECT enable_invite_rewards, reward_per_invite, deduct_per_invite FROM discord_config ORDER BY id DESC LIMIT 1');
         
         if (!discordConfig || discordConfig.enable_invite_rewards !== 1) {
             // Invite rewards are disabled - return success but skip reward logic
@@ -67,23 +67,37 @@ router.post('/invite-used', verifyBotAuth, async (req, res) => {
             });
         }
         
-        // Check if this joined_user has already been rewarded (abuse protection)
         const existingInvite = await get(
-            'SELECT * FROM discord_invites WHERE joined_user = ?',
+            'SELECT * FROM discord_invites WHERE LOWER(joined_user) = LOWER(?)',
             [joined_user]
         );
-        
+
         if (existingInvite) {
-            // Duplicate invite join detected - reward already given
-            console.log('Duplicate invite join detected. Reward skipped.');
-            return res.json({
-                success: false,
-                reason: 'User already rewarded'
-            });
+            // If the user previously left (rewarded = 0), check cooldown before allowing re-reward
+            if (existingInvite.rewarded === 0 && existingInvite.left_at) {
+                const cooldownMs = 24 * 60 * 60 * 1000; // 24 hours
+                const timeSinceLeft = Date.now() - existingInvite.left_at;
+                if (timeSinceLeft < cooldownMs) {
+                    const hoursLeft = Math.ceil((cooldownMs - timeSinceLeft) / (60 * 60 * 1000));
+                    console.log(`Rejoin blocked by cooldown. ${hoursLeft}h remaining.`);
+                    return res.json({
+                        success: false,
+                        reason: `Cooldown active. User must wait ${hoursLeft} more hour(s) before rejoining earns a reward.`
+                    });
+                }
+                // Cooldown passed — allow re-reward, update existing record below
+            } else if (existingInvite.rewarded === 1) {
+                // Still in server and already rewarded — block
+                console.log('Duplicate invite join detected. Reward skipped.');
+                return res.json({
+                    success: false,
+                    reason: 'User already rewarded'
+                });
+            }
         }
         
-        // Look up the inviter in the Users table by username
-        const inviterUser = await get('SELECT * FROM users WHERE username = ?', [inviter]);
+        // Look up the inviter in the Users table by username (case-insensitive)
+        const inviterUser = await get('SELECT * FROM users WHERE LOWER(username) = LOWER(?)', [inviter]);
         
         if (!inviterUser) {
             // Inviter not found in database
@@ -96,17 +110,25 @@ router.post('/invite-used', verifyBotAuth, async (req, res) => {
         // Get reward amount from config (default to 100 if not set)
         const reward = discordConfig.reward_per_invite || 100;
         
-        // Update the inviter's coins
+        // Update the inviter's coins using the canonical user ID
         await run(
-            'UPDATE users SET coins = coins + ? WHERE username = ?',
-            [reward, inviter]
+            'UPDATE users SET coins = coins + ? WHERE id = ?',
+            [reward, inviterUser.id]
         );
         
-        // Record the invite in the database to prevent duplicate rewards
-        await run(
-            'INSERT INTO discord_invites (inviter, joined_user, invite_code, rewarded) VALUES (?, ?, ?, 1)',
-            [inviter, joined_user, invite_code]
-        );
+        if (existingInvite) {
+            // Re-reward after cooldown passed — update the existing record
+            await run(
+                'UPDATE discord_invites SET inviter = ?, invite_code = ?, rewarded = 1, coins_awarded = ?, left_at = NULL WHERE LOWER(joined_user) = LOWER(?)',
+                [inviterUser.username, invite_code, reward, joined_user]
+            );
+        } else {
+            // First time join — insert new record
+            await run(
+                'INSERT INTO discord_invites (inviter, joined_user, invite_code, rewarded, coins_awarded) VALUES (?, ?, ?, 1, ?)',
+                [inviterUser.username, joined_user, invite_code, reward]
+            );
+        }
         
         // Log the reward
         console.log('Discord invite reward granted');
@@ -147,9 +169,9 @@ router.post('/member-left', verifyBotAuth, async (req, res) => {
         console.log('Discord member left:');
         console.log(`User: ${username}`);
         
-        // Look up the invite record for this joined user
+        // Look up the invite record for this joined user (case-insensitive)
         const inviteRecord = await get(
-            'SELECT * FROM discord_invites WHERE joined_user = ?',
+            'SELECT * FROM discord_invites WHERE LOWER(joined_user) = LOWER(?)',
             [username]
         );
         
@@ -162,7 +184,7 @@ router.post('/member-left', verifyBotAuth, async (req, res) => {
         }
         
         // Check if invite rewards are enabled
-        const discordConfig = await get('SELECT enable_invite_rewards, reward_per_invite FROM discord_config ORDER BY id DESC LIMIT 1');
+        const discordConfig = await get('SELECT enable_invite_rewards, reward_per_invite, deduct_per_invite FROM discord_config ORDER BY id DESC LIMIT 1');
         
         if (!discordConfig || discordConfig.enable_invite_rewards !== 1) {
             // Invite rewards are disabled - return success but skip deduction
@@ -176,19 +198,33 @@ router.post('/member-left', verifyBotAuth, async (req, res) => {
         // Get the inviter username from the record
         const inviter = inviteRecord.inviter;
         
-        // Get reward amount from config (should match the reward given on join)
-        const rewardToDeduct = discordConfig.reward_per_invite || 100;
+        // Use deduct_per_invite if configured, otherwise deduct exact coins_awarded, fallback to reward_per_invite
+        const configDeduct = discordConfig.deduct_per_invite || 0;
+        const rewardToDeduct = configDeduct > 0
+            ? configDeduct
+            : (inviteRecord.coins_awarded || discordConfig.reward_per_invite || 100);
         
-        // Deduct coins from the inviter
+        // Look up the inviter by username to deduct by ID (more reliable)
+        const inviterUser = await get('SELECT id FROM users WHERE LOWER(username) = LOWER(?)', [inviter]);
+        if (inviterUser) {
+            await run(
+                'UPDATE users SET coins = MAX(0, coins - ?) WHERE id = ?',
+                [rewardToDeduct, inviterUser.id]
+            );
+        }
+
+        // Mark record as left (rewarded = 0) with timestamp for cooldown tracking
+        // Do NOT delete — keeps abuse history and enables cooldown check on rejoin
         await run(
-            'UPDATE users SET coins = coins - ? WHERE username = ?',
-            [rewardToDeduct, inviter]
+            'UPDATE discord_invites SET rewarded = 0, left_at = ? WHERE LOWER(joined_user) = LOWER(?)',
+            [Date.now(), username]
         );
         
         // Log the reward removal
-        console.log('Removing invite reward');
+        console.log('Invite record removed (user left server)');
         console.log(`Inviter: ${inviter}`);
         console.log(`Coins deducted: ${rewardToDeduct}`);
+        console.log('Invite record marked as left (cooldown active)');
         
         // Return success response
         res.json({
@@ -219,6 +255,7 @@ router.get('/config', verifyBotAuth, async (req, res) => {
                     chat_channel_id: config.chat_channel_id || '',
                     invite_channel_id: config.invite_channel_id || '',
                     reward_per_invite: config.reward_per_invite || 100,
+                    deduct_per_invite: config.deduct_per_invite || 0,
                     enable_chat: config.enable_chat === 1,
                     enable_invite_rewards: config.enable_invite_rewards === 1
                 }
@@ -231,6 +268,7 @@ router.get('/config', verifyBotAuth, async (req, res) => {
                     chat_channel_id: '',
                     invite_channel_id: '',
                     reward_per_invite: 100,
+                    deduct_per_invite: 0,
                     enable_chat: true,
                     enable_invite_rewards: true
                 }

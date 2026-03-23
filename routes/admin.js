@@ -504,6 +504,7 @@ router.get('/api/discord-config', requireAdmin, async (req, res) => {
                     chat_channel_id: config.chat_channel_id || '',
                     invite_channel_id: config.invite_channel_id || '',
                     reward_per_invite: config.reward_per_invite || 100,
+                    deduct_per_invite: config.deduct_per_invite || 0,
                     enable_chat: config.enable_chat === 1,
                     enable_invite_rewards: config.enable_invite_rewards === 1
                 }
@@ -516,6 +517,7 @@ router.get('/api/discord-config', requireAdmin, async (req, res) => {
                     chat_channel_id: '',
                     invite_channel_id: '',
                     reward_per_invite: 100,
+                    deduct_per_invite: 0,
                     enable_chat: true,
                     enable_invite_rewards: true
                 }
@@ -529,7 +531,7 @@ router.get('/api/discord-config', requireAdmin, async (req, res) => {
 
 router.post('/api/discord-config', requireAdmin, async (req, res) => {
     try {
-        const { guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards } = req.body;
+        const { guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards, deduct_per_invite } = req.body;
         
         // Validate reward_per_invite is an integer
         const rewardPerInvite = parseInt(reward_per_invite);
@@ -539,6 +541,7 @@ router.post('/api/discord-config', requireAdmin, async (req, res) => {
                 message: 'Reward per invite must be a non-negative integer' 
             });
         }
+        const deductPerInvite = Math.max(0, parseInt(deduct_per_invite) || 0);
         
         // Convert boolean values to integers for database storage
         const enableChatInt = enable_chat === true || enable_chat === 'true' || enable_chat === 1 ? 1 : 0;
@@ -550,14 +553,14 @@ router.post('/api/discord-config', requireAdmin, async (req, res) => {
         if (existing) {
             // Update existing config
             await run(
-                'UPDATE discord_config SET guild_id = ?, chat_channel_id = ?, invite_channel_id = ?, reward_per_invite = ?, enable_chat = ?, enable_invite_rewards = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                [guild_id || '', chat_channel_id || '', invite_channel_id || '', rewardPerInvite, enableChatInt, enableInviteRewardsInt, existing.id]
+                'UPDATE discord_config SET guild_id = ?, chat_channel_id = ?, invite_channel_id = ?, reward_per_invite = ?, deduct_per_invite = ?, enable_chat = ?, enable_invite_rewards = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                [guild_id || '', chat_channel_id || '', invite_channel_id || '', rewardPerInvite, deductPerInvite, enableChatInt, enableInviteRewardsInt, existing.id]
             );
         } else {
             // Create new config
             await run(
-                'INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards) VALUES (?, ?, ?, ?, ?, ?)',
-                [guild_id || '', chat_channel_id || '', invite_channel_id || '', rewardPerInvite, enableChatInt, enableInviteRewardsInt]
+                'INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, reward_per_invite, deduct_per_invite, enable_chat, enable_invite_rewards) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [guild_id || '', chat_channel_id || '', invite_channel_id || '', rewardPerInvite, deductPerInvite, enableChatInt, enableInviteRewardsInt]
             );
         }
         

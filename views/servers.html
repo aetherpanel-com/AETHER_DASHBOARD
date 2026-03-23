@@ -764,6 +764,12 @@
                                     <div>CPU: ${server.cpu}%</div>
                                     <div>Storage: ${Math.round(server.storage / 1024)}GB</div>
                                 </div>
+                                <div style="margin-bottom: 12px;">
+                                    <button class="btn btn-secondary" style="font-size: 11px; padding: 5px 12px;"
+                                        onclick="openEditResources(${server.id}, ${server.ram}, ${server.cpu}, ${server.storage})">
+                                        ✏️ Edit Resources
+                                    </button>
+                                </div>
                                 
                                 <!-- Quick Action Buttons -->
                                 <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
@@ -904,6 +910,98 @@
                     el.appendChild(chip);
                 });
             });
+        }
+
+        function openEditResources(serverId, currentRam, currentCpu, currentStorage) {
+            const existing = document.getElementById('editResourcesModal');
+            if (existing) existing.remove();
+
+            const ramGB = Math.round((currentRam || 0) / 1024);
+            const storageGB = Math.round((currentStorage || 0) / 1024);
+
+            const modal = document.createElement('div');
+            modal.id = 'editResourcesModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
+            modal.innerHTML = `
+                <div style="background:rgba(20,20,40,0.98);backdrop-filter:blur(20px);border:1px solid rgba(124,58,237,0.4);border-radius:12px;width:100%;max-width:460px;padding:24px;">
+                    <h3 style="margin:0 0 6px 0;color:#f8fafc;">✏️ Edit Server Resources</h3>
+                    <p style="color:#94a3b8;font-size:13px;margin:0 0 20px 0;">
+                        Changes will be applied to Pterodactyl and the server will restart automatically.
+                    </p>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label style="display:block;color:#94a3b8;font-size:12px;margin-bottom:4px;">RAM (GB)</label>
+                        <input type="number" id="editRamInput" value="${ramGB}" min="1" step="1"
+                            style="width:100%;padding:10px;background:rgba(10,14,39,0.6);border:1px solid rgba(124,58,237,0.3);border-radius:6px;color:#f8fafc;">
+                        <small style="color:#6b7280;">Minimum: 1GB</small>
+                    </div>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label style="display:block;color:#94a3b8;font-size:12px;margin-bottom:4px;">CPU (%)</label>
+                        <input type="number" id="editCpuInput" value="${currentCpu || 100}" min="100" step="100"
+                            style="width:100%;padding:10px;background:rgba(10,14,39,0.6);border:1px solid rgba(124,58,237,0.3);border-radius:6px;color:#f8fafc;">
+                        <small style="color:#6b7280;">Minimum: 100%</small>
+                    </div>
+                    <div class="form-group" style="margin-bottom:20px;">
+                        <label style="display:block;color:#94a3b8;font-size:12px;margin-bottom:4px;">Storage (GB)</label>
+                        <input type="number" id="editStorageInput" value="${storageGB}" min="5" step="1"
+                            style="width:100%;padding:10px;background:rgba(10,14,39,0.6);border:1px solid rgba(124,58,237,0.3);border-radius:6px;color:#f8fafc;">
+                        <small style="color:#6b7280;">Minimum: 5GB</small>
+                    </div>
+                    <div style="background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:8px;padding:10px;margin-bottom:20px;">
+                        <p style="color:#fbbf24;font-size:12px;margin:0;">
+                            ⚠️ The server will restart automatically after saving to apply the new resource limits.
+                        </p>
+                    </div>
+                    <div style="display:flex;gap:10px;justify-content:flex-end;">
+                        <button onclick="document.getElementById('editResourcesModal').remove()" class="btn btn-secondary">Cancel</button>
+                        <button onclick="saveEditResources(${serverId})" id="saveEditBtn" class="btn btn-primary">Save & Restart</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+        }
+
+        async function saveEditResources(serverId) {
+            const ramGB = parseFloat(document.getElementById('editRamInput').value);
+            const cpuPct = parseInt(document.getElementById('editCpuInput').value);
+            const storageGB = parseFloat(document.getElementById('editStorageInput').value);
+
+            if (!ramGB || ramGB < 1) { showNotification('RAM must be at least 1GB', 'error'); return; }
+            if (!cpuPct || cpuPct < 100) { showNotification('CPU must be at least 100%', 'error'); return; }
+            if (!storageGB || storageGB < 5) { showNotification('Storage must be at least 5GB', 'error'); return; }
+
+            const btn = document.getElementById('saveEditBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const res = await fetch(`/servers/api/update-resources/${serverId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ram: Math.round(ramGB * 1024),
+                        cpu: cpuPct,
+                        storage: Math.round(storageGB * 1024)
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('editResourcesModal').remove();
+                    showNotification(data.message, 'success');
+                    await loadServers();
+                } else {
+                    showNotification(data.message || 'Failed to update resources', 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Save & Restart';
+                }
+            } catch (e) {
+                showNotification('An error occurred', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Save & Restart';
+            }
         }
         
         // Create server form handler

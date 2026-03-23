@@ -233,6 +233,13 @@
                             <input type="number" id="rewardPerInvite" min="0" value="100" placeholder="100">
                             <small style="color: #cbd5e1;">Number of coins users receive per successful invite</small>
                         </div>
+
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label for="deductPerInvite">Deduct Per Leave (coins)</label>
+                            <input type="number" id="deductPerInvite" min="0" value="0"
+                                   style="width: 100%; padding: 10px; background: rgba(10,14,39,0.5); border: 1px solid rgba(124,58,237,0.3); border-radius: 8px; color: #f8fafc;">
+                            <small style="color: #cbd5e1;">Coins deducted when an invited user leaves. Set to 0 to deduct the exact amount that was awarded on join.</small>
+                        </div>
                         
                         <div style="margin: 24px 0; padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
                             <h3 style="color: #f8fafc; margin-bottom: 16px; font-size: 18px;">Feature Toggles</h3>
@@ -337,6 +344,7 @@
                     document.getElementById('discordChatChannelId').value = config.chat_channel_id || '';
                     document.getElementById('discordInviteChannelId').value = config.invite_channel_id || '';
                     document.getElementById('rewardPerInvite').value = config.reward_per_invite || 100;
+                    document.getElementById('deductPerInvite').value = config.deduct_per_invite || 0;
                     document.getElementById('enableDiscordChat').checked = config.enable_chat !== false;
                     document.getElementById('enableInviteRewards').checked = config.enable_invite_rewards !== false;
                 }
@@ -355,6 +363,7 @@
                 chat_channel_id: document.getElementById('discordChatChannelId').value.trim(),
                 invite_channel_id: document.getElementById('discordInviteChannelId').value.trim(),
                 reward_per_invite: parseInt(document.getElementById('rewardPerInvite').value),
+                deduct_per_invite: Math.max(0, parseInt(document.getElementById('deductPerInvite').value) || 0),
                 enable_chat: document.getElementById('enableDiscordChat').checked,
                 enable_invite_rewards: document.getElementById('enableInviteRewards').checked
             };

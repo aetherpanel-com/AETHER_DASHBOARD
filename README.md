@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.5.1
+**Version:** 1.5.2
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.5.1):** Patch release — branding flash fix, panel credentials for users, Discord user password improvements. See Changelog for details.
+**🔧 Latest Update (v1.5.2):** Patch release — Discord invite reward exploit fix, configurable deduction per leave, exact coin deduction tracking, invite cooldown system, and invite cache improvements. See Changelog for details.
 
 ---
 
@@ -1439,8 +1439,8 @@ chmod 600 aether-discord-bot/.env
 - **Real-time Chat Sync** - Discord messages appear instantly in dashboard Community page
 - **Bidirectional Messaging** - Send messages from dashboard to Discord and vice versa
 - **Invite Tracking** - Automatic detection of which invite was used when users join
-- **Abuse Protection** - Prevents duplicate rewards for the same user
-- **Auto Deduction** - Rewards automatically removed if invited user leaves the server
+- **Abuse Protection** - Prevents duplicate rewards; 24-hour cooldown blocks join/leave farming
+- **Auto Deduction** - Configurable coin deduction when invited user leaves. Deducts exact coins awarded at join time by default, or a fixed admin-configured amount
 - **Live Leaderboard** - Track top inviters with real-time leaderboard
 - **WebSocket Integration** - Real-time updates via WebSocket for instant chat synchronization
 
