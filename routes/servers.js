@@ -12,6 +12,7 @@ const { getServerHealthTimeline } = require('../config/healthPoller');
 const { db } = require('../config/database');
 const { sendBrandedView } = require('../config/brandingHelper');
 const { writeLog } = require('../utils/auditLog');
+const { sanitizePterodactylUsername } = require('../utils/helpers');
 
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
@@ -2554,8 +2555,13 @@ router.post('/api/create-from-template', requireAuth, async (req, res) => {
                 req.session.user.pterodactyl_user_id = pteroUserId;
             } else {
                 // Create Pterodactyl user
+                const originalUsername = req.session.user.username;
+                const pteroUsername = sanitizePterodactylUsername(originalUsername);
+                if (pteroUsername !== originalUsername) {
+                    console.warn(`[Pterodactyl] Username sanitized: "${originalUsername}" -> "${pteroUsername}"`);
+                }
                 const userResult = await pterodactyl.createPterodactylUser(
-                    req.session.user.username,
+                    pteroUsername,
                     req.session.user.email,
                     req.session.user.id
                 );

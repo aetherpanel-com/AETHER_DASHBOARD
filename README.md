@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.5.3
+**Version:** 1.5.4
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.5.3):** Audit Logs — new admin page for full platform activity visibility. Logs server creation/deletion, all coin earning methods, purchases, and admin adjustments. Includes timezone display, retention settings, and filterable table. See Changelog for details.
+**🔧 Latest Update (v1.5.4):** Bug fix patch — Discord usernames with special characters are now automatically sanitized before Pterodactyl sync, preventing 422 errors and silent login failures. No database changes. See Changelog for details.
 
 ---
 

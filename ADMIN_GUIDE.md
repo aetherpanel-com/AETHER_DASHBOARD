@@ -423,6 +423,8 @@ currently connected and sending heartbeats. It updates every 10 seconds.
 | **Enable Chat Bridge** | Mirror Discord messages to the Community page |
 | **Chat Channel ID** | Discord channel ID to bridge messages from/to |
 
+> **Username Handling (v1.5.4+):** If a user's Discord username contains characters not accepted by Pterodactyl (such as leading/trailing `.`, `!`, or `#`), the username is automatically sanitized before being sent to the panel. The original Discord username is always preserved in the dashboard. A warning is logged to PM2 when sanitization occurs — check with `pm2 logs aether-dashboard`.
+
 ### How the Invite Reward System Works
 1. A user copies their Discord invite link from the Community page
 2. Someone joins your Discord using that link
@@ -550,4 +552,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.5.3
+**Last Updated:** Version 1.5.4

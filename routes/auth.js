@@ -11,7 +11,7 @@ const { sanitizeBody, validateSignup, validateLogin } = require('../middleware/v
 const { authLimiter } = require('../middleware/rateLimit');
 const pterodactyl = require('../config/pterodactyl');
 const referral = require('./referral');
-const { generatePanelPassword } = require('../utils/helpers');
+const { generatePanelPassword, sanitizePterodactylUsername } = require('../utils/helpers');
 const { sendBrandedView } = require('../config/brandingHelper');
 
 const referralChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -495,9 +495,14 @@ router.get('/discord/callback',
                 const isConfigured = await pterodactyl.isConfigured();
                 if (isConfigured && !req.user.pterodactyl_user_id) {
                     const panelPassword = generatePanelPassword();
+                    const originalUsername = req.user.username;
+                    const pteroUsername = sanitizePterodactylUsername(originalUsername);
+                    if (pteroUsername !== originalUsername) {
+                        console.warn(`[Pterodactyl] Username sanitized: "${originalUsername}" -> "${pteroUsername}"`);
+                    }
                     const pterodactylUser = await pterodactyl.createPterodactylUser({
                         email: req.user.email,
-                        username: req.user.username,
+                        username: pteroUsername,
                         first_name: req.user.username,
                         last_name: 'User',
                         password: panelPassword

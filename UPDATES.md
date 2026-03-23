@@ -4,6 +4,47 @@
 
 ---
 
+## Aether Dashboard v1.5.4
+
+### 🔧 Discord Username Sanitization Fix
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.5.4 is a bug fix patch resolving a sync failure between Discord OAuth and Pterodactyl when a user's Discord username contains special characters not accepted by Pterodactyl's username validation rules.
+
+### 🐛 Bug Fixes
+
+| Fix | Description |
+|-----|-------------|
+| 🔤 **Discord Username Sanitization** | Discord usernames with special characters (e.g. `.`, `!`, `#`) at the start, end, or throughout are now automatically sanitized before being sent to Pterodactyl. The original username is preserved in the dashboard — only the Pterodactyl panel username is affected. |
+| 🔄 **Pterodactyl Sync No Longer Fails** | Server creation and Discord OAuth login no longer silently fail or return 422 errors when a username doesn't meet Pterodactyl's validation rules. |
+
+### 🔧 Sanitization Rules Applied
+
+When passing a username to Pterodactyl, the following transformations are applied:
+
+- Strip all characters except letters, numbers, `_`, `-`, `.`
+- Strip leading and trailing special characters
+- Truncate to 20 characters maximum
+- Pad with random digits if result is shorter than 6 characters
+- Fall back to `user_XXXXX` if the result is empty after stripping
+
+The dashboard **always stores and displays the original Discord username** — sanitization only happens at the Pterodactyl API call layer.
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**⚠️ No database changes in this version.** Existing users are not affected — sanitization applies on the next login or sync attempt.
+
+---
+
 ## Aether Dashboard v1.5.3
 
 ### 📋 Audit Logs
@@ -1498,7 +1539,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.5.3
+**Last Updated:** Version 1.5.4
 
 **Made with ❤️ for free hosting providers**
 

@@ -4,6 +4,7 @@
 const axios = require('axios');
 const { get } = require('./database');
 const { decrypt } = require('./encryption');
+const { sanitizePterodactylUsername } = require('../utils/helpers');
 
 // Cache for database config (to avoid repeated queries)
 let configCache = {
@@ -1150,7 +1151,17 @@ async function createPterodactylUser(userData) {
 async function updatePterodactylUser(userId, userData) {
     // userData MUST include: email, username, first_name, last_name, password
     // Pterodactyl returns 422 if any of these are missing
-    return await makeRequest('PATCH', `/application/users/${userId}`, userData);
+    const safeUsername = sanitizePterodactylUsername(userData?.username);
+    if (userData?.username && safeUsername !== userData.username) {
+        console.warn(`[Pterodactyl] Username sanitized: "${userData.username}" -> "${safeUsername}"`);
+    }
+
+    const safeUserData = {
+        ...userData,
+        username: safeUsername
+    };
+
+    return await makeRequest('PATCH', `/application/users/${userId}`, safeUserData);
 }
 
 // Get user by external ID (useful for linking dashboard users to Pterodactyl)

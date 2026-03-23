@@ -497,6 +497,25 @@ pm2 restart aether-dashboard
 
 ## 🚀 New Features Troubleshooting (Version 1.5)
 
+### "Discord login fails or server creation fails with 422 error"
+
+**Problem:** User's Discord username contains special characters that Pterodactyl does not accept, causing a validation error during sync.
+
+**This is fixed in v1.5.4.** Update to the latest version:
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**If still occurring after update:**
+- ✅ Check PM2 logs for a sanitization warning: `pm2 logs aether-dashboard | grep sanitized`
+- ✅ If you see `[Pterodactyl] Username sanitized: "x" → "y"` the fix is working correctly
+- ✅ If the sanitized result is still rejected, check if the Pterodactyl panel has custom username validation rules configured
+
+---
+
 ### "Audit Logs page shows no entries"
 
 **Checklist:**
@@ -622,6 +641,8 @@ After v1.5.2, a 24-hour cooldown is enforced between a user leaving and rejoinin
 ### "Discord bot not connecting" (Version 1.4+)
 
 **Problem:** Discord bot shows errors or doesn't connect to Discord.
+
+> **Note (v1.5.4+):** Discord usernames with special characters are automatically sanitized before being sent to Pterodactyl. The dashboard always displays the original Discord username.
 
 **Checklist:**
 - ✅ `DISCORD_BOT_TOKEN` is correct in bot `.env` file
@@ -938,7 +959,7 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.5.3
+**Last Updated:** Version 1.5.4
 
 **Made with ❤️ for free hosting providers**
 
