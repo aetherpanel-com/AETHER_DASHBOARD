@@ -497,6 +497,30 @@ pm2 restart aether-dashboard
 
 ## 🚀 New Features Troubleshooting (Version 1.5)
 
+### "Audit Logs page shows no entries"
+
+**Checklist:**
+- ✅ Actions must be performed **after** updating to v1.5.3 — existing historical activity is not backfilled
+- ✅ Confirm the `activity_logs` table was created: check server logs on startup for migration messages
+- ✅ Check dashboard logs: `pm2 logs aether-dashboard`
+
+---
+
+### "Audit log timestamps are showing wrong time"
+
+**Expected behaviour:** Timestamps are stored in UTC and converted to your local timezone in the browser. Use the **Display Timezone** dropdown on the Audit Logs page to select your correct timezone if the auto-detected one is wrong.
+
+---
+
+### "Audit Logs not appearing in sidebar"
+
+**Checklist:**
+- ✅ You must be logged in as an admin — the Audit Logs link is only visible to admin accounts
+- ✅ The link appears under Admin Panel → Admin Settings (expand the dropdown)
+- ✅ Hard refresh the page (`Ctrl + Shift + R`) to clear any cached sidebar HTML
+
+---
+
 ### "Daily rewards claim button does nothing"
 
 **Checklist:**
@@ -914,7 +938,7 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.5.2
+**Last Updated:** Version 1.5.3
 
 **Made with ❤️ for free hosting providers**
 

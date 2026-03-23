@@ -11,6 +11,7 @@ const { markStep } = require('./onboarding');
 const { getServerHealthTimeline } = require('../config/healthPoller');
 const { db } = require('../config/database');
 const { sendBrandedView } = require('../config/brandingHelper');
+const { writeLog } = require('../utils/auditLog');
 
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
@@ -494,6 +495,12 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
                             public_address: publicAddress
                         }
                     });
+                    writeLog(
+                        req.session.user.id,
+                        req.session.user.username,
+                        'server_created',
+                        `Created server '${name}' (RAM: ${Math.round(ram / 1024)}GB, CPU: ${cpu}%, Storage: ${Math.round(storage / 1024)}GB)`
+                    ).catch(() => {});
                 }
                 return;
             } catch (error) {
@@ -535,6 +542,12 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
                         pterodactyl_id: null
                     }
                 });
+                writeLog(
+                    req.session.user.id,
+                    req.session.user.username,
+                    'server_created',
+                    `Created server '${name}' (RAM: ${Math.round(ram / 1024)}GB, CPU: ${cpu}%, Storage: ${Math.round(storage / 1024)}GB)`
+                ).catch(() => {});
             }
         }
     } catch (error) {
@@ -598,6 +611,12 @@ router.delete('/api/delete/:id', requireAuth, async (req, res) => {
             success: true, 
             message: 'Server deleted successfully. Resources have been returned to your pool.' 
         });
+        writeLog(
+            req.session.user.id,
+            req.session.user.username,
+            'server_deleted',
+            `Deleted server '${server.name}'`
+        ).catch(() => {});
     } catch (error) {
         console.error('Error deleting server:', error);
         res.status(500).json({ 
@@ -2204,6 +2223,28 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                 storage: updatedUser.purchased_storage
             }
         });
+        if (resource_type === 'ram') {
+            writeLog(
+                req.session.user.id,
+                req.session.user.username,
+                'coins_spent_resource',
+                `Purchased ${amount}GB RAM for ${coinsSpent} coins`
+            ).catch(() => {});
+        } else if (resource_type === 'cpu') {
+            writeLog(
+                req.session.user.id,
+                req.session.user.username,
+                'coins_spent_resource',
+                `Purchased ${amount}% CPU for ${coinsSpent} coins`
+            ).catch(() => {});
+        } else if (resource_type === 'storage') {
+            writeLog(
+                req.session.user.id,
+                req.session.user.username,
+                'coins_spent_resource',
+                `Purchased ${amount}GB Storage for ${coinsSpent} coins`
+            ).catch(() => {});
+        }
     } catch (error) {
         console.error('Error purchasing resource:', error);
         res.status(500).json({ 
@@ -2300,6 +2341,12 @@ router.post('/api/purchase-slot', requireAuth, purchaseLimiter, async (req, res)
             new_balance: updatedUser.coins,
             new_slots: updatedUser.server_slots
         });
+        writeLog(
+            req.session.user.id,
+            req.session.user.username,
+            'coins_spent_slot',
+            `Purchased 1 server slot for ${slotPrice} coins`
+        ).catch(() => {});
     } catch (error) {
         console.error('Error purchasing server slot:', error);
         res.status(500).json({ 

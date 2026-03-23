@@ -291,6 +291,62 @@ function initializeDatabase() {
                             if (err) console.error('Error seeding referral_system feature_flags:', err);
                         }
                     );
+
+                    // Add retention column for audit logs (legacy installs)
+                    try {
+                        db.run(`ALTER TABLE feature_flags ADD COLUMN log_retention_days INTEGER DEFAULT 90`, () => {
+                            // Ignore if already exists
+                        });
+                    } catch (e) {
+                        // Ignore migration errors
+                    }
+
+                    // Ensure audit_logs settings row exists
+                    setTimeout(() => {
+                        db.run(
+                            `INSERT OR IGNORE INTO feature_flags (name, enabled, log_retention_days) VALUES ('audit_logs', 1, 90)`,
+                            [],
+                            () => {
+                                // Ignore if schema not ready yet
+                            }
+                        );
+
+                        // Startup purge by retention days
+                        db.get(
+                            `SELECT log_retention_days FROM feature_flags WHERE name = 'audit_logs' ORDER BY id DESC LIMIT 1`,
+                            [],
+                            (retErr, retentionRow) => {
+                                if (retErr) return;
+                                const retentionDays = Number(retentionRow?.log_retention_days || 0);
+                                if (retentionDays > 0) {
+                                    db.run(
+                                        `DELETE FROM activity_logs WHERE created_at < datetime('now', ?)`,
+                                        [`-${retentionDays} days`],
+                                        () => {
+                                            // best-effort cleanup
+                                        }
+                                    );
+                                }
+                            }
+                        );
+                    }, 50);
+                });
+
+                db.run(`
+                    CREATE TABLE IF NOT EXISTS activity_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER,
+                        username TEXT NOT NULL,
+                        action_type TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                `, (err) => {
+                    if (err) {
+                        console.error('Error creating activity_logs table:', err);
+                        return;
+                    }
+                    console.log('✅ activity_logs table created/verified');
                 });
 
                 // Referral configuration table

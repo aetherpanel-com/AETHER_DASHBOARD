@@ -1,6 +1,6 @@
 {
   "name": "aether-dashboard",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Aether Dashboard - Utility Dashboard for Pterodactyl Panel",
   "main": "server.js",
   "scripts": {

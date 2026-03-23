@@ -270,6 +270,7 @@ const onboardingRoutes = require('./routes/onboarding');
 const { maintenanceStatusHandler } = require('./routes/maintenance');
 const discordRoutes = require('./routes/discord');
 const botRoutes = require('./routes/bot');
+const logsRoutes = require('./routes/logs');
 
 // Use routes
 app.use('/auth', authRoutes);
@@ -283,6 +284,7 @@ app.use('/referral', referralRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/onboarding', onboardingRoutes);
 app.use('/admin', adminRoutes);
+app.use('/admin/logs', logsRoutes);
 app.use('/api/discord', discordRoutes);
 app.use('/api/bot', botRoutes);
 app.use('/api/community', communityRoutes);

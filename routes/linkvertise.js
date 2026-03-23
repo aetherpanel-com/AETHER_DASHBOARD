@@ -8,6 +8,7 @@ const { db, query, get, run, transaction } = require('../config/database');
 const { linkvertiseLimiter } = require('../middleware/rateLimit');
 const { markStep } = require('./onboarding');
 const { sendBrandedView } = require('../config/brandingHelper');
+const { writeLog } = require('../utils/auditLog');
 
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
@@ -209,6 +210,12 @@ router.post('/api/complete', requireAuth, linkvertiseLimiter, async (req, res) =
             message: 'Link completed successfully',
             coins_earned: coinsEarned
         });
+        writeLog(
+            req.session.user.id,
+            req.session.user.username,
+            'coins_earned_linkvertise',
+            `Earned ${coinsEarned} coins via Linkvertise link '${link.title || link.id}'`
+        ).catch(() => {});
     } catch (error) {
         console.error('Error completing link:', error);
         res.status(500).json({ 

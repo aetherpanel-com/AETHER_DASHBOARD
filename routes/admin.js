@@ -9,6 +9,7 @@ const multer = require('multer');
 const { db, query, get, run, transaction } = require('../config/database');
 const { sanitizeBody } = require('../middleware/validation');
 const { sendBrandedView } = require('../config/brandingHelper');
+const { writeLog } = require('../utils/auditLog');
 
 // Configure multer for file uploads (configure once, use multiple times)
 const uploadPath = path.join(__dirname, '../public/assets/branding');
@@ -431,6 +432,12 @@ router.post('/api/coins', requireAdmin, sanitizeBody, async (req, res) => {
             message: `Coins updated successfully for user "${updatedUser.username}". Balance: ${oldBalance} + ${amountInt >= 0 ? '+' : ''}${amountInt} = ${updatedUser.coins}`,
             new_balance: updatedUser.coins
         });
+        writeLog(
+            req.session.user.id,
+            req.session.user.username,
+            'coins_adjusted_admin',
+            `Admin adjusted coins for '${updatedUser.username}': ${amountInt >= 0 ? '+' : ''}${amountInt} coins (new balance: ${updatedUser.coins})`
+        ).catch(() => {});
     } catch (error) {
         console.error('Error updating coins:', error);
         res.status(500).json({ 

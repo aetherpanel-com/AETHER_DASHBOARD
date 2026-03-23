@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const { get, run } = require('../config/database');
+const { writeLog } = require('../utils/auditLog');
 
 // Middleware to verify bot API key authentication
 function verifyBotAuth(req, res, next) {
@@ -141,6 +142,12 @@ router.post('/invite-used', verifyBotAuth, async (req, res) => {
             success: true,
             reward: reward
         });
+        writeLog(
+            inviterUser.id,
+            inviterUser.username,
+            'coins_earned_discord_invite',
+            `Earned ${reward} coins for Discord invite (joined user: ${joined_user})`
+        ).catch(() => {});
         
     } catch (error) {
         console.error('Error processing Discord invite event:', error);

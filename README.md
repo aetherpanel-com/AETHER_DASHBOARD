@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.5.2
+**Version:** 1.5.3
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.5.2):** Patch release — Discord invite reward exploit fix, configurable deduction per leave, exact coin deduction tracking, invite cooldown system, and invite cache improvements. See Changelog for details.
+**🔧 Latest Update (v1.5.3):** Audit Logs — new admin page for full platform activity visibility. Logs server creation/deletion, all coin earning methods, purchases, and admin adjustments. Includes timezone display, retention settings, and filterable table. See Changelog for details.
 
 ---
 
@@ -37,9 +37,12 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 ---
 
-## ✨ What's New in Version 1.5
+## ✨ What's New in Version 1.5.3
 
 **Platform Enhancement Update** — v1.5 adds a full suite of engagement, monetisation, and operational features to the dashboard, making it the most complete version yet.
+
+### 📋 Audit Logs (Version 1.5.3)
+A dedicated admin page at Admin Panel → Admin Settings → Audit Logs. Logs every key platform event with username, action type, description, and timestamp. Filterable by type, user, and date range. Includes per-session timezone display, configurable log retention, and manual clear.
 
 ### 🎁 Daily Login Rewards
 Streak-based daily reward system. Users earn configurable coin amounts for each consecutive day they log in (Day 1–7). Admins configure coin amounts per day and can enable/disable the feature from the Admin Panel → Daily Rewards tab.

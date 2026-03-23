@@ -5,6 +5,7 @@ const router = express.Router();
 
 const { get, query, run, transaction } = require('../config/database');
 const { requireAuth } = require('../middleware/auth');
+const { writeLog } = require('../utils/auditLog');
 
 function utcDateString(date = new Date()) {
     // YYYY-MM-DD in UTC
@@ -138,13 +139,20 @@ router.post('/api/claim', requireAuth, async (req, res) => {
             return { coinsAwarded, newBalance: newBalanceRow?.coins || 0, nextDay };
         });
 
-        return res.json({
+        res.json({
             success: true,
             coins_awarded: result.coinsAwarded,
             new_balance: result.newBalance,
             streak_day: result.nextDay,
             message: `Daily reward claimed (Day ${result.nextDay}).`
         });
+        writeLog(
+            req.session.user.id,
+            req.session.user.username,
+            'coins_earned_daily_reward',
+            `Claimed Day ${result.nextDay} daily reward: ${result.coinsAwarded} coins`
+        ).catch(() => {});
+        return;
     } catch (error) {
         if (error?.code === 'ALREADY_CLAIMED') {
             return res.status(400).json({ success: false, message: 'Already claimed today' });

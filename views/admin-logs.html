@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/assets/defaults/aether-dashboard-favicon.ico">
+    <title>Audit Logs - Aether Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <style>
+        #filterSearch,
+        #filterType,
+        #timezoneSelect,
+        #filterFrom,
+        #filterTo {
+            background: rgba(10, 14, 39, 0.6);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 8px;
+            color: #f8fafc;
+            padding: 10px 14px;
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+        }
+
+        #retentionDays {
+            background: rgba(10, 14, 39, 0.6);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 6px;
+            color: #f8fafc;
+            padding: 8px 12px;
+            width: 80px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* Fix date picker icon color */
+        #filterFrom::-webkit-calendar-picker-indicator,
+        #filterTo::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.6;
+            cursor: pointer;
+        }
+
+        /* Fix select dropdown arrow */
+        #filterType,
+        #timezoneSelect {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        /* Fix autofill background */
+        #filterSearch:-webkit-autofill,
+        #filterFrom:-webkit-autofill,
+        #filterTo:-webkit-autofill,
+        #retentionDays:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px rgba(10, 14, 39, 0.9) inset;
+            -webkit-text-fill-color: #f8fafc;
+        }
+
+        /* Fix select option background (dropdown list) */
+        #filterType option,
+        #timezoneSelect option {
+            background: #1e1e32;
+            color: #f8fafc;
+        }
+
+        #filterSearch:focus,
+        #filterType:focus,
+        #timezoneSelect:focus,
+        #filterFrom:focus,
+        #filterTo:focus,
+        #retentionDays:focus {
+            border-color: rgba(124, 58, 237, 0.7);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="/assets/defaults/aether-dashboard-logo.png" alt="Dashboard Logo" class="dashboard-logo" id="sidebar-logo">
+                <h2 id="sidebar-name">Aether Dashboard</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item" data-page="dashboard"><span class="nav-icon">🏠</span><span class="nav-text">Dashboard</span></a>
+                <a href="/servers" class="nav-item" data-page="servers"><span class="nav-icon">🖥️</span><span class="nav-text">Manage Servers</span></a>
+                <a href="/servers/create" class="nav-item" data-page="create-server"><span class="nav-icon">➕</span><span class="nav-text">Create Server</span></a>
+                <a href="/linkvertise" class="nav-item" data-page="linkvertise"><span class="nav-icon">💰</span><span class="nav-text">Linkvertise</span></a>
+                <a href="/servers/store" class="nav-item" data-page="store"><span class="nav-icon">🛒</span><span class="nav-text">Resource Store</span></a>
+                <a href="/community" class="nav-item" data-page="community"><span class="nav-icon">💬</span><span class="nav-text">Community</span></a>
+                <a href="/dashboard/profile" class="nav-item" data-page="profile"><span class="nav-icon">👤</span><span class="nav-text">Profile</span></a>
+                <a href="/dashboard/settings" class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span><span class="nav-text">Settings</span></a>
+
+                <div class="sidebar-dropdown admin-only" style="display: block;">
+                    <div class="sidebar-dropdown-toggle active">
+                        <div class="nav-dropdown-left"><span class="nav-icon">🛡️</span><span class="nav-text">Admin Panel</span></div>
+                        <span class="dropdown-arrow">▼</span>
+                    </div>
+                    <div class="sidebar-submenu">
+                        <a href="/admin" class="nav-item" data-page="admin"><span class="nav-icon">📊</span><span class="nav-text">Overview</span></a>
+                        <div class="sidebar-dropdown nested open">
+                            <div class="sidebar-dropdown-toggle active">
+                                <div class="nav-dropdown-left"><span class="nav-icon">🎨</span><span class="nav-text">Admin Settings</span></div>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sidebar-submenu">
+                                <a href="/admin/settings/themes" class="nav-item" data-page="admin-themes"><span class="nav-icon">🎨</span><span class="nav-text">Themes</span></a>
+                                <a href="/admin/settings/branding" class="nav-item" data-page="admin-branding"><span class="nav-icon">✨</span><span class="nav-text">Branding</span></a>
+                                <a href="/admin/logs" class="nav-item active" data-page="admin-logs"><span class="nav-icon">
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+    <polyline points="10 9 9 9 8 9"/>
+  </svg>
+</span><span class="nav-text">Audit Logs</span></a>
+                            </div>
+                        </div>
+                        <div class="sidebar-dropdown nested">
+                            <div class="sidebar-dropdown-toggle">
+                                <div class="nav-dropdown-left"><span class="nav-icon">🔌</span><span class="nav-text">Integrations</span></div>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sidebar-submenu">
+                                <a href="/admin/integrations/linkvertise" class="nav-item" data-page="admin-integrations-linkvertise"><span class="nav-icon">💰</span><span class="nav-text">Linkvertise</span></a>
+                                <a href="/admin/integrations/discord" class="nav-item" data-page="admin-integrations-discord"><span class="nav-icon">💬</span><span class="nav-text">Discord</span></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            <div class="sidebar-footer"><a href="/auth/logout" class="btn btn-secondary" style="width: 100%;">Logout</a></div>
+        </aside>
+
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <main class="main-content">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+                    <h1>📋 Audit Logs</h1>
+                </div>
+                <div class="header-right">
+                    <div class="coin-balance"><span class="coin-icon">🪙</span><span id="coinAmount">0</span> Coins</div>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px;">
+                    <div class="card"><div style="color:#94a3b8;font-size:12px;">Total Logs</div><div id="statTotal" style="font-size:24px;font-weight:700;color:#f8fafc;">0</div></div>
+                    <div class="card"><div style="color:#94a3b8;font-size:12px;">Servers Created</div><div id="statCreated" style="font-size:24px;font-weight:700;color:#22c55e;">0</div></div>
+                    <div class="card"><div style="color:#94a3b8;font-size:12px;">Coins Earned</div><div id="statEarned" style="font-size:24px;font-weight:700;color:#fbbf24;">0</div></div>
+                    <div class="card"><div style="color:#94a3b8;font-size:12px;">Coins Spent</div><div id="statSpent" style="font-size:24px;font-weight:700;color:#fb923c;">0</div></div>
+                </div>
+
+                <div class="card" style="margin-bottom:16px;">
+                    <div class="card-header">Filters</div>
+                    <div style="display:grid;grid-template-columns:2fr 1fr 1.25fr 1fr 1fr auto auto;gap:10px;">
+                        <input id="filterSearch" type="text" placeholder="Search username or description">
+                        <select id="filterType"><option value="">All Types</option></select>
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                            <label for="timezoneSelect" style="font-size:12px;color:#94a3b8;">🌐 Display Timezone</label>
+                            <select id="timezoneSelect" title="Display Timezone"></select>
+                        </div>
+                        <input id="filterFrom" type="date">
+                        <input id="filterTo" type="date">
+                        <button class="btn btn-primary" id="btnSearch">Search</button>
+                        <button class="btn btn-secondary" id="btnClear">Clear</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Logs</div>
+                    <div style="overflow:auto;">
+                        <table style="width:100%;border-collapse:collapse;">
+                            <thead>
+                                <tr style="text-align:left;color:#94a3b8;font-size:12px;">
+                                    <th style="padding:10px;">#</th>
+                                    <th style="padding:10px;">Time</th>
+                                    <th style="padding:10px;">User</th>
+                                    <th style="padding:10px;">Action</th>
+                                    <th style="padding:10px;">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsBody"></tbody>
+                        </table>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
+                        <button class="btn btn-secondary" id="btnPrev">Prev</button>
+                        <span id="pageInfo" style="color:#cbd5e1;">Page 1 of 1</span>
+                        <button class="btn btn-secondary" id="btnNext">Next</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:16px;">
+                    <div class="card-header">Settings</div>
+                    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                        <div>
+                            <label for="retentionDays">Log Retention (days, 0 = permanent)</label>
+                            <input type="number" id="retentionDays" min="0" value="90">
+                        </div>
+                        <button class="btn btn-primary" id="btnSaveRetention">Save</button>
+                        <button class="btn btn-danger" id="btnClearLogs">Clear All Logs</button>
+                    </div>
+                    <p id="retentionNote" style="margin-top:8px;color:#94a3b8;font-size:12px;">Logs older than 90 days are automatically deleted on server startup.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/maintenanceBanner.js"></script>
+    <script src="/js/theme.js"></script>
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let latestLogs = [];
+        let currentLogsData = [];
+
+        function formatLogTime(utcString) {
+            // SQLite stores without 'Z' suffix, so normalize to UTC for correct local conversion.
+            const normalized = utcString.endsWith('Z') ? utcString : `${utcString}Z`;
+            const date = new Date(normalized);
+            const tz = document.getElementById('timezoneSelect')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone;
+            return date.toLocaleString(undefined, {
+                timeZone: tz,
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        function populateTimezones() {
+            const select = document.getElementById('timezoneSelect');
+            if (!select) return;
+
+            const timezones = typeof Intl.supportedValuesOf === 'function'
+                ? Intl.supportedValuesOf('timeZone')
+                : [Intl.DateTimeFormat().resolvedOptions().timeZone];
+            const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const saved = localStorage.getItem('auditlogs_timezone') || localTz;
+
+            select.innerHTML = '';
+            timezones.forEach((tz) => {
+                const option = document.createElement('option');
+                option.value = tz;
+                option.textContent = tz.replace(/_/g, ' ');
+                if (tz === saved) option.selected = true;
+                select.appendChild(option);
+            });
+        }
+
+        function actionBadge(type) {
+            const t = String(type || '');
+            let bg = 'rgba(124,58,237,0.2)', color = '#c4b5fd';
+            if (t === 'server_created') { bg = 'rgba(34,197,94,0.2)'; color = '#86efac'; }
+            else if (t === 'server_deleted') { bg = 'rgba(239,68,68,0.2)'; color = '#fca5a5'; }
+            else if (t.startsWith('coins_earned_')) { bg = 'rgba(251,191,36,0.2)'; color = '#fde68a'; }
+            else if (t.startsWith('coins_spent_')) { bg = 'rgba(251,146,60,0.2)'; color = '#fdba74'; }
+            else if (t === 'coins_adjusted_admin') { bg = 'rgba(59,130,246,0.2)'; color = '#93c5fd'; }
+            return `<span style="padding:4px 8px;border-radius:999px;background:${bg};color:${color};font-size:11px;">${t}</span>`;
+        }
+
+        async function loadActionTypes() {
+            const resp = await apiFetch('/admin/logs/api/action-types');
+            if (!resp || !resp.ok) return;
+            const data = await resp.json();
+            const sel = document.getElementById('filterType');
+            (data.types || []).forEach(t => {
+                const o = document.createElement('option');
+                o.value = t; o.textContent = t;
+                sel.appendChild(o);
+            });
+        }
+
+        async function loadSettings() {
+            const resp = await apiFetch('/admin/logs/api/settings');
+            if (!resp || !resp.ok) return;
+            const data = await resp.json();
+            const days = Number(data.log_retention_days || 0);
+            document.getElementById('retentionDays').value = days;
+            document.getElementById('retentionNote').textContent = `Logs older than ${days} days are automatically deleted on server startup.`;
+        }
+
+        function renderLogs(logs) {
+            const body = document.getElementById('logsBody');
+            if (!logs.length) {
+                body.innerHTML = `<tr><td colspan="5" style="padding:16px;color:#94a3b8;">No logs found.</td></tr>`;
+            } else {
+                body.innerHTML = logs.map((l, idx) => `
+                    <tr style="border-top:1px solid rgba(124,58,237,0.2);">
+                        <td style="padding:10px;">${(currentPage - 1) * 50 + idx + 1}</td>
+                        <td style="padding:10px;color:#cbd5e1;">${formatLogTime(l.created_at)}</td>
+                        <td style="padding:10px;color:#f8fafc;">${l.username}</td>
+                        <td style="padding:10px;">${actionBadge(l.action_type)}</td>
+                        <td style="padding:10px;color:#e2e8f0;">${l.description}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function loadLogs(page = 1) {
+            currentPage = page;
+            const q = new URLSearchParams({
+                page: String(page),
+                limit: '50',
+                search: document.getElementById('filterSearch').value || '',
+                type: document.getElementById('filterType').value || '',
+                date_from: document.getElementById('filterFrom').value || '',
+                date_to: document.getElementById('filterTo').value || ''
+            });
+
+            const resp = await apiFetch(`/admin/logs/api/list?${q.toString()}`);
+            if (!resp || !resp.ok) return;
+            const data = await resp.json();
+            latestLogs = data.logs || [];
+            currentLogsData = latestLogs;
+            totalPages = data.pagination?.pages || 1;
+
+            renderLogs(currentLogsData);
+
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('btnPrev').disabled = currentPage <= 1;
+            document.getElementById('btnNext').disabled = currentPage >= totalPages;
+            renderStats(latestLogs, data.pagination?.total || 0);
+        }
+
+        function renderStats(logs, total) {
+            const created = logs.filter(l => l.action_type === 'server_created').length;
+            const earned = logs.filter(l => String(l.action_type).startsWith('coins_earned_')).length;
+            const spent = logs.filter(l => String(l.action_type).startsWith('coins_spent_')).length;
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statCreated').textContent = created;
+            document.getElementById('statEarned').textContent = earned;
+            document.getElementById('statSpent').textContent = spent;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initMobileMenu();
+            await loadUserData();
+            checkAdminAccess();
+            loadBrandingSettings();
+            populateTimezones();
+            await loadActionTypes();
+            await loadSettings();
+            await loadLogs(1);
+
+            document.getElementById('timezoneSelect').addEventListener('change', function () {
+                localStorage.setItem('auditlogs_timezone', this.value);
+                renderLogs(currentLogsData);
+            });
+
+            document.getElementById('btnSearch').onclick = () => loadLogs(1);
+            document.getElementById('btnClear').onclick = async () => {
+                document.getElementById('filterSearch').value = '';
+                document.getElementById('filterType').value = '';
+                document.getElementById('filterFrom').value = '';
+                document.getElementById('filterTo').value = '';
+                await loadLogs(1);
+            };
+            document.getElementById('btnPrev').onclick = () => loadLogs(Math.max(1, currentPage - 1));
+            document.getElementById('btnNext').onclick = () => loadLogs(Math.min(totalPages, currentPage + 1));
+
+            document.getElementById('btnSaveRetention').onclick = async () => {
+                const days = Math.max(0, parseInt(document.getElementById('retentionDays').value || '0', 10));
+                const resp = await apiFetch('/admin/logs/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ log_retention_days: days })
+                });
+                const data = resp ? await resp.json() : {};
+                if (resp && resp.ok && data.success) {
+                    document.getElementById('retentionNote').textContent = `Logs older than ${days} days are automatically deleted on server startup.`;
+                    showNotification('Log settings saved', 'success');
+                } else {
+                    showNotification(data.message || 'Failed to save settings', 'error');
+                }
+            };
+
+            document.getElementById('btnClearLogs').onclick = async () => {
+                if (!confirm('Are you sure you want to clear all audit logs?')) return;
+                const resp = await apiFetch('/admin/logs/api/clear', { method: 'DELETE' });
+                const data = resp ? await resp.json() : {};
+                if (resp && resp.ok && data.success) {
+                    showNotification('All logs cleared', 'success');
+                    await loadLogs(1);
+                } else {
+                    showNotification(data.message || 'Failed to clear logs', 'error');
+                }
+            };
+        });
+    </script>
+</body>
+</html>

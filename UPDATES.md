@@ -4,6 +4,67 @@
 
 ---
 
+## Aether Dashboard v1.5.3
+
+### 📋 Audit Logs
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.5.3 introduces a dedicated Audit Logs page for admins, providing full visibility into platform activity — who created or deleted servers, how coins were earned and spent, and when every action happened.
+
+### ✨ New Features
+
+| Feature | Description |
+|---------|-------------|
+| 📋 **Audit Logs Page** | New admin-only page at `/admin/logs` accessible from Admin Panel → Admin Settings → Audit Logs |
+| 🔍 **Filterable Logs** | Filter by action type, username/description search, and date range |
+| 🌐 **Timezone Selector** | Per-session timezone dropdown on the Audit Logs page. Defaults to browser local timezone, persists via localStorage |
+| ⚙️ **Log Retention Setting** | Admins can configure how many days logs are kept (0 = permanent). Logs older than the threshold are auto-purged on server startup |
+| 🗑️ **Manual Clear** | Admins can manually clear all logs with a confirmation prompt |
+
+### 🔍 Logged Events
+
+| Action Type | Trigger |
+|-------------|---------|
+| `server_created` | User creates a server |
+| `server_deleted` | User deletes a server |
+| `coins_earned_linkvertise` | User earns coins via Linkvertise |
+| `coins_earned_daily_reward` | User claims daily login reward |
+| `coins_earned_referral` | User earns coins via referral system |
+| `coins_earned_discord_invite` | User earns coins via Discord invite reward |
+| `coins_spent_resource` | User purchases RAM, CPU, or Storage |
+| `coins_spent_slot` | User purchases a server slot |
+| `coins_adjusted_admin` | Admin manually adjusts a user's coins |
+
+### 🗄️ Database Changes
+
+- ✅ Added `activity_logs` table — stores audit log entries (auto-migration on startup)
+- ✅ Added `log_retention_days` column to `feature_flags` table (auto-migration, default `90`)
+
+All migrations run automatically on server startup. No manual steps required.
+
+### 🐛 Bug Fixes
+
+| Fix | Description |
+|-----|-------------|
+| 🕐 **Timestamp Timezone** | Audit log timestamps now display in the viewer's local timezone instead of raw UTC |
+| 🎨 **Dark Theme Inputs** | Filter inputs, dropdowns, and date pickers now correctly use the dashboard's dark theme styling |
+| 🔤 **Emoji Rendering** | Replaced 📋 emoji in sidebar nav with an inline SVG icon to prevent `????` rendering on some systems |
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**⚠️ No manual database changes needed** — all new columns and tables are added automatically on startup.
+
+---
+
 ## Aether Dashboard v1.5.2
 
 ### 🔒 Discord Invite Security & Controls
@@ -1437,7 +1498,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.5.2
+**Last Updated:** Version 1.5.3
 
 **Made with ❤️ for free hosting providers**
 

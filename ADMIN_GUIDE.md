@@ -2,7 +2,7 @@
 
 Complete guide for setting up and managing your Aether Dashboard after installation.
 
-**Version:** 1.5.2 | **Status:** Production Ready ✅
+**Version:** 1.5.3 | **Status:** Production Ready ✅
 
 > **New to Aether Dashboard?** Complete the installation steps in [README.md](README.md) first, then return here to set up your admin panel.
 
@@ -23,7 +23,8 @@ Complete guide for setting up and managing your Aether Dashboard after installat
 11. [Admin Settings — Branding](#-admin-settings--branding)
 12. [Integrations — Linkvertise](#-integrations--linkvertise)
 13. [Integrations — Discord](#-integrations--discord)
-14. [Admin Setup Checklist](#-admin-setup-checklist)
+14. [Audit Logs](#-audit-logs)
+15. [Admin Setup Checklist](#-admin-setup-checklist)
 - [Daily Rewards Tab](#-daily-rewards-tab)
 - [Referral Tab](#-referral-tab)
 - [Maintenance Tab](#-maintenance-tab)
@@ -52,6 +53,7 @@ sequence (e.g. creating templates before syncing eggs) will cause errors.
 13. (Optional) Send Broadcasts        → Admin Panel → Broadcast tab
 14. (Optional) Customise theme        → Admin Panel → Admin Settings → Themes
 15. (Optional) Customise branding     → Admin Panel → Admin Settings → Branding
+16. (Optional) Review Audit Logs      → Admin Panel → Admin Settings → Audit Logs
 ```
 
 ---
@@ -61,7 +63,8 @@ sequence (e.g. creating templates before syncing eggs) will cause errors.
 1. Log in to the dashboard as the admin user
 2. The **Admin Panel** item appears at the bottom of the left sidebar
 3. Click it to expand — it reveals **Overview**, **Admin Settings**, and **Integrations**
-4. Click **Overview** to open the main admin panel
+4. Under **Admin Settings**, you'll find **Themes**, **Branding**, and **Audit Logs**
+5. Click **Overview** to open the main admin panel
 
 > **Default credentials:** username `admin`, password `admin123`
 > ⚠️ Change this immediately after first login via Profile → Change Password
@@ -475,6 +478,25 @@ Click **Cancel** on any window to deactivate it early.
 
 ---
 
+## 📋 Audit Logs
+
+View a complete history of platform activity from Admin Panel → Admin Settings → Audit Logs.
+
+### What Gets Logged
+Every significant action is automatically recorded — server creation and deletion, all coin earning methods (Linkvertise, daily rewards, referrals, Discord invites), coin purchases, and admin manual coin adjustments.
+
+### Filters
+Use the filter bar to narrow logs by action type, username or description keyword, and date range.
+
+### Timezone
+The page includes a **Display Timezone** dropdown in the filter bar. It defaults to your browser's local timezone and saves your preference via localStorage. This only affects how timestamps are displayed — storage is always UTC.
+
+### Settings
+- **Log Retention (days)** — How many days of logs to keep. Set to `0` for permanent storage. Logs older than the threshold are deleted automatically each time the server starts.
+- **Clear All Logs** — Permanently deletes all log entries. Requires confirmation.
+
+---
+
 ## 📢 Broadcast Tab
 
 Send platform-wide announcements to users.
@@ -507,6 +529,7 @@ Use this checklist when setting up a fresh installation:
 - [ ] Uploaded custom logo and set branding (Admin Settings → Branding)
 - [ ] Set dashboard name to your brand (Admin Settings → Branding)
 - [ ] Applied a custom theme (Admin Settings → Themes)
+- [ ] Review Audit Logs after go-live to confirm events are being captured (Admin Settings → Audit Logs)
 - [ ] Configured Discord bot (Integrations → Discord)
 - [ ] Set Default Nest ID and Location ID (Panel tab → Pterodactyl Settings)
 - [ ] Configured Daily Rewards amounts (Daily Rewards tab)
@@ -527,4 +550,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.5.2
+**Last Updated:** Version 1.5.3
