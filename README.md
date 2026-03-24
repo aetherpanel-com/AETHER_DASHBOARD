@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.5.7
+**Version:** 1.5.8
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.5.7):** Bug Fix — Resolved an issue where the referral banner was not displaying on the signup page when following referral links. See Changelog for details.
+**🔧 Latest Update (v1.5.8):** Admin panel UI revamp — cleaner desktop layout, grouped Overview tabs, full-width Themes/Branding/Integrations pages, and mobile-friendly admin screens. New file: `public/css/admin-panel.css`. No database changes. See [UPDATES.md](UPDATES.md) for details.
 
 ---
 
@@ -1713,4 +1713,4 @@ MIT License - Feel free to use, modify, and distribute!
 
 **Made with ❤️ for free hosting providers. Start earning revenue today!** 🚀💰
 
-**Version 1.5.0** - Production Ready ✅
+**Version 1.5.8** - Production Ready ✅

@@ -2,7 +2,7 @@
 
 Complete guide for setting up and managing your Aether Dashboard after installation.
 
-**Version:** 1.5.7 | **Status:** Production Ready ✅
+**Version:** 1.5.8 | **Status:** Production Ready ✅
 
 > **New to Aether Dashboard?** Complete the installation steps in [README.md](README.md) first, then return here to set up your admin panel.
 
@@ -70,6 +70,10 @@ sequence (e.g. creating templates before syncing eggs) will cause errors.
 > **Default credentials:** username `admin`, password `admin123`
 > ⚠️ Change this immediately after first login via Profile → Change Password
 
+### Phones and tablets
+
+On narrow screens, open the sidebar with the **☰** (hamburger) button in the top-left. Admin-only pages use extra responsive rules (stacked search bars and filters, touch-sized tabs and buttons, horizontal scrolling for wide tables). If you update via **SFTP**, deploy the full `public/` folder so `admin-panel.css` is included.
+
 ---
 
 ## 📊 Overview Tab
@@ -84,11 +88,17 @@ Three cards at the top showing:
 
 These update automatically after operations like importing users or adjusting coins.
 
-### Tabs
+### Tab groups (Overview)
 
-The main content area has six tabs. Click any tab to switch — the active tab
-is stored in the URL (e.g. `#users`, `#servers`) so you can bookmark or
-share a specific section.
+The main card is organised into **groups** so related tools stay together. Each item is a pill-shaped tab.
+
+| Group | Tabs |
+|-------|------|
+| **People & servers** | Users, Servers, Coin management |
+| **Commerce** | Store, Templates |
+| **Platform** | Daily rewards, Maintenance, Broadcast, Panel |
+
+Click a tab to switch. The active section is stored in the **URL hash** (e.g. `#users`, `#coins`, `#templates`) so you can bookmark or reload the same view.
 
 ---
 
@@ -325,6 +335,8 @@ Customise the look of the dashboard for all users.
 ### Quick Presets
 Click any preset card to instantly apply that theme. Presets load
 immediately and apply a full colour scheme.
+
+**Default Purple** is the default preset for new installs and is listed first. If you have saved a **custom** theme, no preset may appear selected until you choose a preset again or reset the theme.
 
 ### Custom Theme Editor
 Fine-tune every colour individually:
@@ -593,4 +605,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.5.7
+**Last Updated:** Version 1.5.8

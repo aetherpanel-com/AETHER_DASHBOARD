@@ -1,3 +1,39 @@
+## Aether Dashboard v1.5.8
+
+### 🎨 Admin Panel UI Revamp
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.5.8 refreshes the **admin panel only** (not the end-user dashboard). Layout, typography, and spacing are cleaner on desktop; phones and tablets get larger tap targets, stacked toolbars and filters, and safer table scrolling on small screens.
+
+### ✨ Improvements
+
+| Area | Description |
+|------|-------------|
+| 🎨 **Admin styling** | New dedicated stylesheet `public/css/admin-panel.css` — calmer cards and header, grouped **Overview** tabs (People & servers / Commerce / Platform), improved data tables |
+| 📐 **Full-width settings** | Themes, Branding, Linkvertise, and Discord admin pages use the same full content width as Overview and Audit Logs |
+| 📱 **Mobile & touch** | Stacked filters on Audit Logs, 2-column then single-column preset grid, overview tab pills sized for touch, safe-area padding, horizontal scroll for wide tables where needed |
+| 💜 **Theme presets** | API returns presets in a fixed order with **Default Purple** first; theme settings load before preset buttons so the active preset highlights correctly |
+
+### 🛠️ Technical Notes
+
+- Admin HTML views link `admin-panel.css` after `dashboard.css` (only admin routes).
+- **SFTP updates:** Deploy the whole `public/` folder so `admin-panel.css` is present.
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**⚠️ No database changes in this version.**
+
+---
+
 ## Aether Dashboard v1.5.7
 
 ### 🐛 Referral UI Bug Fix
@@ -1632,7 +1668,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.5.4
+**Last Updated:** Version 1.5.8
 
 **Made with ❤️ for free hosting providers**
 

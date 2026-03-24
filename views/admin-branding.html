@@ -7,9 +7,10 @@
     <title>Branding Settings - Aether Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin-panel.css">
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="dashboard-container admin-panel">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -146,9 +147,8 @@
             <div class="dashboard-content">
                 <!-- Branding Section -->
                 <div class="card">
-                    <div class="card-header">✨ Branding Settings</div>
-                    <p style="color: #cbd5e1; margin-bottom: 20px;">
-                        Customize your dashboard's appearance. Change the name, logo, and favicon to match your brand.
+                    <p class="admin-card-lead">
+                        Customize your dashboard name, logo, and favicon to match your brand.
                     </p>
                     
                     <form id="brandingForm">
@@ -162,13 +162,13 @@
                         <!-- Logo Upload -->
                         <div class="form-group">
                             <label for="logoUpload">Dashboard Logo</label>
-                            <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-                                <div style="flex: 1; min-width: 200px;">
+                            <div class="admin-form-split">
+                                <div class="admin-form-split-main">
                                     <input type="file" id="logoUpload" accept="image/png,image/jpeg,image/jpg,image/svg+xml" style="margin-bottom: 12px;">
                                     <small style="color: #cbd5e1; display: block;">Recommended: PNG or SVG, transparent background, 200x200px or larger</small>
                                 </div>
-                                <div style="flex: 0 0 auto;">
-                                    <div style="padding: 16px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; text-align: center;">
+                                <div class="admin-form-split-aside">
+                                    <div class="admin-preview-box">
                                         <p style="color: #cbd5e1; margin: 0 0 8px 0; font-size: 14px;">Current Logo Preview</p>
                                         <img id="logoPreview" src="/assets/defaults/aether-dashboard-logo.png" alt="Logo Preview" class="logo-preview" style="max-width: 120px; max-height: 120px; object-fit: contain;">
                                     </div>
@@ -193,13 +193,13 @@
                         <!-- Favicon Upload -->
                         <div class="form-group">
                             <label for="faviconUpload">Favicon (Browser Tab Icon)</label>
-                            <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-                                <div style="flex: 1; min-width: 200px;">
+                            <div class="admin-form-split">
+                                <div class="admin-form-split-main">
                                     <input type="file" id="faviconUpload" accept="image/x-icon,image/png,image/svg+xml" style="margin-bottom: 12px;">
                                     <small style="color: #cbd5e1; display: block;">Recommended: ICO, PNG, or SVG format, 32x32px or 16x16px</small>
                                 </div>
-                                <div style="flex: 0 0 auto;">
-                                    <div style="padding: 16px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; text-align: center;">
+                                <div class="admin-form-split-aside">
+                                    <div class="admin-preview-box">
                                         <p style="color: #cbd5e1; margin: 0 0 8px 0; font-size: 14px;">Current Favicon Preview</p>
                                         <img id="faviconPreview" src="/assets/defaults/aether-dashboard-favicon.ico" alt="Favicon Preview" style="max-width: 48px; max-height: 48px; object-fit: contain; border-radius: 4px;">
                                     </div>
@@ -207,7 +207,7 @@
                             </div>
                         </div>
                         
-                        <div style="display: flex; gap: 12px; margin-top: 24px;">
+                        <div class="admin-form-actions">
                             <button type="submit" class="btn btn-primary">💾 Save Branding Settings</button>
                             <button type="button" class="btn btn-secondary" onclick="resetBranding()">🔄 Reset to Default</button>
                         </div>
@@ -221,51 +221,6 @@
             Powered by <strong>Aether Dashboard</strong>
         </div>
     </div>
-    
-    <style>
-        /* Powered by Watermark */
-        .powered-by-watermark {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.4);
-            z-index: 100;
-            pointer-events: none;
-            user-select: none;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            letter-spacing: 0.3px;
-        }
-        
-        .powered-by-watermark strong {
-            color: rgba(124, 58, 237, 0.6);
-            font-weight: 600;
-        }
-        
-        @media (max-width: 768px) {
-            .powered-by-watermark {
-                bottom: 12px;
-                right: 12px;
-                font-size: 10px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .powered-by-watermark {
-                bottom: 8px;
-                right: 8px;
-                font-size: 9px;
-            }
-        }
-        
-        /* Logo shape classes */
-        .logo-circle { border-radius: 50%; }
-        .logo-rounded { border-radius: 12px; }
-        .logo-square { border-radius: 0; }
-        .logo-triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
-        .logo-hexagon { clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
-        .logo-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
-    </style>
     
     <script src="/js/main.js"></script>
     <script src="/js/dashboard.js"></script>

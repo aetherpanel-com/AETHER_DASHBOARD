@@ -11,6 +11,8 @@
 **Version 1.5.0 note:** v1.5 adds several new database tables (notifications, daily_reward_config, referral_config, etc.) that are created automatically on startup. Your normal `database.db` and `.env` backup routine is still valid before updating. No additional files need to be backed up.
 **Version 1.5.3 note:** v1.5.3 adds the `activity_logs` table and a `log_retention_days` column to `feature_flags`. Both are created automatically on startup. No additional files need to be backed up — audit logs are stored in your existing `database.db` file.
 
+**Version 1.5.8 note:** UI-only update for the admin panel (new `public/css/admin-panel.css` and updated admin `views`). **No database changes.** Your usual `database.db` and `.env` backup routine is unchanged. If you deploy by SFTP, upload the whole `public/` directory so the new stylesheet is on the server.
+
 **For GAME SERVER backups**, use the new Backup System feature:
 1. Go to any server → Click "📊 Live Stats"
 2. Scroll down to "Backup System" section
@@ -419,7 +421,7 @@ crontab -e
 
 ---
 
-**Last Updated:** Version 1.5.7
+**Last Updated:** Version 1.5.8
 
 **Made with ❤️ for free hosting providers**
 

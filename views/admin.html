@@ -7,9 +7,10 @@
     <title>Admin Panel - Aether Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin-panel.css">
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="dashboard-container admin-panel">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -174,37 +175,45 @@
                 </div>
                 
                 <!-- Tabs -->
-                <div class="card">
-                    <div class="tabs-scroll-container">
-                        <div class="tabs-nav">
-                            <button class="tab-btn active" onclick="showTab('users', this)">Users</button>
-                            <button class="tab-btn" onclick="showTab('servers', this)">Servers</button>
-                            <button class="tab-btn" onclick="showTab('coins', this)">Coin Management</button>
-                            <button class="tab-btn" onclick="showTab('store', this)">Store Management</button>
-                            <button class="tab-btn" onclick="showTab('dailyRewards', this)">🎁 Daily Rewards</button>
-
-                            <button class="tab-btn" onclick="showTab('maintenance', this)">🔧 Maintenance</button>
-                            <button class="tab-btn" onclick="showTab('broadcast', this)">📢 Broadcast</button>
-                            <button class="tab-btn" onclick="showTab('templates', this)">Server Templates</button>
-                            <button class="tab-btn" onclick="showTab('panel', this)">Panel</button>
+                <div class="card admin-main-card">
+                    <div class="admin-tab-groups">
+                        <div class="admin-tab-group">
+                            <span class="admin-tab-group-label">People &amp; servers</span>
+                            <div class="admin-tab-row">
+                                <button type="button" class="tab-btn active" onclick="showTab('users', this)">Users</button>
+                                <button type="button" class="tab-btn" onclick="showTab('servers', this)">Servers</button>
+                                <button type="button" class="tab-btn" onclick="showTab('coins', this)">Coin management</button>
+                            </div>
+                        </div>
+                        <div class="admin-tab-group">
+                            <span class="admin-tab-group-label">Commerce</span>
+                            <div class="admin-tab-row">
+                                <button type="button" class="tab-btn" onclick="showTab('store', this)">Store</button>
+                                <button type="button" class="tab-btn" onclick="showTab('templates', this)">Templates</button>
+                            </div>
+                        </div>
+                        <div class="admin-tab-group">
+                            <span class="admin-tab-group-label">Platform</span>
+                            <div class="admin-tab-row">
+                                <button type="button" class="tab-btn" onclick="showTab('dailyRewards', this)">Daily rewards</button>
+                                <button type="button" class="tab-btn" onclick="showTab('maintenance', this)">Maintenance</button>
+                                <button type="button" class="tab-btn" onclick="showTab('broadcast', this)">Broadcast</button>
+                                <button type="button" class="tab-btn" onclick="showTab('panel', this)">Panel</button>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Users Tab -->
                     <div id="usersTab" class="tab-content">
-                        <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <div class="admin-toolbar">
                             <input
                                 type="text"
                                 id="userSearchInput"
+                                class="admin-input-grow"
                                 placeholder="Search by username or email..."
                                 oninput="filterUsers()"
-                                style="flex: 1; min-width: 200px; padding: 10px 14px; background: var(--input-bg);
-                                       border: 1px solid var(--input-border); border-radius: 8px;
-                                       color: var(--input-text); font-size: 14px;"
                             />
-                            <select id="userRoleFilter" onchange="filterUsers()"
-                                style="padding: 10px 14px; background: var(--input-bg); border: 1px solid var(--input-border);
-                                       border-radius: 8px; color: var(--input-text); font-size: 14px;">
+                            <select id="userRoleFilter" onchange="filterUsers()">
                                 <option value="all">All roles</option>
                                 <option value="admin">Admin only</option>
                                 <option value="user">Users only</option>
@@ -1050,14 +1059,19 @@
             const hash = window.location.hash.replace('#', '');
             const validTabs = ['users', 'servers', 'coins', 'store', 'dailyRewards', 'maintenance', 'broadcast', 'templates', 'panel'];
             if (hash && validTabs.includes(hash)) {
-                const btn = Array.from(document.querySelectorAll('.tab-btn'))
-                    .find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${hash}'`));
+                const btn = findTabButtonForName(hash);
                 showTab(hash, btn || null);
             } else {
                 const defaultBtn = document.querySelector('.tab-btn.active') || document.querySelector('.tab-btn');
                 showTab('users', defaultBtn);
             }
         });
+
+        function findTabButtonForName(tabName) {
+            return Array.from(document.querySelectorAll('.tab-btn')).find(
+                (b) => b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${tabName}'`)
+            );
+        }
         
         function showTab(tabName, buttonElement) {
             document.querySelectorAll('.tab-content').forEach(tab => {
@@ -1075,11 +1089,8 @@
             if (buttonElement) {
                 buttonElement.classList.add('active');
             } else {
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    if (btn.textContent.trim().toLowerCase().includes(tabName.toLowerCase())) {
-                        btn.classList.add('active');
-                    }
-                });
+                const match = findTabButtonForName(tabName);
+                if (match) match.classList.add('active');
             }
 
             // Persist to URL hash without scrolling
@@ -3278,132 +3289,6 @@
         })();
         
     </script>
-    <style>
-        /* Tabs Navigation Container - Scrollable on Mobile */
-        .tabs-scroll-container {
-            overflow-x: auto;
-            overflow-y: visible;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(124, 58, 237, 0.5) transparent;
-            margin: 0 -16px; /* Extend to card edges */
-            padding: 0 16px; /* Add padding back */
-        }
-
-        .tabs-scroll-container::-webkit-scrollbar {
-            height: 4px;
-        }
-
-        .tabs-scroll-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .tabs-scroll-container::-webkit-scrollbar-thumb {
-            background: rgba(124, 58, 237, 0.5);
-            border-radius: 2px;
-        }
-
-        .tabs-scroll-container::-webkit-scrollbar-thumb:hover {
-            background: rgba(124, 58, 237, 0.7);
-        }
-
-        .tabs-nav {
-            display: flex;
-            gap: 16px;
-            border-bottom: 2px solid rgba(124, 58, 237, 0.3);
-            margin-bottom: 20px;
-            min-width: max-content; /* Prevent wrapping */
-            white-space: nowrap; /* Prevent text wrapping */
-        }
-
-        .tab-btn {
-            padding: 12px 24px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            color: #cbd5e1;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-            white-space: nowrap; /* Prevent text wrapping */
-            flex-shrink: 0; /* Prevent buttons from shrinking */
-        }
-
-        .tab-btn.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-
-        .tab-btn:hover {
-            color: #667eea;
-        }
-
-        /* Mobile optimizations for tabs */
-        @media (max-width: 768px) {
-            .tabs-scroll-container {
-                margin: 0 -12px;
-                padding: 0 12px;
-            }
-            
-            .tabs-nav {
-                gap: 12px;
-                margin-bottom: 16px;
-            }
-            
-            .tab-btn {
-                padding: 10px 16px;
-                font-size: 14px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .tabs-nav {
-                gap: 8px;
-            }
-            
-            .tab-btn {
-                padding: 8px 12px;
-                font-size: 13px;
-            }
-        }
-        
-        /* Powered by Watermark */
-        .powered-by-watermark {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.4);
-            z-index: 100;
-            pointer-events: none;
-            user-select: none;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            letter-spacing: 0.3px;
-        }
-        
-        .powered-by-watermark strong {
-            color: rgba(124, 58, 237, 0.6);
-            font-weight: 600;
-        }
-        
-        /* Responsive watermark */
-        @media (max-width: 768px) {
-            .powered-by-watermark {
-                bottom: 12px;
-                right: 12px;
-                font-size: 10px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .powered-by-watermark {
-                bottom: 8px;
-                right: 8px;
-                font-size: 9px;
-            }
-        }
-    </style>
 </body>
 </html>
 

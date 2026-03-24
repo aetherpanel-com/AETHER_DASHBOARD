@@ -2342,10 +2342,10 @@ router.get('/api/theme', async (req, res) => {
 
 // Get available preset themes
 router.get('/api/theme/presets', requireAdmin, (req, res) => {
-    const presets = Object.keys(PRESET_THEMES).map(key => ({
-        id: key,
-        name: PRESET_THEMES[key].name
-    }));
+    const presetOrder = ['default', 'ocean', 'sunset', 'forest', 'midnight', 'rose'];
+    const presets = presetOrder
+        .filter((id) => PRESET_THEMES[id])
+        .map((id) => ({ id, name: PRESET_THEMES[id].name }));
     
     res.json({
         success: true,

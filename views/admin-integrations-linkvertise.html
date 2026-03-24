@@ -7,9 +7,10 @@
     <title>Linkvertise Integration - Admin Panel - Aether Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin-panel.css">
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="dashboard-container admin-panel">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -146,7 +147,8 @@
             <div class="dashboard-content">
                 <!-- Configuration Section -->
                 <div class="card" style="margin-bottom: 20px;">
-                    <div class="card-header">Linkvertise Configuration</div>
+                    <div class="card-header admin-section-title">Configuration</div>
+                    <p class="admin-card-lead">Publisher defaults and cooldowns apply to all links unless overridden per link.</p>
                     <form id="linkvertiseConfigForm">
                         <div class="form-group">
                             <label for="publisherLink">Publisher Link</label>
@@ -174,8 +176,8 @@
                 
                 <!-- Links Management Section -->
                 <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <div class="card-header" style="margin: 0;">Manage Links</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                        <div class="card-header admin-section-title" style="margin: 0;">Links</div>
                         <button class="btn btn-primary" onclick="showAddLinkForm()">Add New Link</button>
                     </div>
                     

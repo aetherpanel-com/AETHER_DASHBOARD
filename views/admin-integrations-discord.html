@@ -7,6 +7,7 @@
     <title>Discord Integration - Admin Panel - Aether Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin-panel.css">
     <style>
         .toggle-switch {
             position: relative;
@@ -67,7 +68,7 @@
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="dashboard-container admin-panel">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -204,8 +205,8 @@
             <div class="dashboard-content">
                 <!-- Bot Status Indicator -->
                 <div class="card" style="margin-bottom: 20px;">
-                    <div class="card-header">Discord Bot Status</div>
-                    <div style="padding: 20px;">
+                    <div class="card-header admin-section-title">Bot status</div>
+                    <div style="padding: 0 4px 8px;">
                         <div id="botStatusIndicator" style="display: flex; align-items: center; gap: 12px;">
                             <span id="botStatusIcon" style="font-size: 24px;">⏳</span>
                             <span id="botStatusText" style="color: #cbd5e1; font-size: 16px; font-weight: 500;">Checking...</span>
@@ -214,9 +215,9 @@
                 </div>
                 
                 <div class="card">
-                    <div class="card-header">Discord Server Configuration</div>
-                    <p style="color: #cbd5e1; margin-bottom: 20px;">
-                        Configure your Discord server settings to enable chat and invite rewards features. The bot token is configured in the server's environment variables.
+                    <div class="card-header admin-section-title">Server configuration</div>
+                    <p class="admin-card-lead">
+                        Connect channels and reward settings. The bot token lives in environment variables on the server.
                     </p>
                     
                     <form id="discordConfigForm">

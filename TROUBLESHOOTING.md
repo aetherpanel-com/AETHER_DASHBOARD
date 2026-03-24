@@ -961,7 +961,31 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.5.4
+## 🎨 Admin panel after v1.5.8 (UI revamp)
+
+### "Admin pages look unstyled or layout is broken"
+
+**Problem:** After updating, admin screens miss the new styling or tabs look wrong.
+
+**Solution:**
+
+1. **Confirm the new CSS file exists on the server:**
+   ```bash
+   ls -la public/css/admin-panel.css
+   ```
+2. If it is missing, pull or upload the latest code and ensure the entire **`public/`** folder is deployed (SFTP users often replace `routes/` and `views/` but forget `public/`).
+3. **Hard refresh** the browser (Ctrl+F5 / clear cache) so an old cached `dashboard.css` alone is not masking missing `admin-panel.css`.
+4. Restart the app: `pm2 restart aether-dashboard`
+
+### "Theme preset buttons don't show the right active preset"
+
+**Problem:** Wrong or no highlight on Quick Presets after opening Themes.
+
+**Solution:** Update to **v1.5.8** — theme settings now load before preset buttons, and **Default Purple** is the first preset in the API list. If you use a fully **custom** theme, no preset may appear selected until you apply a preset again.
+
+---
+
+**Last Updated:** Version 1.5.8
 
 **Made with ❤️ for free hosting providers**
 

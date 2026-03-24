@@ -1,0 +1,869 @@
+/**
+ * Admin panel UI — scoped to .dashboard-container.admin-panel
+ * Calmer surfaces, grouped tabs, improved tables/forms (user-facing dashboard unchanged).
+ */
+
+.dashboard-container.admin-panel {
+    --admin-surface-0: rgba(10, 14, 28, 0.92);
+    --admin-surface-1: rgba(22, 28, 48, 0.85);
+    --admin-surface-2: rgba(32, 38, 62, 0.75);
+    --admin-border: rgba(148, 163, 184, 0.12);
+    --admin-text-muted: #a8b3c9;
+    --admin-radius: 12px;
+    --admin-radius-sm: 8px;
+    --admin-tab-active: var(--accent-primary, #7c3aed);
+}
+
+/* ----- Main column: slightly calmer canvas ----- */
+.dashboard-container.admin-panel .main-content {
+    background: linear-gradient(165deg, rgba(8, 11, 22, 0.35) 0%, transparent 45%);
+}
+
+.dashboard-container.admin-panel .dashboard-header {
+    background: var(--admin-surface-0);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--admin-border);
+    box-shadow: none;
+}
+
+.dashboard-container.admin-panel .dashboard-header h1 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    background: none;
+    -webkit-text-fill-color: #e8ecf4;
+    color: #e8ecf4;
+}
+
+.dashboard-container.admin-panel .coin-balance {
+    background: var(--admin-surface-2);
+    border: 1px solid var(--admin-border);
+    animation: none;
+    background-size: auto;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    font-size: 0.95rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+}
+
+.dashboard-container.admin-panel .coin-balance:hover {
+    transform: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* ----- Sidebar: less motion, clearer active state ----- */
+.dashboard-container.admin-panel .sidebar .nav-item:hover {
+    transform: none;
+}
+
+.dashboard-container.admin-panel .sidebar .sidebar-dropdown-toggle:hover {
+    transform: none;
+}
+
+.dashboard-container.admin-panel .sidebar .nav-item.active {
+    box-shadow: none;
+    background: rgba(255, 255, 255, 0.18);
+}
+
+/* ----- Cards: no lift on hover ----- */
+.dashboard-container.admin-panel .card {
+    background: var(--admin-surface-1);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+}
+
+.dashboard-container.admin-panel .card:hover {
+    transform: none;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.22);
+}
+
+.dashboard-container.admin-panel .admin-main-card {
+    padding-top: 1.25rem;
+}
+
+/* ----- Stat cards (overview + logs mini stats) ----- */
+.dashboard-container.admin-panel .stats-grid {
+    gap: 1rem;
+}
+
+.dashboard-container.admin-panel .stat-card {
+    background: var(--admin-surface-1);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-container.admin-panel .stat-card::before {
+    display: none;
+}
+
+.dashboard-container.admin-panel .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
+.dashboard-container.admin-panel .stat-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 1.5rem;
+    border-radius: var(--admin-radius-sm);
+    animation: none;
+    background-size: auto;
+    background: linear-gradient(145deg, rgba(124, 58, 237, 0.35), rgba(6, 182, 212, 0.2));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    filter: none;
+}
+
+.dashboard-container.admin-panel .stat-info h3 {
+    background: none;
+    -webkit-text-fill-color: #f1f5f9;
+    color: #f1f5f9;
+    font-size: 1.75rem;
+}
+
+.dashboard-container.admin-panel .stat-info p {
+    color: var(--admin-text-muted);
+    line-height: 1.45;
+}
+
+.dashboard-container.admin-panel .stat-info p[id$="Delta"] {
+    color: var(--accent-success, #10b981);
+    font-size: 0.8125rem;
+    margin-top: 0.25rem;
+}
+
+/* Mini stat cards (audit logs) */
+.admin-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.admin-stat-grid .card {
+    padding: 1rem 1.125rem;
+    margin-bottom: 0;
+}
+
+.admin-stat-grid .admin-stat-label {
+    color: var(--admin-text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+}
+
+.admin-stat-grid .admin-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* ----- Grouped tabs (admin overview) ----- */
+.admin-tab-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.admin-tab-group-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--admin-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.admin-tab-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.dashboard-container.admin-panel .admin-tab-groups .tab-btn {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--admin-text-muted);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    margin-bottom: 0;
+    background: var(--admin-surface-2);
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.dashboard-container.admin-panel .admin-tab-groups .tab-btn:hover {
+    color: #e8ecf4;
+    background: rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.25);
+}
+
+.dashboard-container.admin-panel .admin-tab-groups .tab-btn.active {
+    color: #fff;
+    background: rgba(124, 58, 237, 0.45);
+    border-color: rgba(124, 58, 237, 0.55);
+    box-shadow: 0 2px 12px rgba(124, 58, 237, 0.2);
+}
+
+/* ----- Toolbar (search / filters) ----- */
+.admin-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.admin-toolbar .admin-input-grow {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.625rem 0.875rem;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--input-text);
+    font-size: 0.875rem;
+}
+
+.admin-toolbar select {
+    padding: 0.625rem 0.875rem;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--admin-radius-sm);
+    color: var(--input-text);
+    font-size: 0.875rem;
+}
+
+/* ----- Section title inside card (no duplicate page title) ----- */
+.admin-card-lead {
+    color: var(--admin-text-muted);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    margin: 0 0 1.25rem;
+}
+
+.dashboard-container.admin-panel .card-header.admin-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    background: none;
+    -webkit-text-fill-color: #e8ecf4;
+    color: #e8ecf4;
+}
+
+/* ----- Tables ----- */
+.dashboard-container.admin-panel .admin-table thead tr {
+    background: var(--admin-surface-2);
+}
+
+.dashboard-container.admin-panel .admin-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.dashboard-container.admin-panel .admin-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--admin-text-muted);
+    padding: 0.75rem 0.875rem;
+}
+
+.dashboard-container.admin-panel .admin-table td {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.dashboard-container.admin-panel .admin-table tbody tr:hover {
+    background: rgba(124, 58, 237, 0.08);
+}
+
+/* Audit logs table */
+.admin-logs-wrap {
+    overflow: auto;
+    border-radius: var(--admin-radius-sm);
+    border: 1px solid var(--admin-border);
+}
+
+table.admin-logs-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-logs-table thead tr {
+    background: var(--admin-surface-2);
+}
+
+.admin-logs-table th {
+    text-align: left;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-text-muted);
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-logs-table td {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.8125rem;
+    color: #e2e8f0;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-logs-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-logs-table tbody tr:hover {
+    background: rgba(124, 58, 237, 0.07);
+}
+
+/* Filter card */
+.admin-filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.25fr 1fr 1fr auto auto;
+    gap: 0.625rem;
+    align-items: end;
+}
+
+@media (max-width: 1100px) {
+    .admin-filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .admin-filter-grid .btn {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 560px) {
+    .admin-filter-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.admin-filter-grid .form-label-muted {
+    font-size: 0.75rem;
+    color: var(--admin-text-muted);
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.admin-settings-row {
+    display: flex;
+    gap: 0.625rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.admin-settings-row .form-group,
+.admin-settings-row > div {
+    margin-bottom: 0;
+}
+
+/* Audit logs pagination */
+.admin-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.admin-pagination-info {
+    color: #cbd5e1;
+    font-size: 0.875rem;
+    text-align: center;
+    flex: 1 1 auto;
+}
+
+/* ----- Theme presets (shared by admin-themes + admin-settings) ----- */
+.dashboard-container.admin-panel .preset-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.25rem;
+    background: var(--admin-surface-2);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    min-width: 100px;
+}
+
+.dashboard-container.admin-panel .preset-btn:hover {
+    background: rgba(124, 58, 237, 0.12);
+    border-color: rgba(124, 58, 237, 0.35);
+    transform: none;
+}
+
+.dashboard-container.admin-panel .preset-btn.active {
+    background: rgba(124, 58, 237, 0.22);
+    border-color: rgba(124, 58, 237, 0.65);
+    box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.3);
+}
+
+.dashboard-container.admin-panel .preset-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+.dashboard-container.admin-panel .preset-name {
+    font-size: 0.8125rem;
+    color: #e8ecf4;
+    font-weight: 500;
+    text-align: center;
+}
+
+.dashboard-container.admin-panel input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 0;
+    border: 1px solid var(--admin-border);
+    background: transparent;
+    border-radius: 6px;
+}
+
+.dashboard-container.admin-panel input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 2px;
+}
+
+.dashboard-container.admin-panel input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 4px;
+}
+
+/* ----- Branding: logo shape helpers ----- */
+.logo-circle { border-radius: 50%; }
+.logo-rounded { border-radius: 12px; }
+.logo-square { border-radius: 0; }
+.logo-triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+.logo-hexagon { clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
+.logo-diamond { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+
+/* ----- Watermark ----- */
+.powered-by-watermark {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+    z-index: 100;
+    pointer-events: none;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    letter-spacing: 0.03em;
+}
+
+.powered-by-watermark strong {
+    color: rgba(124, 58, 237, 0.55);
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .powered-by-watermark {
+        bottom: 12px;
+        right: 12px;
+        font-size: 10px;
+    }
+
+    .dashboard-container.admin-panel .dashboard-header h1 {
+        font-size: 1.15rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .powered-by-watermark {
+        bottom: 8px;
+        right: 8px;
+        font-size: 9px;
+    }
+}
+
+/* ----- Audit logs: filter inputs (moved from inline page styles) ----- */
+.dashboard-container.admin-panel #filterSearch,
+.dashboard-container.admin-panel #filterType,
+.dashboard-container.admin-panel #timezoneSelect,
+.dashboard-container.admin-panel #filterFrom,
+.dashboard-container.admin-panel #filterTo {
+    background: var(--admin-surface-2);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    color: #e8ecf4;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    outline: none;
+    width: 100%;
+}
+
+.dashboard-container.admin-panel #retentionDays {
+    background: var(--admin-surface-2);
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    color: #e8ecf4;
+    padding: 0.5rem 0.75rem;
+    width: 80px;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.dashboard-container.admin-panel #filterFrom::-webkit-calendar-picker-indicator,
+.dashboard-container.admin-panel #filterTo::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.65;
+    cursor: pointer;
+}
+
+.dashboard-container.admin-panel #filterType,
+.dashboard-container.admin-panel #timezoneSelect {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 2.25rem;
+}
+
+.dashboard-container.admin-panel #filterSearch:-webkit-autofill,
+.dashboard-container.admin-panel #filterFrom:-webkit-autofill,
+.dashboard-container.admin-panel #filterTo:-webkit-autofill,
+.dashboard-container.admin-panel #retentionDays:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px rgba(22, 28, 48, 0.95) inset;
+    -webkit-text-fill-color: #e8ecf4;
+}
+
+.dashboard-container.admin-panel #filterType option,
+.dashboard-container.admin-panel #timezoneSelect option {
+    background: #1e2438;
+    color: #e8ecf4;
+}
+
+.dashboard-container.admin-panel #filterSearch:focus,
+.dashboard-container.admin-panel #filterType:focus,
+.dashboard-container.admin-panel #timezoneSelect:focus,
+.dashboard-container.admin-panel #filterFrom:focus,
+.dashboard-container.admin-panel #filterTo:focus,
+.dashboard-container.admin-panel #retentionDays:focus {
+    border-color: rgba(124, 58, 237, 0.55);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+/* ----- Branding: split rows & preview (desktop) ----- */
+.admin-form-split {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.admin-form-split-main {
+    flex: 1 1 200px;
+    min-width: 0;
+}
+
+.admin-form-split-aside {
+    flex: 0 0 auto;
+}
+
+.admin-preview-box {
+    padding: 1rem;
+    background: rgba(30, 30, 50, 0.4);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: var(--admin-radius);
+    text-align: center;
+}
+
+.admin-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+/* Theme preset grid (replaces inline flex on #themePresets) */
+.admin-theme-presets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+    gap: 0.75rem;
+}
+
+/* Touch: faster taps, no 300ms delay */
+.dashboard-container.admin-panel .tab-btn,
+.dashboard-container.admin-panel .preset-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Admin overview: avoid horizontal page scroll from table bleed-through */
+.dashboard-container.admin-panel .table-scroll-container {
+    max-width: 100%;
+}
+
+/* =============================================================================
+   Mobile & tablet — touch targets, stacking, iOS input zoom fix
+   ============================================================================= */
+@media (max-width: 768px) {
+    .dashboard-container.admin-panel .dashboard-content {
+        padding-left: max(1rem, env(safe-area-inset-left, 0px));
+        padding-right: max(1rem, env(safe-area-inset-right, 0px));
+        padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    .dashboard-container.admin-panel .card {
+        padding: 1rem 1rem;
+    }
+
+    .dashboard-container.admin-panel .admin-main-card {
+        padding-top: 0.875rem;
+    }
+
+    .dashboard-container.admin-panel .dashboard-header {
+        gap: 0.75rem;
+    }
+
+    .dashboard-container.admin-panel .header-right .coin-balance {
+        max-width: 100%;
+    }
+
+    /* Overview tabs: full-width taps, readable */
+    .admin-tab-groups {
+        gap: 1rem;
+    }
+
+    .admin-tab-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .dashboard-container.admin-panel .admin-tab-groups .tab-btn {
+        width: 100%;
+        min-height: 48px;
+        padding: 0.625rem 0.75rem;
+        font-size: 0.875rem;
+        text-align: center;
+    }
+
+    /* User toolbar */
+    .admin-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.625rem;
+    }
+
+    .admin-toolbar .admin-input-grow,
+    .admin-toolbar select {
+        width: 100%;
+        min-width: 0;
+        flex: none;
+        min-height: 48px;
+        font-size: 16px;
+    }
+
+    /* Stats (overview): already 1-col from dashboard.css; tighten admin overrides */
+    .dashboard-container.admin-panel .stat-card:hover {
+        transform: none;
+    }
+
+    .dashboard-container.admin-panel .stat-icon {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.35rem;
+    }
+
+    /* Audit log mini cards */
+    .admin-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .admin-stat-grid .admin-stat-value {
+        font-size: 1.25rem;
+    }
+
+    /* Filters: stack + 16px inputs (iOS zoom) */
+    .admin-filter-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .dashboard-container.admin-panel #filterSearch,
+    .dashboard-container.admin-panel #filterType,
+    .dashboard-container.admin-panel #timezoneSelect,
+    .dashboard-container.admin-panel #filterFrom,
+    .dashboard-container.admin-panel #filterTo {
+        min-height: 48px;
+        font-size: 16px;
+    }
+
+    .admin-filter-grid .btn {
+        width: 100%;
+        min-height: 48px;
+    }
+
+    .admin-settings-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .dashboard-container.admin-panel #retentionDays {
+        width: 100%;
+        max-width: 100%;
+        min-height: 48px;
+        font-size: 16px;
+        text-align: left;
+    }
+
+    .admin-settings-row .btn {
+        width: 100%;
+    }
+
+    .admin-pagination {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-pagination-info {
+        order: -1;
+        width: 100%;
+    }
+
+    /* Logs table: undo global `table { display: block }` from style.css — keep real table + horizontal scroll */
+    .dashboard-container.admin-panel .admin-logs-wrap {
+        -webkit-overflow-scrolling: touch;
+        margin-left: -0.25rem;
+        margin-right: -0.25rem;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
+    .dashboard-container.admin-panel .admin-logs-wrap table.admin-logs-table {
+        display: table;
+        width: 100%;
+        min-width: 36rem;
+        white-space: nowrap;
+    }
+
+    .dashboard-container.admin-panel .admin-logs-wrap .admin-logs-table thead {
+        display: table-header-group;
+    }
+
+    .dashboard-container.admin-panel .admin-logs-wrap .admin-logs-table tbody {
+        display: table-row-group;
+    }
+
+    .dashboard-container.admin-panel .admin-logs-wrap .admin-logs-table tr {
+        display: table-row;
+    }
+
+    .dashboard-container.admin-panel .admin-logs-wrap .admin-logs-table th,
+    .dashboard-container.admin-panel .admin-logs-wrap .admin-logs-table td {
+        display: table-cell;
+        white-space: nowrap;
+    }
+
+    .dashboard-container.admin-panel .admin-logs-wrap .admin-logs-table td:last-child {
+        white-space: normal;
+        max-width: 12rem;
+        word-break: break-word;
+    }
+
+    /* Data tables inside cards: no negative margin overflow */
+    .dashboard-container.admin-panel .table-scroll-container {
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .dashboard-container.admin-panel .admin-table .btn {
+        min-height: 44px;
+        padding: 0.5rem 0.875rem;
+        font-size: 0.875rem;
+        width: auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Theme presets: two columns */
+    .admin-theme-presets-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-container.admin-panel .preset-btn {
+        min-width: 0;
+        min-height: 4.5rem;
+        width: 100%;
+    }
+
+    /* Branding: stack preview under inputs */
+    .admin-form-split {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-form-split-aside {
+        align-self: center;
+        width: 100%;
+        max-width: 16rem;
+    }
+
+    .admin-form-actions {
+        flex-direction: column;
+    }
+
+    .admin-form-actions .btn {
+        width: 100%;
+    }
+
+    .admin-card-lead {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-container.admin-panel .dashboard-content {
+        padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+        padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    }
+
+    /* Single column tabs on very narrow screens */
+    .admin-tab-row {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-stat-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-theme-presets-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-container.admin-panel .dashboard-header h1 {
+        font-size: 1.05rem;
+        line-height: 1.3;
+    }
+}
+
+/* Optional: reduce motion */
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-container.admin-panel .tab-btn,
+    .dashboard-container.admin-panel .preset-btn,
+    .dashboard-container.admin-panel .card {
+        transition: none;
+    }
+}

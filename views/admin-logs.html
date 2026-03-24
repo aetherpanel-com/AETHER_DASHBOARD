@@ -7,81 +7,10 @@
     <title>Audit Logs - Aether Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/dashboard.css">
-    <style>
-        #filterSearch,
-        #filterType,
-        #timezoneSelect,
-        #filterFrom,
-        #filterTo {
-            background: rgba(10, 14, 39, 0.6);
-            border: 1px solid rgba(124, 58, 237, 0.3);
-            border-radius: 8px;
-            color: #f8fafc;
-            padding: 10px 14px;
-            font-size: 14px;
-            outline: none;
-            width: 100%;
-        }
-
-        #retentionDays {
-            background: rgba(10, 14, 39, 0.6);
-            border: 1px solid rgba(124, 58, 237, 0.3);
-            border-radius: 6px;
-            color: #f8fafc;
-            padding: 8px 12px;
-            width: 80px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        /* Fix date picker icon color */
-        #filterFrom::-webkit-calendar-picker-indicator,
-        #filterTo::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            opacity: 0.6;
-            cursor: pointer;
-        }
-
-        /* Fix select dropdown arrow */
-        #filterType,
-        #timezoneSelect {
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            padding-right: 36px;
-        }
-
-        /* Fix autofill background */
-        #filterSearch:-webkit-autofill,
-        #filterFrom:-webkit-autofill,
-        #filterTo:-webkit-autofill,
-        #retentionDays:-webkit-autofill {
-            -webkit-box-shadow: 0 0 0 1000px rgba(10, 14, 39, 0.9) inset;
-            -webkit-text-fill-color: #f8fafc;
-        }
-
-        /* Fix select option background (dropdown list) */
-        #filterType option,
-        #timezoneSelect option {
-            background: #1e1e32;
-            color: #f8fafc;
-        }
-
-        #filterSearch:focus,
-        #filterType:focus,
-        #timezoneSelect:focus,
-        #filterFrom:focus,
-        #filterTo:focus,
-        #retentionDays:focus {
-            border-color: rgba(124, 58, 237, 0.7);
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
-        }
-    </style>
+    <link rel="stylesheet" href="/css/admin-panel.css">
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="dashboard-container admin-panel">
         <aside class="sidebar">
             <div class="sidebar-header">
                 <img src="/assets/defaults/aether-dashboard-logo.png" alt="Dashboard Logo" class="dashboard-logo" id="sidebar-logo">
@@ -153,55 +82,67 @@
             </header>
 
             <div class="dashboard-content">
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px;">
-                    <div class="card"><div style="color:#94a3b8;font-size:12px;">Total Logs</div><div id="statTotal" style="font-size:24px;font-weight:700;color:#f8fafc;">0</div></div>
-                    <div class="card"><div style="color:#94a3b8;font-size:12px;">Servers Created</div><div id="statCreated" style="font-size:24px;font-weight:700;color:#22c55e;">0</div></div>
-                    <div class="card"><div style="color:#94a3b8;font-size:12px;">Coins Earned</div><div id="statEarned" style="font-size:24px;font-weight:700;color:#fbbf24;">0</div></div>
-                    <div class="card"><div style="color:#94a3b8;font-size:12px;">Coins Spent</div><div id="statSpent" style="font-size:24px;font-weight:700;color:#fb923c;">0</div></div>
+                <div class="admin-stat-grid">
+                    <div class="card">
+                        <div class="admin-stat-label">Total logs</div>
+                        <div id="statTotal" class="admin-stat-value" style="color:#f1f5f9;">0</div>
+                    </div>
+                    <div class="card">
+                        <div class="admin-stat-label">Servers created</div>
+                        <div id="statCreated" class="admin-stat-value" style="color:#22c55e;">0</div>
+                    </div>
+                    <div class="card">
+                        <div class="admin-stat-label">Coins earned</div>
+                        <div id="statEarned" class="admin-stat-value" style="color:#fbbf24;">0</div>
+                    </div>
+                    <div class="card">
+                        <div class="admin-stat-label">Coins spent</div>
+                        <div id="statSpent" class="admin-stat-value" style="color:#fb923c;">0</div>
+                    </div>
                 </div>
 
                 <div class="card" style="margin-bottom:16px;">
-                    <div class="card-header">Filters</div>
-                    <div style="display:grid;grid-template-columns:2fr 1fr 1.25fr 1fr 1fr auto auto;gap:10px;">
+                    <div class="card-header admin-section-title">Filters</div>
+                    <div class="admin-filter-grid">
                         <input id="filterSearch" type="text" placeholder="Search username or description">
                         <select id="filterType"><option value="">All Types</option></select>
-                        <div style="display:flex;flex-direction:column;gap:4px;">
-                            <label for="timezoneSelect" style="font-size:12px;color:#94a3b8;">🌐 Display Timezone</label>
+                        <div>
+                            <label for="timezoneSelect" class="form-label-muted">Display timezone</label>
                             <select id="timezoneSelect" title="Display Timezone"></select>
                         </div>
-                        <input id="filterFrom" type="date">
-                        <input id="filterTo" type="date">
-                        <button class="btn btn-primary" id="btnSearch">Search</button>
-                        <button class="btn btn-secondary" id="btnClear">Clear</button>
+                        <input id="filterFrom" type="date" title="From date">
+                        <input id="filterTo" type="date" title="To date">
+                        <button type="button" class="btn btn-primary" id="btnSearch">Search</button>
+                        <button type="button" class="btn btn-secondary" id="btnClear">Clear</button>
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="card-header">Logs</div>
-                    <div style="overflow:auto;">
-                        <table style="width:100%;border-collapse:collapse;">
+                    <div class="card-header admin-section-title">Logs</div>
+                    <div class="admin-logs-wrap">
+                        <table class="admin-logs-table">
                             <thead>
-                                <tr style="text-align:left;color:#94a3b8;font-size:12px;">
-                                    <th style="padding:10px;">#</th>
-                                    <th style="padding:10px;">Time</th>
-                                    <th style="padding:10px;">User</th>
-                                    <th style="padding:10px;">Action</th>
-                                    <th style="padding:10px;">Description</th>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Description</th>
                                 </tr>
                             </thead>
                             <tbody id="logsBody"></tbody>
                         </table>
                     </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
-                        <button class="btn btn-secondary" id="btnPrev">Prev</button>
-                        <span id="pageInfo" style="color:#cbd5e1;">Page 1 of 1</span>
-                        <button class="btn btn-secondary" id="btnNext">Next</button>
+                    <div class="admin-pagination">
+                        <button type="button" class="btn btn-secondary" id="btnPrev">Prev</button>
+                        <span id="pageInfo" class="admin-pagination-info">Page 1 of 1</span>
+                        <button type="button" class="btn btn-secondary" id="btnNext">Next</button>
                     </div>
                 </div>
 
                 <div class="card" style="margin-top:16px;">
-                    <div class="card-header">Settings</div>
-                    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                    <div class="card-header admin-section-title">Settings</div>
+                    <div class="admin-settings-row">
                         <div>
                             <label for="retentionDays">Log Retention (days, 0 = permanent)</label>
                             <input type="number" id="retentionDays" min="0" value="90">
@@ -209,7 +150,7 @@
                         <button class="btn btn-primary" id="btnSaveRetention">Save</button>
                         <button class="btn btn-danger" id="btnClearLogs">Clear All Logs</button>
                     </div>
-                    <p id="retentionNote" style="margin-top:8px;color:#94a3b8;font-size:12px;">Logs older than 90 days are automatically deleted on server startup.</p>
+                    <p id="retentionNote" class="admin-card-lead" style="margin-top:12px;margin-bottom:0;font-size:12px;">Logs older than 90 days are automatically deleted on server startup.</p>
                 </div>
             </div>
         </main>
@@ -297,15 +238,15 @@
         function renderLogs(logs) {
             const body = document.getElementById('logsBody');
             if (!logs.length) {
-                body.innerHTML = `<tr><td colspan="5" style="padding:16px;color:#94a3b8;">No logs found.</td></tr>`;
+                body.innerHTML = `<tr><td colspan="5" style="padding:1rem;color:var(--admin-text-muted,#a8b3c9);">No logs found.</td></tr>`;
             } else {
                 body.innerHTML = logs.map((l, idx) => `
-                    <tr style="border-top:1px solid rgba(124,58,237,0.2);">
-                        <td style="padding:10px;">${(currentPage - 1) * 50 + idx + 1}</td>
-                        <td style="padding:10px;color:#cbd5e1;">${formatLogTime(l.created_at)}</td>
-                        <td style="padding:10px;color:#f8fafc;">${l.username}</td>
-                        <td style="padding:10px;">${actionBadge(l.action_type)}</td>
-                        <td style="padding:10px;color:#e2e8f0;">${l.description}</td>
+                    <tr>
+                        <td>${(currentPage - 1) * 50 + idx + 1}</td>
+                        <td style="color:#cbd5e1;">${formatLogTime(l.created_at)}</td>
+                        <td style="color:#f8fafc;">${l.username}</td>
+                        <td>${actionBadge(l.action_type)}</td>
+                        <td style="color:#e2e8f0;">${l.description}</td>
                     </tr>
                 `).join('');
             }
