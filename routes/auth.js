@@ -90,6 +90,7 @@ router.get('/register', (req, res) => {
     const ref = req.query?.ref;
     if (typeof ref === 'string' && ref.trim()) {
         req.session.pending_referral_code = ref.trim();
+        return res.redirect(`/auth/signup?ref=${encodeURIComponent(ref.trim())}`);
     }
 
     return res.redirect('/auth/signup');

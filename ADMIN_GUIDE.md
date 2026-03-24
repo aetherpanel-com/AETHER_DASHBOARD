@@ -2,7 +2,7 @@
 
 Complete guide for setting up and managing your Aether Dashboard after installation.
 
-**Version:** 1.5.6 | **Status:** Production Ready ✅
+**Version:** 1.5.7 | **Status:** Production Ready ✅
 
 > **New to Aether Dashboard?** Complete the installation steps in [README.md](README.md) first, then return here to set up your admin panel.
 
@@ -593,4 +593,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.5.6
+**Last Updated:** Version 1.5.7

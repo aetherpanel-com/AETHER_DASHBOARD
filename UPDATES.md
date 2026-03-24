@@ -1,3 +1,31 @@
+## Aether Dashboard v1.5.7
+
+### 🐛 Referral UI Bug Fix
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.5.7 is a minor patch resolving a UI issue where the referral banner was not displaying correctly during signup when following referral links. 
+
+### 🐛 Bug Fixes
+
+| Fix | Description |
+|-----|-------------|
+| 🎨 **Referral Banner Visibility** | Redirecting to the signup page from a referral link now preserves the `?ref=` query parameter, ensuring the "🎉 You've been referred!" banner is properly displayed to the user. |
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**⚠️ No database changes in this version.**
+
+---
+
 ## Aether Dashboard v1.5.6
 
 ### ⏱️ Linkvertise Per-Link Rate Limiting
