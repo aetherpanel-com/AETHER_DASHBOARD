@@ -518,6 +518,29 @@ router.get('/discord/callback',
                 console.error('Discord Pterodactyl user creation error:', e);
             }
 
+            // Generate referral code and process pending referral bonus
+            try {
+                await ensureUserReferralCode(req.user.id);
+            } catch (e) {
+                // Best effort
+            }
+
+            const refCode = req.session?.pending_referral_code || null;
+            if (req.session?.pending_referral_code) {
+                delete req.session.pending_referral_code;
+            }
+
+            if (refCode) {
+                try {
+                    await referral.processReferral(req.user.id, refCode, req.app);
+                    // Keep session coins in sync (processReferral may have awarded coins)
+                    const updatedUser = await get('SELECT coins FROM users WHERE id = ?', [req.user.id]);
+                    if (updatedUser) req.session.user.coins = updatedUser.coins;
+                } catch (e) {
+                    // Referral is best-effort; don't fail login.
+                }
+            }
+
             res.redirect('/dashboard');
         } catch (error) {
             console.error('Discord callback error:', error);
