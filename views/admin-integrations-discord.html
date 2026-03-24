@@ -238,6 +238,12 @@
                             <input type="text" id="discordInviteChannelId" placeholder="123456789012345678" style="font-family: monospace;">
                             <small style="color: #cbd5e1;">Channel where invite reward notifications will be sent</small>
                         </div>
+
+                        <div class="form-group">
+                            <label for="discordInviteLink">Discord Invite Link</label>
+                            <input type="url" id="discordInviteLink" placeholder="https://discord.gg/your-invite" autocomplete="off">
+                            <small style="color: #cbd5e1;">Permanent invite shown to users in the header (💬 next to notifications). Use a <strong>discord.gg</strong> or <strong>discord.com/invite/…</strong> URL. Leave empty to hide the shortcut or show “not configured” when clicked.</small>
+                        </div>
                         
                         <div class="form-group">
                             <label for="rewardPerInvite">Reward Per Invite</label>
@@ -289,6 +295,7 @@
     <script src="/js/dashboard.js"></script>
     <script src="/js/maintenanceBanner.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/notifications.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             initMobileMenu();
@@ -354,6 +361,7 @@
                     document.getElementById('discordServerId').value = config.guild_id || '';
                     document.getElementById('discordChatChannelId').value = config.chat_channel_id || '';
                     document.getElementById('discordInviteChannelId').value = config.invite_channel_id || '';
+                    document.getElementById('discordInviteLink').value = config.discord_invite_link || '';
                     document.getElementById('rewardPerInvite').value = config.reward_per_invite || 100;
                     document.getElementById('deductPerInvite').value = config.deduct_per_invite || 0;
                     document.getElementById('enableDiscordChat').checked = config.enable_chat !== false;
@@ -373,6 +381,7 @@
                 guild_id: document.getElementById('discordServerId').value.trim(),
                 chat_channel_id: document.getElementById('discordChatChannelId').value.trim(),
                 invite_channel_id: document.getElementById('discordInviteChannelId').value.trim(),
+                discord_invite_link: document.getElementById('discordInviteLink').value.trim(),
                 reward_per_invite: parseInt(document.getElementById('rewardPerInvite').value),
                 deduct_per_invite: Math.max(0, parseInt(document.getElementById('deductPerInvite').value) || 0),
                 enable_chat: document.getElementById('enableDiscordChat').checked,

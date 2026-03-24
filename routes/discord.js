@@ -6,6 +6,27 @@ const router = express.Router();
 const { get, run } = require('../config/database');
 const { writeLog } = require('../utils/auditLog');
 
+/**
+ * GET /api/discord/public-invite
+ * Public (no auth): returns whether an admin-configured Discord invite URL exists.
+ * Used by the dashboard header join button.
+ */
+router.get('/public-invite', async (req, res) => {
+    try {
+        const row = await get(
+            'SELECT discord_invite_link FROM discord_config ORDER BY id DESC LIMIT 1'
+        );
+        const raw = row && row.discord_invite_link != null ? String(row.discord_invite_link).trim() : '';
+        if (!raw) {
+            return res.json({ success: true, configured: false, url: null });
+        }
+        return res.json({ success: true, configured: true, url: raw });
+    } catch (e) {
+        console.error('public-invite error:', e);
+        return res.json({ success: true, configured: false, url: null });
+    }
+});
+
 // Middleware to verify bot API key authentication
 function verifyBotAuth(req, res, next) {
     const authHeader = req.headers.authorization;

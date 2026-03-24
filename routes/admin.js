@@ -510,6 +510,7 @@ router.get('/api/discord-config', requireAdmin, async (req, res) => {
                     guild_id: config.guild_id || '',
                     chat_channel_id: config.chat_channel_id || '',
                     invite_channel_id: config.invite_channel_id || '',
+                    discord_invite_link: config.discord_invite_link || '',
                     reward_per_invite: config.reward_per_invite || 100,
                     deduct_per_invite: config.deduct_per_invite || 0,
                     enable_chat: config.enable_chat === 1,
@@ -523,6 +524,7 @@ router.get('/api/discord-config', requireAdmin, async (req, res) => {
                     guild_id: '',
                     chat_channel_id: '',
                     invite_channel_id: '',
+                    discord_invite_link: '',
                     reward_per_invite: 100,
                     deduct_per_invite: 0,
                     enable_chat: true,
@@ -538,7 +540,7 @@ router.get('/api/discord-config', requireAdmin, async (req, res) => {
 
 router.post('/api/discord-config', requireAdmin, async (req, res) => {
     try {
-        const { guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards, deduct_per_invite } = req.body;
+        const { guild_id, chat_channel_id, invite_channel_id, discord_invite_link, reward_per_invite, enable_chat, enable_invite_rewards, deduct_per_invite } = req.body;
         
         // Validate reward_per_invite is an integer
         const rewardPerInvite = parseInt(reward_per_invite);
@@ -549,6 +551,32 @@ router.post('/api/discord-config', requireAdmin, async (req, res) => {
             });
         }
         const deductPerInvite = Math.max(0, parseInt(deduct_per_invite) || 0);
+
+        let inviteLink = discord_invite_link != null ? String(discord_invite_link).trim() : '';
+        if (inviteLink.length > 512) {
+            return res.status(400).json({ success: false, message: 'Discord invite link is too long (max 512 characters)' });
+        }
+        if (inviteLink.length > 0) {
+            let parsed;
+            try {
+                parsed = new URL(inviteLink);
+            } catch {
+                return res.status(400).json({ success: false, message: 'Discord invite link must be a valid URL (https://…)' });
+            }
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                return res.status(400).json({ success: false, message: 'Discord invite link must use http or https' });
+            }
+            const host = (parsed.hostname || '').toLowerCase();
+            const allowed = host === 'discord.gg' || host.endsWith('.discord.gg')
+                || host === 'discord.com' || host.endsWith('.discord.com')
+                || host === 'discordapp.com' || host.endsWith('.discordapp.com');
+            if (!allowed) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Discord invite link must be a discord.gg, discord.com, or discordapp.com URL'
+                });
+            }
+        }
         
         // Convert boolean values to integers for database storage
         const enableChatInt = enable_chat === true || enable_chat === 'true' || enable_chat === 1 ? 1 : 0;
@@ -560,14 +588,14 @@ router.post('/api/discord-config', requireAdmin, async (req, res) => {
         if (existing) {
             // Update existing config
             await run(
-                'UPDATE discord_config SET guild_id = ?, chat_channel_id = ?, invite_channel_id = ?, reward_per_invite = ?, deduct_per_invite = ?, enable_chat = ?, enable_invite_rewards = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                [guild_id || '', chat_channel_id || '', invite_channel_id || '', rewardPerInvite, deductPerInvite, enableChatInt, enableInviteRewardsInt, existing.id]
+                'UPDATE discord_config SET guild_id = ?, chat_channel_id = ?, invite_channel_id = ?, discord_invite_link = ?, reward_per_invite = ?, deduct_per_invite = ?, enable_chat = ?, enable_invite_rewards = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                [guild_id || '', chat_channel_id || '', invite_channel_id || '', inviteLink, rewardPerInvite, deductPerInvite, enableChatInt, enableInviteRewardsInt, existing.id]
             );
         } else {
             // Create new config
             await run(
-                'INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, reward_per_invite, deduct_per_invite, enable_chat, enable_invite_rewards) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [guild_id || '', chat_channel_id || '', invite_channel_id || '', rewardPerInvite, deductPerInvite, enableChatInt, enableInviteRewardsInt]
+                'INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, discord_invite_link, reward_per_invite, deduct_per_invite, enable_chat, enable_invite_rewards) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [guild_id || '', chat_channel_id || '', invite_channel_id || '', inviteLink, rewardPerInvite, deductPerInvite, enableChatInt, enableInviteRewardsInt]
             );
         }
         

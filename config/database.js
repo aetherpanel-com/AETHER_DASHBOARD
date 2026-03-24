@@ -603,6 +603,7 @@ function initializeDatabase() {
                     enable_chat INTEGER DEFAULT 1,
                     enable_invite_rewards INTEGER DEFAULT 1,
                     deduct_per_invite INTEGER DEFAULT 0,
+                    discord_invite_link TEXT DEFAULT '',
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
@@ -617,12 +618,15 @@ function initializeDatabase() {
                 db.run("ALTER TABLE discord_config ADD COLUMN deduct_per_invite INTEGER DEFAULT 0", (err) => {
                     // Column may already exist, ignore error
                 });
+                db.run("ALTER TABLE discord_config ADD COLUMN discord_invite_link TEXT DEFAULT ''", (err) => {
+                    // Column may already exist, ignore error
+                });
                 
                 // Create default config if it doesn't exist
                 db.get('SELECT id FROM discord_config', (err, row) => {
                     if (!err && !row) {
-                        db.run('INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards, deduct_per_invite) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-                            ['', '', '', 100, 1, 1, 0], (err) => {
+                        db.run('INSERT INTO discord_config (guild_id, chat_channel_id, invite_channel_id, reward_per_invite, enable_chat, enable_invite_rewards, deduct_per_invite, discord_invite_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+                            ['', '', '', 100, 1, 1, 0, ''], (err) => {
                                 if (!err) {
                                     console.log('✅ Default Discord config created');
                                 }

@@ -188,6 +188,82 @@
         await fetchAndRenderList();
     }
 
+    let discordInviteCache = null; // { configured, url, expires }
+
+    function ensureDiscordInviteModal() {
+        if (document.getElementById('discordInviteModalRoot')) return;
+        const root = document.createElement('div');
+        root.id = 'discordInviteModalRoot';
+        root.setAttribute('role', 'dialog');
+        root.setAttribute('aria-modal', 'true');
+        root.setAttribute('aria-labelledby', 'discordInviteModalTitle');
+        root.style.cssText = `
+            position: fixed;
+            inset: 0;
+            z-index: 10001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(2, 6, 23, 0.72);
+            backdrop-filter: blur(10px);
+        `;
+        root.innerHTML = `
+            <div id="discordInviteModalPanel" style="
+                width: 100%;
+                max-width: 400px;
+                background: rgba(15, 23, 42, 0.98);
+                border: 1px solid rgba(124, 58, 237, 0.45);
+                border-radius: 16px;
+                box-shadow: 0 22px 60px rgba(0,0,0,0.5);
+                padding: 22px 22px 18px;
+            ">
+                <div id="discordInviteModalTitle" style="color:#f8fafc; font-weight: 900; font-size: 17px; margin-bottom: 10px;">
+                    💬 Discord
+                </div>
+                <div style="color:#cbd5e1; font-size: 14px; line-height: 1.5; margin-bottom: 18px;">
+                    Discord Link Not Configured by Admin
+                </div>
+                <button type="button" id="discordInviteModalClose" class="btn btn-secondary" style="width:100%; padding: 10px 14px; border-radius: 10px; font-weight: 800;">
+                    OK
+                </button>
+            </div>
+        `;
+        document.body.appendChild(root);
+
+        const close = () => {
+            root.style.display = 'none';
+        };
+        root.querySelector('#discordInviteModalClose').addEventListener('click', close);
+        root.addEventListener('click', (e) => {
+            if (e.target === root) close();
+        });
+    }
+
+    function showDiscordInviteNotConfigured() {
+        ensureDiscordInviteModal();
+        const root = document.getElementById('discordInviteModalRoot');
+        if (root) root.style.display = 'flex';
+    }
+
+    async function fetchPublicDiscordInvite() {
+        const now = Date.now();
+        if (discordInviteCache && discordInviteCache.expires > now) {
+            return discordInviteCache;
+        }
+        try {
+            const res = await fetch('/api/discord/public-invite', { credentials: 'same-origin' });
+            const data = res.ok ? await res.json() : { success: false, configured: false, url: null };
+            const configured = !!(data && data.configured && data.url);
+            const url = configured ? String(data.url) : null;
+            discordInviteCache = { configured, url, expires: now + 60_000 };
+            return discordInviteCache;
+        } catch {
+            discordInviteCache = { configured: false, url: null, expires: now + 15_000 };
+            return discordInviteCache;
+        }
+    }
+
     function ensureBellAndDrawer() {
         const headerRight = document.querySelector('.header-right');
         if (!headerRight) return;
@@ -242,6 +318,39 @@
             }
         }
 
+        if (!document.getElementById('discordInviteHeaderBtn')) {
+            const coinBalance = headerRight.querySelector('.coin-balance');
+            const discordBtn = document.createElement('button');
+            discordBtn.id = 'discordInviteHeaderBtn';
+            discordBtn.type = 'button';
+            discordBtn.className = 'btn btn-secondary';
+            discordBtn.setAttribute('aria-label', 'Join Discord server');
+            discordBtn.title = 'Discord';
+            discordBtn.style.cssText = `
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 10px 12px;
+                border-radius: 10px;
+            `;
+            discordBtn.innerHTML = `<span style="font-size: 20px; line-height: 1;" aria-hidden="true">💬</span>`;
+            discordBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const { configured, url } = await fetchPublicDiscordInvite();
+                if (configured && url) {
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                } else {
+                    showDiscordInviteNotConfigured();
+                }
+            });
+            if (coinBalance) {
+                headerRight.insertBefore(discordBtn, coinBalance);
+            } else {
+                headerRight.appendChild(discordBtn);
+            }
+        }
+
         if (!document.getElementById('notificationDrawer')) {
             const drawer = document.createElement('div');
             drawer.id = 'notificationDrawer';
@@ -273,9 +382,14 @@
             // Attach close-on-outside-click
             document.addEventListener('mousedown', (e) => {
                 const btn = document.getElementById('notificationBellBtn');
+                const discordBtn = document.getElementById('discordInviteHeaderBtn');
+                const modalRoot = document.getElementById('discordInviteModalRoot');
                 const d = getDrawer();
                 if (!btn || !d) return;
                 if (d.style.display === 'none') return;
+
+                if (discordBtn && discordBtn.contains(e.target)) return;
+                if (modalRoot && modalRoot.style.display !== 'none' && modalRoot.contains(e.target)) return;
 
                 const clickedInside = d.contains(e.target) || (btn && btn.contains(e.target));
                 if (!clickedInside) d.style.display = 'none';
@@ -292,20 +406,23 @@
         }
 
         const btn = document.getElementById('notificationBellBtn');
-        btn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        if (btn && !btn.dataset.notifUiBound) {
+            btn.dataset.notifUiBound = '1';
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
 
-            const drawer = getDrawer();
-            if (!drawer) return;
+                const drawer = getDrawer();
+                if (!drawer) return;
 
-            const willOpen = drawer.style.display === 'none';
-            drawer.style.display = willOpen ? 'block' : 'none';
+                const willOpen = drawer.style.display === 'none';
+                drawer.style.display = willOpen ? 'block' : 'none';
 
-            if (willOpen) {
-                await fetchAndRenderList();
-            }
-        });
+                if (willOpen) {
+                    await fetchAndRenderList();
+                }
+            });
+        }
 
         // Hide drawer initially
         const drawer = getDrawer();
