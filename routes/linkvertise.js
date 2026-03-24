@@ -104,60 +104,95 @@ router.get('/api/links', requireAuth, async (req, res) => {
     }
 });
 
-// API endpoint to complete a link and earn coins
-router.post('/api/complete', requireAuth, linkvertiseLimiter, async (req, res) => {
+// API endpoint to start the link process (sets session token/timer)
+router.post('/api/start', requireAuth, linkvertiseLimiter, async (req, res) => {
     try {
         const { link_id } = req.body;
         
         if (!link_id) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Link ID is required' 
-            });
+            return res.status(400).json({ success: false, message: 'Link ID is required' });
         }
         
-        // BUGFIX: Normalize link_id to integer for consistent comparison
         const linkIdInt = parseInt(link_id);
         if (isNaN(linkIdInt) || linkIdInt <= 0) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Invalid link ID format' 
-            });
+            return res.status(400).json({ success: false, message: 'Invalid link ID format' });
         }
         
-        // BUGFIX: Validate link exists and is active before allowing completion
+        // Save the start time and pending link in session
+        req.session.linkvertise_pending = {
+            linkId: linkIdInt,
+            timestamp: Date.now()
+        };
+        
+        // Ensure session is saved before returning
+        if (req.session.save) {
+            req.session.save();
+        }
+
+        res.json({ success: true, message: 'Verification session started' });
+    } catch (error) {
+        console.error('Error starting link verification:', error);
+        res.status(500).json({ success: false, message: 'Error starting link verification' });
+    }
+});
+
+// Verification callback that Linkvertise redirects to
+router.get('/verify/:link_id', requireAuth, async (req, res) => {
+    try {
+        const link_id = req.params.link_id;
+        const linkIdInt = parseInt(link_id);
+        
+        if (isNaN(linkIdInt) || linkIdInt <= 0) {
+            return res.redirect('/linkvertise?error=Invalid link ID');
+        }
+        
+        // 1. Check if the session has a pending link verification
+        const pending = req.session.linkvertise_pending;
+        
+        if (!pending || pending.linkId !== linkIdInt) {
+            return res.redirect('/linkvertise?error=Verification session missing. Please start the link from the dashboard again.');
+        }
+        
+        // 2. Check the minimum time elapsed (15 seconds)
+        const timeElapsed = Date.now() - pending.timestamp;
+        const minimumTimeMs = 15000; // 15 seconds
+        
+        if (timeElapsed < minimumTimeMs) {
+            // Cleared so they have to start over properly
+            delete req.session.linkvertise_pending;
+            if (req.session.save) req.session.save();
+            return res.redirect('/linkvertise?error=You skipped the verification too quickly. Please complete the ads properly.');
+        }
+        
+        // Clear the pending session to prevent reuse
+        delete req.session.linkvertise_pending;
+        if (req.session.save) req.session.save();
+        
+        // Proceed with previous database checks and earning
         const link = await get(
             'SELECT id, coins_earned, is_active FROM linkvertise_links WHERE id = ?',
             [linkIdInt]
         );
         
         if (!link) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Link not found' 
-            });
+            return res.redirect('/linkvertise?error=Link not found');
         }
         
         if (!link.is_active) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'This link is not currently active' 
-            });
+            return res.redirect('/linkvertise?error=This link is not currently active');
         }
         
         // Get cooldown configuration
         const config = await get('SELECT cooldown_seconds FROM linkvertise_config ORDER BY id DESC LIMIT 1');
         const cooldownSeconds = (config && config.cooldown_seconds) ? config.cooldown_seconds : 30;
         
-        // Check last completion time for this user and link (use normalized integer)
+        // Check last completion time
         const lastCompletion = await get(
             'SELECT completed_at FROM linkvertise_completions WHERE user_id = ? AND link_id = ? ORDER BY completed_at DESC LIMIT 1',
             [req.session.user.id, linkIdInt]
         );
         
         if (lastCompletion) {
-            // BUGFIX #12: Parse SQLite timestamp correctly to avoid timezone issues
-            // SQLite CURRENT_TIMESTAMP stores in UTC, use Date.now() for consistent UTC comparison
             try {
                 const lastCompletionTime = new Date(lastCompletion.completed_at.replace(' ', 'T') + 'Z').getTime();
                 const nowMs = Date.now();
@@ -165,63 +200,43 @@ router.post('/api/complete', requireAuth, linkvertiseLimiter, async (req, res) =
                 const remainingSeconds = cooldownSeconds - secondsSinceCompletion;
                 
                 if (remainingSeconds > 0) {
-                    return res.status(400).json({ 
-                        success: false, 
-                        message: `Please wait ${remainingSeconds} more second${remainingSeconds !== 1 ? 's' : ''} before completing this link again.`,
-                        cooldown_remaining: remainingSeconds
-                    });
+                    return res.redirect('/linkvertise?error=Please wait before completing this link again.&cooldown=' + remainingSeconds);
                 }
             } catch (timestampError) {
-                console.error('Error parsing completion timestamp:', timestampError);
-                // If timestamp parsing fails, allow completion but log the error
+                console.error('Error parsing timestamp:', timestampError);
             }
         }
         
-        // Use coins from validated link (already fetched above)
         const coinsEarned = link.coins_earned || 10;
         
-        // BUGFIX: Wrap completion recording and coin addition in a transaction for atomicity
         await transaction(async () => {
-            // Record completion
             await run(
                 'INSERT INTO linkvertise_completions (user_id, link_id, coins_earned) VALUES (?, ?, ?)',
                 [req.session.user.id, linkIdInt, coinsEarned]
             );
-            
-            // Add coins to user's balance
             await run(
                 'UPDATE users SET coins = coins + ? WHERE id = ?',
                 [coinsEarned, req.session.user.id]
             );
         });
         
-        // Update session (only after successful transaction)
         req.session.user.coins = (req.session.user.coins || 0) + coinsEarned;
 
-        // Onboarding checklist: earned first coins
         try {
             await markStep(req.session.user.id, 0);
-        } catch (e) {
-            // Best-effort only
-        }
+        } catch (e) {}
         
-        res.json({ 
-            success: true, 
-            message: 'Link completed successfully',
-            coins_earned: coinsEarned
-        });
         writeLog(
             req.session.user.id,
             req.session.user.username,
             'coins_earned_linkvertise',
             `Earned ${coinsEarned} coins via Linkvertise link '${link.title || link.id}'`
         ).catch(() => {});
+        
+        res.redirect(`/linkvertise?success=true&coins=${coinsEarned}`);
     } catch (error) {
-        console.error('Error completing link:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error completing link' 
-        });
+        console.error('Error verifying link:', error);
+        res.redirect('/linkvertise?error=An unexpected error occurred. Please try again.');
     }
 });
 
