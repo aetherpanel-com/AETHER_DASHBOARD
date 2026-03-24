@@ -22,6 +22,7 @@ Complete guide for setting up and managing your Aether Dashboard after installat
 10. [Admin Settings — Themes](#-admin-settings--themes)
 11. [Admin Settings — Branding](#-admin-settings--branding)
 12. [Integrations — Linkvertise](#-integrations--linkvertise)
+    - [Target URL on Linkvertise (Post & earn)](#setting-the-target-url-in-linkvertise-post--earn)
 13. [Integrations — Discord](#-integrations--discord)
 14. [Audit Logs](#-audit-logs)
 15. [Admin Setup Checklist](#-admin-setup-checklist)
@@ -400,6 +401,44 @@ hidden from users but not deleted.
 > users will complete (e.g. `https://linkvertise.com/123456/my-link`),
 > not your publisher account URL.
 
+### Setting the target URL in Linkvertise (Post & earn)
+
+Each card under **Manage Links** shows a **Link ID** (for example
+`Link ID: 7`). That number **must** match the `<linkid>` in the
+verification URL you set as the **destination** on Linkvertise. If they
+do not match, users will not land on the correct verification step for
+that link.
+
+**URL pattern:**
+
+`https://dashboard.yourdomain.com/linkvertise/verify/<linkid>`
+
+Replace `dashboard.yourdomain.com` with your real dashboard hostname, and
+`<linkid>` with the **Link ID** from the Aether admin **Manage Links** card.
+
+**Example:**
+
+`https://dashboard.yourdomain.com/linkvertise/verify/1`
+
+**In the Linkvertise publisher dashboard:**
+
+1. Open the Linkvertise publisher dashboard and sign in.
+2. Click **Post & earn** (top of the page).
+3. On step **1 — Type**, choose **Link**, then click **Next**.
+4. When prompted to enter the link URL, paste your full verification URL:
+   `https://<your-dashboard-host>/linkvertise/verify/<linkid>` using the
+   same **Link ID** as on the **Manage Links** card in Aether.
+5. Click **Next**.
+6. On step **2 — Meta**, it is **recommended** to turn **Visibility** on
+   and fill in **Title**, **Cover** image, and other meta details so the
+   post performs well on Linkvertise.
+7. Click **Next**.
+8. On step **3 — Access**, choose the access and unlock options you want
+   (defaults such as **All** are fine unless you need something stricter).
+9. Click **Publish**. Linkvertise will give you the final monetised link —
+   enter that URL in the dashboard **Linkvertise URL** field for this link
+   (**Add New Link** or **Edit** under **Manage Links**).
+
 ---
 
 ## 💬 Integrations — Discord
@@ -525,7 +564,7 @@ Use this checklist when setting up a fresh installation:
 - [ ] Fetched and synced at least one egg (Panel tab → Game Types)
 - [ ] Set store prices (Store Management tab)
 - [ ] Created at least one server template (Server Templates tab)
-- [ ] Added at least one Linkvertise link (Integrations → Linkvertise)
+- [ ] Added at least one Linkvertise link (Integrations → Linkvertise), with the Linkvertise **Post & earn** destination set to `https://<your-host>/linkvertise/verify/<linkid>` matching the **Link ID** on the card
 
 **Recommended:**
 - [ ] Uploaded custom logo and set branding (Admin Settings → Branding)
