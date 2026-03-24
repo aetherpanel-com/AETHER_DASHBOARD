@@ -291,8 +291,8 @@
                             <div style="color: #cbd5e1; font-size: 14px; margin-bottom: 4px;">
                                 <strong>URL:</strong> <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="color: #7c3aed; text-decoration: none;">${escapeHtml(displayUrl)}</a>
                             </div>
-                            <div style="color: #cbd5e1; font-size: 14px;">
-                                <strong>Coins:</strong> ${link.coins_earned} | <strong>Priority:</strong> ${link.priority || 0}
+                            <div style="color: #cbd5e1; font-size: 14px; margin-top: 4px;">
+                                <span style="background: rgba(124, 58, 237, 0.2); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(124, 58, 237, 0.4);"><strong>Link ID:</strong> ${link.id}</span> | <strong>Coins:</strong> ${link.coins_earned} | <strong>Priority:</strong> ${link.priority || 0}
                             </div>
                         </div>
                         <div style="display: flex; gap: 8px;">
