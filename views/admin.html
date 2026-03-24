@@ -182,7 +182,7 @@
                             <button class="tab-btn" onclick="showTab('coins', this)">Coin Management</button>
                             <button class="tab-btn" onclick="showTab('store', this)">Store Management</button>
                             <button class="tab-btn" onclick="showTab('dailyRewards', this)">🎁 Daily Rewards</button>
-                            <button class="tab-btn" onclick="showTab('referral', this)">👥 Referral</button>
+
                             <button class="tab-btn" onclick="showTab('maintenance', this)">🔧 Maintenance</button>
                             <button class="tab-btn" onclick="showTab('broadcast', this)">📢 Broadcast</button>
                             <button class="tab-btn" onclick="showTab('templates', this)">Server Templates</button>
@@ -496,47 +496,6 @@
                         </div>
                     </div>
 
-                    <!-- Referral Tab -->
-                    <div id="referralTab" class="tab-content" style="display: none;">
-                        <div class="card" style="margin-bottom: 20px;">
-                            <div class="card-header">👥 Referral System</div>
-                            <p style="color: #cbd5e1; margin-bottom: 20px;">
-                                Configure referral rewards for inviting new users.
-                            </p>
-
-                            <div style="margin-bottom: 18px; padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
-                                <div style="display:flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                    <div>
-                                        <div style="color: #f8fafc; font-weight: 800; font-size: 14px;">Feature Enabled</div>
-                                        <div style="color: #94a3b8; font-size: 13px; margin-top: 4px;">Disable to turn off the referral system entirely.</div>
-                                    </div>
-                                    <label style="display:flex; align-items:center; gap: 10px; cursor: pointer;">
-                                        <input type="checkbox" id="referralEnabled" onchange="saveReferralEnabled()" style="width: 18px; height: 18px; accent-color: #7c3aed;">
-                                        <span style="color: #cbd5e1; font-size: 14px;">Referral System</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div style="padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; margin-bottom: 18px;">
-                                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label for="referrerReward">Referrer reward (coins)</label>
-                                        <input type="number" id="referrerReward" min="0" value="100" style="width: 100%;">
-                                        <small style="color: #cbd5e1;">Coins awarded to the inviter</small>
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label for="refereeReward">Referee reward (coins)</label>
-                                        <input type="number" id="refereeReward" min="0" value="50" style="width: 100%;">
-                                        <small style="color: #cbd5e1;">Coins awarded to the new user on signup</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button type="button" class="btn btn-primary" id="saveReferralBtn" style="width: 100%; padding: 12px 16px;">
-                                Save
-                            </button>
-                        </div>
-                    </div>
 
                     <!-- Maintenance Tab -->
                     <div id="maintenanceTab" class="tab-content" style="display: none;">
@@ -1089,7 +1048,7 @@
 
             // Restore tab from URL hash on load
             const hash = window.location.hash.replace('#', '');
-            const validTabs = ['users', 'servers', 'coins', 'store', 'dailyRewards', 'referral', 'maintenance', 'broadcast', 'templates', 'panel'];
+            const validTabs = ['users', 'servers', 'coins', 'store', 'dailyRewards', 'maintenance', 'broadcast', 'templates', 'panel'];
             if (hash && validTabs.includes(hash)) {
                 const btn = Array.from(document.querySelectorAll('.tab-btn'))
                     .find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${hash}'`));
@@ -1137,8 +1096,7 @@
                 loadStorePrices();
             } else if (tabName === 'dailyRewards') {
                 loadDailyRewardsConfig();
-            } else if (tabName === 'referral') {
-                loadReferralConfig();
+
             } else if (tabName === 'maintenance') {
                 loadMaintenanceWindows();
                 if (!_maintenanceListenersAttached) {
@@ -1321,91 +1279,7 @@
             }
         }
 
-        // Referral (Admin) Functions
-        let _referralListenersAttached = false;
-        let _referralIgnoreToggle = false;
 
-        async function loadReferralConfig() {
-            try {
-                const response = await apiFetch('/admin/api/v15/referral');
-                if (!response || !response.ok) return;
-
-                const data = await response.json();
-
-                const enabledEl = document.getElementById('referralEnabled');
-                const referrerEl = document.getElementById('referrerReward');
-                const refereeEl = document.getElementById('refereeReward');
-
-                _referralIgnoreToggle = true;
-                if (enabledEl) enabledEl.checked = !!data.enabled;
-                _referralIgnoreToggle = false;
-
-                if (referrerEl) referrerEl.value = data.referrer_reward ?? 0;
-                if (refereeEl) refereeEl.value = data.referee_reward ?? 0;
-
-                if (!_referralListenersAttached) {
-                    const saveBtn = document.getElementById('saveReferralBtn');
-                    if (saveBtn) saveBtn.addEventListener('click', saveReferralConfig);
-                    _referralListenersAttached = true;
-                }
-            } catch (error) {
-                console.error('Error loading referral config:', error);
-            }
-        }
-
-        async function saveReferralEnabled() {
-            try {
-                if (_referralIgnoreToggle) return;
-                const enabledEl = document.getElementById('referralEnabled');
-                const enabled = enabledEl ? !!enabledEl.checked : false;
-
-                const response = await apiFetch('/admin/api/v15/referral', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled })
-                });
-
-                const data = await response.json().catch(() => ({}));
-                if (response.ok && data.success) {
-                    showNotification('Referral feature updated', 'success');
-                } else {
-                    showNotification(data.message || 'Failed to update referral feature', 'error');
-                }
-            } catch (error) {
-                console.error('Error saving referral enabled:', error);
-                showNotification('Error saving referral feature', 'error');
-            }
-        }
-
-        async function saveReferralConfig() {
-            try {
-                const enabledEl = document.getElementById('referralEnabled');
-                const referrerEl = document.getElementById('referrerReward');
-                const refereeEl = document.getElementById('refereeReward');
-
-                const enabled = enabledEl ? !!enabledEl.checked : false;
-                const referrer_reward = Math.max(0, parseInt(referrerEl?.value) || 0);
-                const referee_reward = Math.max(0, parseInt(refereeEl?.value) || 0);
-
-                const response = await apiFetch('/admin/api/v15/referral', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled, referrer_reward, referee_reward })
-                });
-
-                const data = await response.json().catch(() => ({}));
-                if (response.ok && data.success) {
-                    showNotification('Referral settings saved successfully', 'success');
-                    await loadReferralConfig();
-                } else {
-                    showNotification(data.message || 'Failed to save referral settings', 'error');
-                }
-            } catch (error) {
-                console.error('Error saving referral config:', error);
-                showNotification('Error saving referral settings', 'error');
-            }
-        }
-        
         // Maintenance (Admin) Functions
         let _maintenanceListenersAttached = false;
 

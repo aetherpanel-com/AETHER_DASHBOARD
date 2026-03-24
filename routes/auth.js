@@ -10,48 +10,8 @@ const { db, get, run, query } = require('../config/database');
 const { sanitizeBody, validateSignup, validateLogin } = require('../middleware/validation');
 const { authLimiter } = require('../middleware/rateLimit');
 const pterodactyl = require('../config/pterodactyl');
-const referral = require('./referral');
 const { generatePanelPassword, sanitizePterodactylUsername } = require('../utils/helpers');
 const { sendBrandedView } = require('../config/brandingHelper');
-
-const referralChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-function generateReferralCodeFromUserId(userId, attempt = 0) {
-    let n = Math.max(0, parseInt(userId) + attempt);
-    let code = '';
-    do {
-        code = referralChars[n % referralChars.length] + code;
-        n = Math.floor(n / referralChars.length);
-    } while (n > 0);
-
-    while (code.length < 6) code = referralChars[0] + code;
-    if (code.length > 8) code = code.slice(-8);
-    return code;
-}
-
-async function ensureUserReferralCode(userId) {
-    // Best-effort: if the column doesn't exist (very old DB), we just skip.
-    for (let attempt = 0; attempt < 10; attempt++) {
-        const candidate = generateReferralCodeFromUserId(userId, attempt);
-        const existing = await get(
-            'SELECT id FROM users WHERE referral_code = ? AND id != ?',
-            [candidate, userId]
-        );
-
-        if (!existing) {
-            try {
-                await run(
-                    'UPDATE users SET referral_code = ? WHERE id = ?',
-                    [candidate, userId]
-                );
-            } catch (e) {
-                // ignore if referral columns are missing
-            }
-            return candidate;
-        }
-    }
-    return null;
-}
 
 // Middleware to check if user is logged in
 function requireAuth(req, res, next) {
@@ -79,20 +39,8 @@ router.get('/signup', (req, res) => {
     sendBrandedView(res, db, path.join(__dirname, '../views/signup.html'));
 });
 
-// Referral register landing page
-// Stores `ref` in session and forwards the user to the normal signup page.
+// Register redirect alias
 router.get('/register', (req, res) => {
-    // If already logged in, redirect to dashboard
-    if (req.session.user) {
-        return res.redirect('/dashboard');
-    }
-
-    const ref = req.query?.ref;
-    if (typeof ref === 'string' && ref.trim()) {
-        req.session.pending_referral_code = ref.trim();
-        return res.redirect(`/auth/signup?ref=${encodeURIComponent(ref.trim())}`);
-    }
-
     return res.redirect('/auth/signup');
 });
 
@@ -276,33 +224,7 @@ router.post('/signup', authLimiter, sanitizeBody, validateSignup, async (req, re
             server_slots: 1  // Default for new users
         };
 
-        // Referral setup (generate referral_code + apply referral bonus if `ref` is provided)
-        try {
-            await ensureUserReferralCode(userId);
-        } catch (e) {
-            // Best-effort only
-        }
 
-        const refCode =
-            req.body?.ref ||
-            req.query?.ref ||
-            req.session?.pending_referral_code ||
-            null;
-
-        if (req.session?.pending_referral_code) {
-            delete req.session.pending_referral_code;
-        }
-
-        if (refCode) {
-            try {
-                await referral.processReferral(userId, refCode, req.app);
-                // Keep session coins in sync (processReferral may have awarded coins)
-                const updatedUser = await get('SELECT coins FROM users WHERE id = ?', [userId]);
-                if (updatedUser) req.session.user.coins = updatedUser.coins;
-            } catch (e) {
-                // Referral is best-effort; don't fail signup.
-            }
-        }
 
         res.json({ 
             success: true, 
@@ -403,22 +325,7 @@ router.post('/register', authLimiter, sanitizeBody, validateSignup, async (req, 
             server_slots: 1
         };
 
-        // Referral code generation + optional referral bonus
-        try {
-            await ensureUserReferralCode(userId);
-        } catch (e) {
-            // Best-effort only
-        }
-        const refCode = req.body?.ref || req.query?.ref;
-        if (refCode) {
-            try {
-                await referral.processReferral(userId, refCode, req.app);
-                const updatedUser = await get('SELECT coins, referral_code FROM users WHERE id = ?', [userId]);
-                if (updatedUser) req.session.user.coins = updatedUser.coins;
-            } catch (e) {
-                // Best-effort only
-            }
-        }
+
 
         res.json({
             success: true,
@@ -435,12 +342,7 @@ router.post('/register', authLimiter, sanitizeBody, validateSignup, async (req, 
 });
 
 // Discord OAuth routes
-router.get('/discord', (req, res, next) => {
-    if (req.query.ref && typeof req.query.ref === 'string') {
-        req.session.pending_referral_code = req.query.ref.trim();
-    }
-    passport.authenticate('discord')(req, res, next);
-});
+router.get('/discord', passport.authenticate('discord'));
 
 // Discord linking route (for connecting Discord to existing account)
 router.get('/discord/link', requireAuth, (req, res, next) => {
@@ -521,29 +423,6 @@ router.get('/discord/callback',
                 }
             } catch (e) {
                 console.error('Discord Pterodactyl user creation error:', e);
-            }
-
-            // Generate referral code and process pending referral bonus
-            try {
-                await ensureUserReferralCode(req.user.id);
-            } catch (e) {
-                // Best effort
-            }
-
-            const refCode = req.session?.pending_referral_code || null;
-            if (req.session?.pending_referral_code) {
-                delete req.session.pending_referral_code;
-            }
-
-            if (refCode) {
-                try {
-                    await referral.processReferral(req.user.id, refCode, req.app);
-                    // Keep session coins in sync (processReferral may have awarded coins)
-                    const updatedUser = await get('SELECT coins FROM users WHERE id = ?', [req.user.id]);
-                    if (updatedUser) req.session.user.coins = updatedUser.coins;
-                } catch (e) {
-                    // Referral is best-effort; don't fail login.
-                }
             }
 
             res.redirect('/dashboard');

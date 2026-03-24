@@ -264,7 +264,7 @@ const communityRoutes = require('./routes/community');
 const adminRoutes = require('./routes/admin');
 const dailyRewardRoutes = require('./routes/dailyReward');
 const adminV15Routes = require('./routes/adminV15');
-const referralRoutes = require('./routes/referral');
+
 const notificationsRoutes = require('./routes/notifications');
 const onboardingRoutes = require('./routes/onboarding');
 const { maintenanceStatusHandler } = require('./routes/maintenance');
@@ -280,7 +280,7 @@ app.use('/linkvertise', linkvertiseRoutes);
 app.use('/community', communityRoutes);
 app.use('/daily-reward', dailyRewardRoutes);
 app.use('/admin/api/v15', adminV15Routes);
-app.use('/referral', referralRoutes);
+
 app.use('/notifications', notificationsRoutes);
 app.use('/onboarding', onboardingRoutes);
 app.use('/admin', adminRoutes);

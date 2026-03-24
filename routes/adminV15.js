@@ -61,55 +61,7 @@ router.post('/daily-rewards', requireAdmin, async (req, res) => {
     }
 });
 
-// Referral configuration
-router.get('/referral', requireAdmin, async (req, res) => {
-    try {
-        const flag = await get(
-            `SELECT enabled FROM feature_flags WHERE name = ?`,
-            ['referral_system']
-        );
 
-        const config = await get(
-            `SELECT referrer_reward, referee_reward FROM referral_config ORDER BY id DESC LIMIT 1`
-        );
-
-        res.json({
-            enabled: flag ? Number(flag.enabled) === 1 : false,
-            referrer_reward: Number(config?.referrer_reward || 0),
-            referee_reward: Number(config?.referee_reward || 0)
-        });
-    } catch (error) {
-        console.error('Error fetching referral config (admin v15):', error);
-        res.status(500).json({ success: false, message: 'Error fetching referral config' });
-    }
-});
-
-router.post('/referral', requireAdmin, async (req, res) => {
-    try {
-        const { enabled, referrer_reward, referee_reward } = req.body || {};
-
-        const enabledInt = enabled ? 1 : 0;
-        const referrerRewardInt = Math.max(0, parseInt(referrer_reward) || 0);
-        const refereeRewardInt = Math.max(0, parseInt(referee_reward) || 0);
-
-        await run(
-            `INSERT OR REPLACE INTO feature_flags (name, enabled) VALUES (?, ?)`,
-            ['referral_system', enabledInt]
-        );
-
-        // Upsert reward config row (id=1 is seeded by default, but we use INSERT OR REPLACE anyway)
-        await run(
-            `INSERT OR REPLACE INTO referral_config (id, referrer_reward, referee_reward, updated_at)
-             VALUES (1, ?, ?, CURRENT_TIMESTAMP)`,
-            [referrerRewardInt, refereeRewardInt]
-        );
-
-        res.json({ success: true, message: 'Referral config saved successfully' });
-    } catch (error) {
-        console.error('Error saving referral config (admin v15):', error);
-        res.status(500).json({ success: false, message: 'Error saving referral config' });
-    }
-});
 
 // Maintenance windows
 router.get('/maintenance', requireAdmin, async (req, res) => {

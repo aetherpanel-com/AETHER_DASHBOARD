@@ -132,98 +132,7 @@ function initializeDatabase() {
                             }
                         }
 
-                        // Referral system columns
-                        if (!columnNames.includes('referral_code')) {
-                            try {
-                                console.log(`🔄 Adding referral_code column to users table...`);
-                                db.run(`ALTER TABLE users ADD COLUMN referral_code TEXT`, (err) => {
-                                    if (err) console.error('Error adding referral_code column:', err);
-                                    else console.log('✅ referral_code column added to users table');
-                                });
-                            } catch (e) {
-                                console.error('Error adding referral_code column:', e);
-                            }
-                        }
 
-                        if (!columnNames.includes('referred_by')) {
-                            try {
-                                console.log(`🔄 Adding referred_by column to users table...`);
-                                db.run(`ALTER TABLE users ADD COLUMN referred_by INTEGER`, (err) => {
-                                    if (err) console.error('Error adding referred_by column:', err);
-                                    else console.log('✅ referred_by column added to users table');
-                                });
-                            } catch (e) {
-                                console.error('Error adding referred_by column:', e);
-                            }
-                        }
-
-                        if (!columnNames.includes('referral_coins_earned')) {
-                            try {
-                                console.log(`🔄 Adding referral_coins_earned column to users table...`);
-                                db.run(`ALTER TABLE users ADD COLUMN referral_coins_earned INTEGER DEFAULT 0`, (err) => {
-                                    if (err) console.error('Error adding referral_coins_earned column:', err);
-                                    else console.log('✅ referral_coins_earned column added to users table');
-                                });
-                            } catch (e) {
-                                console.error('Error adding referral_coins_earned column:', e);
-                            }
-                        }
-
-                        // Generate referral codes for existing users missing referral_code
-                        const referralChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-                        function encodeReferralCodeFromUserId(userId, attempt = 0) {
-                            let n = Math.max(0, parseInt(userId) + attempt);
-                            let code = '';
-                            do {
-                                code = referralChars[n % referralChars.length] + code;
-                                n = Math.floor(n / referralChars.length);
-                            } while (n > 0);
-
-                            // Ensure a readable length (6-8 chars) with left padding.
-                            while (code.length < 6) code = referralChars[0] + code;
-                            if (code.length > 8) code = code.slice(-8);
-                            return code;
-                        }
-
-                        // Best-effort generation; if collisions happen, we retry with a small attempt offset.
-                        // This is deterministic and based on the user ID (plus an attempt offset for collision avoidance).
-                        db.all('SELECT id FROM users WHERE referral_code IS NULL', (err, rows) => {
-                            if (err) return;
-
-                            const getAsync = (sql, params = []) => new Promise((resolve, reject) => {
-                                db.get(sql, params, (gErr, row) => gErr ? reject(gErr) : resolve(row));
-                            });
-
-                            const runAsync = (sql, params = []) => new Promise((resolve, reject) => {
-                                db.run(sql, params, function(rErr) {
-                                    rErr ? reject(rErr) : resolve(this);
-                                });
-                            });
-
-                            (async () => {
-                                for (const row of rows) {
-                                    const targetId = row.id;
-
-                                    for (let attempt = 0; attempt < 10; attempt++) {
-                                        const candidate = encodeReferralCodeFromUserId(targetId, attempt);
-                                        const existing = await getAsync(
-                                            'SELECT id FROM users WHERE referral_code = ? AND id != ?',
-                                            [candidate, targetId]
-                                        );
-
-                                        if (!existing) {
-                                            await runAsync(
-                                                'UPDATE users SET referral_code = ? WHERE id = ? AND referral_code IS NULL',
-                                                [candidate, targetId]
-                                            );
-                                            break;
-                                        }
-                                    }
-                                }
-                            })().catch(() => {
-                                // ignore best-effort generation failures
-                            });
-                        });
                     }
                 });
 
@@ -283,14 +192,6 @@ function initializeDatabase() {
                         }
                     );
 
-                    // Seed referral_system feature flag
-                    db.run(
-                        `INSERT OR IGNORE INTO feature_flags (name, enabled) VALUES ('referral_system', 1)`,
-                        [],
-                        (err) => {
-                            if (err) console.error('Error seeding referral_system feature_flags:', err);
-                        }
-                    );
 
                     // Add retention column for audit logs (legacy installs)
                     try {
@@ -349,29 +250,6 @@ function initializeDatabase() {
                     console.log('✅ activity_logs table created/verified');
                 });
 
-                // Referral configuration table
-                db.run(`
-                    CREATE TABLE IF NOT EXISTS referral_config (
-                        id INTEGER PRIMARY KEY,
-                        referrer_reward INTEGER DEFAULT 100,
-                        referee_reward INTEGER DEFAULT 50,
-                        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-                    )
-                `, (err) => {
-                    if (err) {
-                        console.error('Error creating referral_config table:', err);
-                        return;
-                    }
-
-                    // Seed a single row with defaults.
-                    db.run(
-                        `INSERT OR IGNORE INTO referral_config (id, referrer_reward, referee_reward) VALUES (1, 100, 50)`,
-                        [],
-                        (seedErr) => {
-                            if (seedErr) console.error('Error seeding referral_config:', seedErr);
-                        }
-                    );
-                });
             });
 
             // Notifications (supports per-user + global notifications)
