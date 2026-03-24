@@ -60,7 +60,7 @@ router.get('/api/links', requireAuth, async (req, res) => {
         // BUGFIX #12: Mark which links are completed and calculate cooldown
         // Use Date.now() for consistent UTC milliseconds comparison
         const nowMs = Date.now();
-        const linksWithStatus = activeLinks.map(link => {
+        const linksWithStatus = await Promise.all(activeLinks.map(async link => {
             // BUGFIX: Normalize link ID to integer for consistent comparison
             const linkIdInt = parseInt(link.id);
             const linkIdStr = linkIdInt.toString();
@@ -85,7 +85,7 @@ router.get('/api/links', requireAuth, async (req, res) => {
                 }
             }
             
-            return {
+            let result = {
                 id: linkIdStr,
                 title: link.title,
                 url: link.url,
@@ -95,7 +95,24 @@ router.get('/api/links', requireAuth, async (req, res) => {
                 cooldown_remaining: cooldownRemaining,
                 cooldown_seconds: cooldownSeconds
             };
-        });
+            
+            // Per-link rate limit enforcement logic for the UI frontend
+            if (link.max_completions > 0) {
+                const countResult = await get(
+                    `SELECT COUNT(*) as count FROM linkvertise_completions WHERE user_id = ? AND link_id = ? AND completed_at >= datetime('now', ?)`,
+                    [req.session.user.id, linkIdInt, `-${link.completion_window_hours || 24} hours`]
+                );
+                const count = countResult ? countResult.count : 0;
+                result.limit_reached = count >= link.max_completions;
+                result.max_completions = link.max_completions;
+                result.completion_window_hours = link.completion_window_hours || 24;
+                result.current_completions = count;
+            } else {
+                result.limit_reached = false;
+            }
+            
+            return result;
+        }));
         
         res.json({ success: true, links: linksWithStatus });
     } catch (error) {
@@ -116,6 +133,18 @@ router.post('/api/start', requireAuth, linkvertiseLimiter, async (req, res) => {
         const linkIdInt = parseInt(link_id);
         if (isNaN(linkIdInt) || linkIdInt <= 0) {
             return res.status(400).json({ success: false, message: 'Invalid link ID format' });
+        }
+        
+        // Anti-exploit: Enforce per-link rate limit on start
+        const link = await get('SELECT max_completions, completion_window_hours FROM linkvertise_links WHERE id = ?', [linkIdInt]);
+        if (link && link.max_completions > 0) {
+            const countResult = await get(
+                `SELECT COUNT(*) as count FROM linkvertise_completions WHERE user_id = ? AND link_id = ? AND completed_at >= datetime('now', ?)`,
+                [req.session.user.id, linkIdInt, `-${link.completion_window_hours || 24} hours`]
+            );
+            if (countResult && countResult.count >= link.max_completions) {
+                return res.status(400).json({ success: false, message: 'You have reached the maximum completion limit for this link.' });
+            }
         }
         
         // Save the start time and pending link in session

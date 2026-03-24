@@ -419,7 +419,7 @@ crontab -e
 
 ---
 
-**Last Updated:** Version 1.5.5
+**Last Updated:** Version 1.5.6
 
 **Made with ❤️ for free hosting providers**
 

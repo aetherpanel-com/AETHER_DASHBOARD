@@ -616,6 +616,20 @@ function initializeDatabase() {
                     return;
                 }
                 console.log('✅ Linkvertise_Links table created/verified');
+                
+                db.all("PRAGMA table_info(linkvertise_links)", (err, columns) => {
+                    if (!err) {
+                        const columnNames = columns.map(col => col.name);
+                        if (!columnNames.includes('max_completions')) {
+                            console.log('🔄 Adding max_completions column to linkvertise_links table...');
+                            db.run('ALTER TABLE linkvertise_links ADD COLUMN max_completions INTEGER DEFAULT 0', (err) => {});
+                        }
+                        if (!columnNames.includes('completion_window_hours')) {
+                            console.log('🔄 Adding completion_window_hours column to linkvertise_links table...');
+                            db.run('ALTER TABLE linkvertise_links ADD COLUMN completion_window_hours INTEGER DEFAULT 24', (err) => {});
+                        }
+                    }
+                });
             });
 
             // Create Linkvertise_Config table

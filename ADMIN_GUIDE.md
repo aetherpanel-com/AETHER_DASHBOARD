@@ -2,7 +2,7 @@
 
 Complete guide for setting up and managing your Aether Dashboard after installation.
 
-**Version:** 1.5.5 | **Status:** Production Ready ✅
+**Version:** 1.5.6 | **Status:** Production Ready ✅
 
 > **New to Aether Dashboard?** Complete the installation steps in [README.md](README.md) first, then return here to set up your admin panel.
 
@@ -391,6 +391,8 @@ you configure, and you earn revenue from Linkvertise.
 2. Enter a **Title** (shown to users), the **Linkvertise URL** (the
    monetised link — NOT your publisher link), **Coins Reward**, and
    whether it is **Active**
+   - **Max Completions per Window** (v1.5.6+): Set a strict limit on how many times a user can complete this link (e.g. 6). Set to 0 for unlimited.
+   - **Time Window (Hours)** (v1.5.6+): Define the cooldown period for exactly when limits reset (e.g. 24 for a daily cap).
 3. Click **Save Link**
 
 **Editing / deleting links:**
@@ -591,4 +593,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.5.5
+**Last Updated:** Version 1.5.6

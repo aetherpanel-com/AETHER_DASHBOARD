@@ -1,3 +1,33 @@
+## Aether Dashboard v1.5.6
+
+### ⏱️ Linkvertise Per-Link Rate Limiting
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.5.6 introduces powerful new controls for server administrators to prevent users from spamming Linkvertise links and triggering global IP rate blocks.
+
+### 🐛 Bug Fixes & Features
+
+| Feature | Description |
+|---------|-------------|
+| ⚙️ **Per-Link Limits** | Server admins can now set a "Max Completions per Window" limit for individual links (e.g. 6 completions per day). |
+| ⏳ **Custom Frequencies** | Added "Time Window (Hours)" configuration for each link. E.g., setting window to 24 hours creates a daily rolling limit. |
+| 🎨 **Dynamic UI Disabled State** | The frontend integration automatically grays out links and displays an explicit "Limit Reached (X/Y)" counter to prevent users from clicking links once they max out their quota. |
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**⚠️ Database Changes:** This update automatically runs a SQLite migration on startup to append the new `max_completions` and `completion_window_hours` columns to your `linkvertise_links` table. No action is required.
+
+---
+
 # Aether Dashboard - Update Guide
 
 **How to update your dashboard to the latest version without losing data!**

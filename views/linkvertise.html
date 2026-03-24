@@ -253,31 +253,40 @@
             const linksOnCooldown = []; // Store links that need timers
             
             links.forEach(link => {
-                const isOnCooldown = link.on_cooldown === true; // Use strict equality
+                const isLimitReached = link.limit_reached === true;
+                const isOnCooldown = !isLimitReached && link.on_cooldown === true;
                 const cooldownRemaining = parseInt(link.cooldown_remaining) || 0;
                 const hasCompletedBefore = link.completed || false;
                 
                 const escapedUrl = escapeHtml(link.url);
                 const escapedTitle = escapeHtml(link.title || 'Link #' + link.id);
+                
+                let borderColor = '#7c3aed';
+                if (isLimitReached) borderColor = '#ef4444';
+                else if (isOnCooldown) borderColor = '#ff9800';
+                
                 html += `
-                    <div style="padding: 20px; background: ${isOnCooldown ? 'rgba(50, 30, 30, 0.6)' : 'rgba(30, 30, 50, 0.6)'}; backdrop-filter: blur(20px); border: 1px solid ${isOnCooldown ? 'rgba(255, 152, 0, 0.3)' : 'rgba(124, 58, 237, 0.3)'}; border-radius: 12px; border-left: 4px solid ${isOnCooldown ? '#ff9800' : '#7c3aed'}; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <div style="padding: 20px; background: ${(isOnCooldown || isLimitReached) ? 'rgba(50, 30, 30, 0.6)' : 'rgba(30, 30, 50, 0.6)'}; backdrop-filter: blur(20px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; border-left: 4px solid ${borderColor}; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="flex: 1;">
                                 <h3 style="margin: 0 0 8px 0; color: #f8fafc; font-weight: 600;">${escapedTitle}</h3>
                                 <p style="margin: 0; color: #cbd5e1; font-size: 14px;">
                                     Reward: <strong>${link.coins_earned || 10} coins</strong>
                                 </p>
-                                ${hasCompletedBefore && !isOnCooldown ? '<p style="margin: 8px 0 0 0; color: #94a3b8; font-size: 14px;">You can complete this link again</p>' : ''}
+                                ${hasCompletedBefore && !isOnCooldown && !isLimitReached ? '<p style="margin: 8px 0 0 0; color: #94a3b8; font-size: 14px;">You can complete this link again</p>' : ''}
+                                ${isLimitReached ? `<p style="margin: 8px 0 0 0; color: #ef4444; font-size: 14px; font-weight: 600;">⚠️ Limit Reached (${link.current_completions}/${link.max_completions})</p>` : ''}
                                 ${isOnCooldown ? `<p style="margin: 8px 0 0 0; color: #ff9800; font-size: 14px; font-weight: 600;" id="cooldown-${link.id}">⏱️ Available in <strong>${cooldownRemaining}</strong> second${cooldownRemaining !== 1 ? 's' : ''}</p>` : ''}
                             </div>
                             <div>
-                                ${!isOnCooldown ? `
+                                ${isLimitReached ? `
+                                    <button class="btn btn-secondary" style="border-color: #ef4444;" disabled id="btn-${link.id}">Limit Reached</button>
+                                ` : (!isOnCooldown ? `
                                     <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary complete-link-btn" data-link-id="${link.id}" data-link-url="${escapeHtml(link.url)}">
                                         Complete Link
                                     </a>
                                 ` : `
                                     <button class="btn btn-secondary" disabled id="btn-${link.id}">On Cooldown</button>
-                                `}
+                                `)}
                             </div>
                         </div>
                     </div>

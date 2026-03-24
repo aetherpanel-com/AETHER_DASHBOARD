@@ -604,7 +604,9 @@ router.get('/api/linkvertise/links/:id', requireAdmin, async (req, res) => {
 
 router.post('/api/linkvertise/links', requireAdmin, sanitizeBody, async (req, res) => {
     try {
-        const { title, url, coins_earned, is_active, priority } = req.body;
+        const { title, url, coins_earned, is_active, priority, max_completions, completion_window_hours } = req.body;
+        const maxCompletions = parseInt(max_completions) || 0;
+        const completionWindowHours = parseInt(completion_window_hours) || 24;
         
         if (!title || !url) {
             return res.status(400).json({ 
@@ -639,8 +641,8 @@ router.post('/api/linkvertise/links', requireAdmin, sanitizeBody, async (req, re
         }
         
         const result = await run(
-            'INSERT INTO linkvertise_links (title, url, coins_earned, is_active, priority) VALUES (?, ?, ?, ?, ?)',
-            [title.trim(), url.trim(), coins, is_active !== undefined ? is_active : 1, priority || 0]
+            'INSERT INTO linkvertise_links (title, url, coins_earned, is_active, priority, max_completions, completion_window_hours) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [title.trim(), url.trim(), coins, is_active !== undefined ? is_active : 1, priority || 0, maxCompletions, completionWindowHours]
         );
         
         res.json({ 
@@ -656,7 +658,9 @@ router.post('/api/linkvertise/links', requireAdmin, sanitizeBody, async (req, re
 
 router.put('/api/linkvertise/links/:id', requireAdmin, sanitizeBody, async (req, res) => {
     try {
-        const { title, url, coins_earned, is_active, priority } = req.body;
+        const { title, url, coins_earned, is_active, priority, max_completions, completion_window_hours } = req.body;
+        const maxCompletions = parseInt(max_completions) || 0;
+        const completionWindowHours = parseInt(completion_window_hours) || 24;
         const linkId = req.params.id;
         
         if (!title || !url) {
@@ -692,8 +696,8 @@ router.put('/api/linkvertise/links/:id', requireAdmin, sanitizeBody, async (req,
         }
         
         await run(
-            'UPDATE linkvertise_links SET title = ?, url = ?, coins_earned = ?, is_active = ?, priority = ? WHERE id = ?',
-            [title.trim(), url.trim(), coins, is_active !== undefined ? is_active : 1, priority || 0, linkId]
+            'UPDATE linkvertise_links SET title = ?, url = ?, coins_earned = ?, is_active = ?, priority = ?, max_completions = ?, completion_window_hours = ? WHERE id = ?',
+            [title.trim(), url.trim(), coins, is_active !== undefined ? is_active : 1, priority || 0, maxCompletions, completionWindowHours, linkId]
         );
         
         res.json({ success: true, message: 'Link updated successfully' });

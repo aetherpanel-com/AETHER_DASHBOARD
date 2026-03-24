@@ -198,6 +198,15 @@
                                 <input type="number" id="linkCoins" min="1" required value="10">
                             </div>
                             <div class="form-group">
+                                <label for="maxCompletions">Max Completions per Window</label>
+                                <input type="number" id="maxCompletions" min="0" value="0">
+                                <small style="color: #cbd5e1;">Limit completions per user (0 for unlimited).</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="completionWindowHours">Time Window (Hours)</label>
+                                <input type="number" id="completionWindowHours" min="1" value="24">
+                            </div>
+                            <div class="form-group">
                                 <label>
                                     <input type="checkbox" id="linkActive" checked style="margin-right: 8px;">
                                     Active (visible to users)
@@ -291,8 +300,8 @@
                             <div style="color: #cbd5e1; font-size: 14px; margin-bottom: 4px;">
                                 <strong>URL:</strong> <a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" style="color: #7c3aed; text-decoration: none;">${escapeHtml(displayUrl)}</a>
                             </div>
-                            <div style="color: #cbd5e1; font-size: 14px; margin-top: 4px;">
-                                <span style="background: rgba(124, 58, 237, 0.2); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(124, 58, 237, 0.4);"><strong>Link ID:</strong> ${link.id}</span> | <strong>Coins:</strong> ${link.coins_earned} | <strong>Priority:</strong> ${link.priority || 0}
+                            <div style="color: #cbd5e1; font-size: 14px; margin-top: 8px;">
+                                <span style="background: rgba(124, 58, 237, 0.2); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(124, 58, 237, 0.4);"><strong>Link ID:</strong> ${link.id}</span> | <strong>Coins:</strong> ${link.coins_earned} | <strong>Priority:</strong> ${link.priority || 0} | <strong>Limit:</strong> <span style="color: ${link.max_completions > 0 ? '#ff9800' : '#10b981'}">${link.max_completions > 0 ? link.max_completions + ' / ' + (link.completion_window_hours || 24) + 'h' : 'Unlimited'}</span>
                             </div>
                         </div>
                         <div style="display: flex; gap: 8px;">
@@ -313,6 +322,8 @@
             document.getElementById('linkId').value = '';
             const defaultCoins = document.getElementById('defaultCoins').value || 10;
             document.getElementById('linkCoins').value = defaultCoins;
+            document.getElementById('maxCompletions').value = 0;
+            document.getElementById('completionWindowHours').value = 24;
             document.getElementById('linkActive').checked = true;
         }
         
@@ -331,6 +342,8 @@
                         document.getElementById('linkTitle').value = link.title;
                         document.getElementById('linkUrl').value = link.url;
                         document.getElementById('linkCoins').value = link.coins_earned;
+                        document.getElementById('maxCompletions').value = link.max_completions || 0;
+                        document.getElementById('completionWindowHours').value = link.completion_window_hours || 24;
                         document.getElementById('linkActive').checked = link.is_active === 1;
                         document.getElementById('linkFormTitle').textContent = 'Edit Link';
                         document.getElementById('linkFormSection').style.display = 'block';
@@ -405,6 +418,8 @@
                 title: document.getElementById('linkTitle').value,
                 url: document.getElementById('linkUrl').value,
                 coins_earned: parseInt(document.getElementById('linkCoins').value),
+                max_completions: parseInt(document.getElementById('maxCompletions').value),
+                completion_window_hours: parseInt(document.getElementById('completionWindowHours').value),
                 is_active: document.getElementById('linkActive').checked ? 1 : 0
             };
             

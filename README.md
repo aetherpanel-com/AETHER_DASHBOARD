@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.5.5
+**Version:** 1.5.6
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.5.5):** Security patch — Secured Linkvertise Integration with server-side validation and dynamic callbacks to prevent exploit bypassing. See Changelog for details.
+**🔧 Latest Update (v1.5.6):** Security feature — Added "Per-Link Rate Limiting" options for Linkvertise integrations, allowing admins to enforce granular daily/hourly maximum completions per URL. See Changelog for details.
 
 ---
 
