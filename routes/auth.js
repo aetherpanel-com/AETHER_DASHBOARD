@@ -435,7 +435,12 @@ router.post('/register', authLimiter, sanitizeBody, validateSignup, async (req, 
 });
 
 // Discord OAuth routes
-router.get('/discord', passport.authenticate('discord'));
+router.get('/discord', (req, res, next) => {
+    if (req.query.ref && typeof req.query.ref === 'string') {
+        req.session.pending_referral_code = req.query.ref.trim();
+    }
+    passport.authenticate('discord')(req, res, next);
+});
 
 // Discord linking route (for connecting Discord to existing account)
 router.get('/discord/link', requireAuth, (req, res, next) => {

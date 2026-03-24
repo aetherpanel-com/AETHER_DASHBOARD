@@ -212,6 +212,14 @@
             ensureReferralHiddenInput(refFromUrl);
             const banner = document.getElementById('referralBanner');
             if (banner) banner.style.display = 'block';
+
+            const discordBtn = document.querySelector('.discord-btn');
+            if (discordBtn) {
+                const currentHref = discordBtn.getAttribute('href');
+                if (!currentHref.includes('?ref=')) {
+                    discordBtn.setAttribute('href', currentHref + '?ref=' + encodeURIComponent(refFromUrl));
+                }
+            }
         }
 
         // Signup form handler
