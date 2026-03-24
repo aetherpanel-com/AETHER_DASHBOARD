@@ -290,6 +290,7 @@ Stop that process
 - ✅ Linkvertise configuration is saved in `Admin Panel -> Integrations -> Linkvertise`
 - ✅ Link is marked as "Active" in Admin Panel
 - ✅ Cooldown timer has expired (if applicable)
+- ✅ (v1.5.5+) Ensure your Linkvertise Target URL is configured exactly to your verification endpoint, e.g., `https://your-domain.com/linkvertise/verify/1`
 - ✅ Check server logs: `pm2 logs aether-dashboard`
 
 ---

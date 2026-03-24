@@ -4,6 +4,41 @@
 
 ---
 
+## Aether Dashboard v1.5.5
+
+### 🔒 Linkvertise Security Patch
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.5.5 is a critical security patch resolving a flaw in the Linkvertise integration where users could bypass ads by instantly closing the browser tab.
+
+### 🐛 Bug Fixes & Security
+
+| Fix | Description |
+|-----|-------------|
+| 🔒 **Linkvertise Exploit Fix** | Replaced the 2-second client-side timeout hack with a secure server-side session and verification callback loop. Users are now required to physically navigate back to the dashboard via a Linkvertise Target URL to receive coins. |
+| 🛡️ **Verification Minimum Delay** | Added a strict 15-second server-side minimum delay between starting a link and verifying it, ensuring that manual circumvention attempts are rejected. |
+
+### 🛠️ Important Setup Changes
+
+**For existing Linkvertise links:**
+You **must** update the Target URLs on your publisher.linkvertise.com dashboard to point to the new verification endpoint. 
+Format: `https://your-domain.com/linkvertise/verify/:id` (where `:id` matches the exact Link ID in your Aether Admin Panel).
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**⚠️ No database changes in this version.**
+
+---
+
 ## Aether Dashboard v1.5.4
 
 ### 🔧 Discord Username Sanitization Fix
