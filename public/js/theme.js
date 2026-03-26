@@ -4,37 +4,47 @@
  * Version 1.3
  */
 
-// Default theme fallback
+// Default theme fallback (Midnight Dark — matches server DEFAULT_PRESET_ID)
 const DEFAULT_THEME = {
     sidebar_bg_type: 'gradient',
-    sidebar_color_1: '#7c3aed',
-    sidebar_color_2: '#a855f7',
-    sidebar_color_3: '#06b6d4',
+    sidebar_color_1: '#18181b',
+    sidebar_color_2: '#27272a',
+    sidebar_color_3: '#3f3f46',
     sidebar_gradient_direction: '180deg',
-    sidebar_text_color: '#ffffff',
-    sidebar_active_bg: 'rgba(255, 255, 255, 0.25)',
-    sidebar_hover_bg: 'rgba(255, 255, 255, 0.15)',
+    sidebar_text_color: '#fafafa',
+    sidebar_active_bg: 'rgba(255, 255, 255, 0.15)',
+    sidebar_hover_bg: 'rgba(255, 255, 255, 0.1)',
     main_bg_type: 'gradient',
-    main_color_1: '#0a0e27',
-    main_color_2: '#141b2d',
-    main_color_3: '#1a1f3a',
+    main_color_1: '#09090b',
+    main_color_2: '#18181b',
+    main_color_3: '#27272a',
     main_gradient_direction: '135deg',
-    card_bg_color: 'rgba(30, 30, 50, 0.6)',
-    card_border_color: 'rgba(124, 58, 237, 0.2)',
-    card_text_color: '#f8fafc',
-    accent_primary: '#7c3aed',
-    accent_secondary: '#a855f7',
-    accent_tertiary: '#06b6d4',
-    accent_success: '#10b981',
+    card_bg_color: 'rgba(39, 39, 42, 0.6)',
+    card_border_color: 'rgba(113, 113, 122, 0.3)',
+    card_text_color: '#fafafa',
+    accent_primary: '#a1a1aa',
+    accent_secondary: '#d4d4d8',
+    accent_tertiary: '#e4e4e7',
+    accent_success: '#22c55e',
     accent_warning: '#f59e0b',
     accent_danger: '#ef4444',
-    input_bg_color: 'rgba(30, 30, 50, 0.4)',
-    input_border_color: 'rgba(124, 58, 237, 0.3)',
-    input_text_color: '#f8fafc',
-    input_placeholder_color: '#94a3b8',
-    header_bg_color: 'rgba(20, 27, 45, 0.8)',
-    header_text_color: '#f8fafc'
+    input_bg_color: 'rgba(39, 39, 42, 0.4)',
+    input_border_color: 'rgba(113, 113, 122, 0.3)',
+    input_text_color: '#fafafa',
+    input_placeholder_color: '#a1a1aa',
+    header_bg_color: 'rgba(24, 24, 27, 0.9)',
+    header_text_color: '#fafafa'
 };
+
+function setGlassPresetFlag(activePreset) {
+    const id = activePreset != null ? String(activePreset) : '';
+    const isGlass = id.startsWith('glass_');
+    if (isGlass) {
+        document.documentElement.dataset.aetherGlass = '1';
+    } else {
+        delete document.documentElement.dataset.aetherGlass;
+    }
+}
 
 // Apply theme to CSS variables
 function applyTheme(theme) {
@@ -95,7 +105,7 @@ function applyTheme(theme) {
 
 // Convert hex color to RGB values for use in rgba()
 function hexToRgb(hex) {
-    if (!hex) return '124, 58, 237';
+    if (!hex) return '161, 161, 170';
     
     // Handle rgba format
     if (hex.startsWith('rgba') || hex.startsWith('rgb')) {
@@ -103,7 +113,7 @@ function hexToRgb(hex) {
         if (match && match.length >= 3) {
             return `${match[0]}, ${match[1]}, ${match[2]}`;
         }
-        return '124, 58, 237';
+        return '161, 161, 170';
     }
     
     // Handle hex format
@@ -111,7 +121,7 @@ function hexToRgb(hex) {
     if (result) {
         return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
     }
-    return '124, 58, 237';
+    return '161, 161, 170';
 }
 
 // Fetch and apply theme from server
@@ -132,12 +142,14 @@ async function loadAndApplyTheme() {
         if (response.ok) {
             const data = await response.json();
             if (data.success && data.theme) {
+                setGlassPresetFlag(data.active_preset);
                 applyTheme(data.theme);
             }
         }
     } catch (error) {
         console.error('Error loading theme:', error);
         // Apply default theme on error
+        setGlassPresetFlag('');
         applyTheme(DEFAULT_THEME);
     }
 }
@@ -150,6 +162,7 @@ if (typeof window !== 'undefined') {
     window.AetherTheme = {
         apply: applyTheme,
         load: loadAndApplyTheme,
+        setGlassPresetFlag,
         DEFAULT: DEFAULT_THEME,
         hexToRgb: hexToRgb
     };

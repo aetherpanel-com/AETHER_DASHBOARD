@@ -23,7 +23,7 @@ Complete guide for setting up and managing your Aether Dashboard after installat
 11. [Admin Settings — Branding](#-admin-settings--branding)
 12. [Integrations — Linkvertise](#-integrations--linkvertise)
     - [Target URL on Linkvertise (Post & earn)](#setting-the-target-url-in-linkvertise-post--earn)
-13. [Integrations — Discord](#-integrations--discord)
+13. [Integrations — Discord](#integrations--discord)
 14. [Audit Logs](#-audit-logs)
 15. [Admin Setup Checklist](#-admin-setup-checklist)
 - [Daily Rewards Tab](#-daily-rewards-tab)
@@ -455,7 +455,7 @@ Replace `dashboard.yourdomain.com` with your real dashboard hostname, and
 
 ---
 
-## 💬 Integrations — Discord
+## Integrations — Discord
 
 Connect a Discord bot to enable invite rewards and real-time chat sync
 between Discord and the dashboard Community page.
@@ -475,7 +475,7 @@ currently connected and sending heartbeats. It updates every 10 seconds.
 | **Deduct per Leave** | Coins deducted when an invited user leaves. Set to `0` to deduct the exact amount that was awarded at join time. Set to any positive value to deduct a fixed amount instead (e.g. set to `25` when reward is `50` for a partial deduction). |
 | **Enable Chat Bridge** | Mirror Discord messages to the Community page |
 | **Chat Channel ID** | Discord channel ID to bridge messages from/to |
-| **Discord Invite Link** | Optional `https://discord.gg/…` or `https://discord.com/invite/…` (also `discordapp.com`) URL. Shown to all users as the 💬 button next to the notification bell in the header; opens in a new tab. If left empty, clicking 💬 shows a themed message that the link is not configured. |
+| **Discord Invite Link** | Optional `https://discord.gg/…` or `https://discord.com/invite/…` (also `discordapp.com`) URL. Shown to all users as the **Discord icon** (`public/icons/discord.svg`) next to the notification bell in the header; opens in a new tab. If left empty, clicking it shows a themed message that the link is not configured. |
 
 > **Username Handling (v1.5.4+):** If a user's Discord username contains characters not accepted by Pterodactyl (such as leading/trailing `.`, `!`, or `#`), the username is automatically sanitized before being sent to the panel. The original Discord username is always preserved in the dashboard. A warning is logged to PM2 when sanitization occurs — check with `pm2 logs aether-dashboard`.
 

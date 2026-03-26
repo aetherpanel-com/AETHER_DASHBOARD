@@ -281,10 +281,19 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
                     });
                 }
                 
-                // Get settings
+                // Get settings (location fallback still useful, but nest must come from selected egg)
                 const settings = await get('SELECT * FROM pterodactyl_settings ORDER BY id DESC LIMIT 1');
-                const nestId = settings?.default_nest_id || egg.nest_id;
+                const eggNestId = parseInt(egg.nest_id, 10);
+                const nestId = Number.isNaN(eggNestId) ? parseInt(settings?.default_nest_id, 10) : eggNestId;
                 const locationId = settings?.default_location_id;
+
+                if (Number.isNaN(nestId)) {
+                    await cleanupServerCreation(serverRecordId, claimedAllocationId);
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Selected game type has an invalid nest configuration. Please re-sync eggs in Admin Panel.'
+                    });
+                }
                 
                 // BUGFIX #16: Atomically claim an allocation to prevent race conditions
                 // We mark it as inactive immediately, then delete it on success or restore on failure
@@ -377,7 +386,7 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
                 const serverData = {
                     name: name,
                     user: parseInt(pterodactylUserId),
-                    nest: parseInt(nestId),  // BUGFIX #10: nest is required
+                    nest: nestId,  // Must match the selected egg's actual nest
                     egg: parseInt(egg_id),
                     docker_image: egg.docker_image || 'ghcr.io/pterodactyl/yolks:java_17',
                     startup: egg.startup_command || '',
@@ -2039,7 +2048,7 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
             });
         }
         
-        if (!['ram', 'cpu', 'storage'].includes(resource_type)) {
+        if (!['ram', 'cpu', 'storage', 'database', 'backup'].includes(resource_type)) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Invalid resource type' 
@@ -2084,6 +2093,16 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                 const storageGBPerSet = prices.storage_gb_per_set || 1;
                 coinsSpent = Math.ceil((amount / storageGBPerSet) * storageCoinsPerSet);
                 break;
+            case 'database':
+                const databaseCoinsPerSet = prices.database_coins_per_set || 10;
+                const databaseCountPerSet = prices.database_count_per_set || 1;
+                coinsSpent = Math.ceil((amount / databaseCountPerSet) * databaseCoinsPerSet);
+                break;
+            case 'backup':
+                const backupCoinsPerSet = prices.backup_coins_per_set || 10;
+                const backupCountPerSet = prices.backup_count_per_set || 1;
+                coinsSpent = Math.ceil((amount / backupCountPerSet) * backupCoinsPerSet);
+                break;
         }
         
         // BUGFIX: Use transaction to atomically check coins, deduct coins, and add resources
@@ -2105,6 +2124,11 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                 // Convert GB to MB for database storage (purchased_storage stores in MB)
                 resourceAmountMB = amount * 1024;
                 break;
+            case 'database':
+            case 'backup':
+                // Store plain count for purchase history
+                resourceAmountMB = amount;
+                break;
         }
         
         // Atomically check coins, deduct coins, and add resources in a transaction
@@ -2118,7 +2142,7 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
             }
 
             // Check resource limits (0 = unlimited)
-            const limits = await get('SELECT max_ram_gb, max_cpu_percent, max_storage_gb FROM resource_prices ORDER BY id DESC LIMIT 1');
+            const limits = await get('SELECT max_ram_gb, max_cpu_percent, max_storage_gb, max_databases, max_backups FROM resource_prices ORDER BY id DESC LIMIT 1');
 
             if (limits) {
                 if (resource_type === 'ram' && limits.max_ram_gb > 0) {
@@ -2140,6 +2164,28 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                     if (currentStorageGb + amount > limits.max_storage_gb) {
                         const remaining = Math.max(0, limits.max_storage_gb - currentStorageGb);
                         throw new Error(`Purchase would exceed the storage limit of ${limits.max_storage_gb}GB. You can purchase up to ${remaining.toFixed(1)}GB more.`);
+                    }
+                }
+                if (resource_type === 'database' && limits.max_databases > 0) {
+                    const currentDatabases = await get(
+                        `SELECT COALESCE(SUM(amount), 0) as total FROM resource_purchases WHERE user_id = ? AND resource_type = 'database'`,
+                        [req.session.user.id]
+                    );
+                    const dbCount = Number(currentDatabases?.total || 0);
+                    if (dbCount + amount > limits.max_databases) {
+                        const remaining = Math.max(0, limits.max_databases - dbCount);
+                        throw new Error(`Purchase would exceed the database limit of ${limits.max_databases}. You can purchase up to ${remaining} more.`);
+                    }
+                }
+                if (resource_type === 'backup' && limits.max_backups > 0) {
+                    const currentBackups = await get(
+                        `SELECT COALESCE(SUM(amount), 0) as total FROM resource_purchases WHERE user_id = ? AND resource_type = 'backup'`,
+                        [req.session.user.id]
+                    );
+                    const backupCount = Number(currentBackups?.total || 0);
+                    if (backupCount + amount > limits.max_backups) {
+                        const remaining = Math.max(0, limits.max_backups - backupCount);
+                        throw new Error(`Purchase would exceed the backup limit of ${limits.max_backups}. You can purchase up to ${remaining} more.`);
                     }
                 }
             }
@@ -2168,6 +2214,12 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                     // Convert GB to MB for database storage (purchased_storage stores in MB)
                     updateQuery = 'UPDATE users SET purchased_storage = purchased_storage + ?, coins = coins - ? WHERE id = ? AND coins >= ?';
                     updateParams = [resourceAmountMB, coinsSpent, req.session.user.id, coinsSpent];
+                    break;
+                case 'database':
+                case 'backup':
+                    // No users table counter for these resources yet; deduct only and track in resource_purchases
+                    updateQuery = 'UPDATE users SET coins = coins - ? WHERE id = ? AND coins >= ?';
+                    updateParams = [coinsSpent, req.session.user.id, coinsSpent];
                     break;
             }
             
@@ -2244,6 +2296,20 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                 req.session.user.username,
                 'coins_spent_resource',
                 `Purchased ${amount}GB Storage for ${coinsSpent} coins`
+            ).catch(() => {});
+        } else if (resource_type === 'database') {
+            writeLog(
+                req.session.user.id,
+                req.session.user.username,
+                'coins_spent_resource',
+                `Purchased ${amount} database slot(s) for ${coinsSpent} coins`
+            ).catch(() => {});
+        } else if (resource_type === 'backup') {
+            writeLog(
+                req.session.user.id,
+                req.session.user.username,
+                'coins_spent_resource',
+                `Purchased ${amount} backup slot(s) for ${coinsSpent} coins`
             ).catch(() => {});
         }
     } catch (error) {
@@ -2361,13 +2427,38 @@ router.post('/api/purchase-slot', requireAuth, purchaseLimiter, async (req, res)
 router.get('/api/purchase-history', requireAuth, async (req, res) => {
     try {
         const purchases = await query(
-            `SELECT rp.*, s.name as server_name 
-             FROM resource_purchases rp 
-             LEFT JOIN servers s ON rp.server_id = s.id 
-             WHERE rp.user_id = ? 
-             ORDER BY rp.purchased_at DESC 
-             LIMIT 50`,
-            [req.session.user.id]
+            `
+                SELECT
+                    rp.id,
+                    rp.user_id,
+                    rp.server_id,
+                    rp.resource_type,
+                    rp.amount,
+                    rp.coins_spent,
+                    rp.purchased_at,
+                    s.name as server_name
+                FROM resource_purchases rp
+                LEFT JOIN servers s ON rp.server_id = s.id
+                WHERE rp.user_id = ?
+                
+                UNION ALL
+                
+                SELECT
+                    sp.id,
+                    sp.user_id,
+                    NULL as server_id,
+                    'server_slot' as resource_type,
+                    1 as amount,
+                    sp.coins_spent,
+                    sp.purchased_at,
+                    NULL as server_name
+                FROM server_slot_purchases sp
+                WHERE sp.user_id = ?
+                
+                ORDER BY purchased_at DESC
+                LIMIT 50
+            `,
+            [req.session.user.id, req.session.user.id]
         );
         
         res.json({ success: true, purchases });
@@ -2392,7 +2483,19 @@ router.get('/api/resource-prices', requireAuth, async (req, res) => {
                     cpu_percent_per_set: 1,
                     storage_coins_per_set: 1,
                     storage_gb_per_set: 1,
-                    server_slot_price: 100
+                    server_slot_price: 100,
+                    database_coins_per_set: 10,
+                    database_count_per_set: 1,
+                    backup_coins_per_set: 10,
+                    backup_count_per_set: 1,
+                    max_databases: 0,
+                    max_backups: 0,
+                    ram_icon_path: '/icons/ram.svg',
+                    cpu_icon_path: '/icons/cpu.svg',
+                    storage_icon_path: '/icons/storage.svg',
+                    server_slot_icon_path: '/icons/server-slot.svg',
+                    database_icon_path: '/icons/database.svg',
+                    backup_icon_path: '/icons/backup.svg'
                 }
             });
         }

@@ -20,27 +20,27 @@
             
             <nav class="sidebar-nav">
                 <a href="/dashboard" class="nav-item" data-page="dashboard">
-                    <span class="nav-icon">🏠</span>
+                    <span class="nav-icon"><img src="/icons/nav-dashboard.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Dashboard</span>
                 </a>
                 <a href="/servers" class="nav-item" data-page="servers">
-                    <span class="nav-icon">🖥️</span>
+                            <span class="nav-icon"><img src="/icons/manage-server.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Manage Servers</span>
                 </a>
                 <a href="/servers/create" class="nav-item" data-page="create-server">
-                    <span class="nav-icon">➕</span>
+                    <span class="nav-icon"><img src="/icons/create-server.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Create Server</span>
                 </a>
                 <a href="/linkvertise" class="nav-item" data-page="linkvertise">
-                    <span class="nav-icon">💰</span>
-                    <span class="nav-text">Linkvertise</span>
+                    <span class="nav-icon"><img src="/icons/coin.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                    <span class="nav-text">Earn Coins</span>
                 </a>
                 <a href="/servers/store" class="nav-item" data-page="store">
                     <span class="nav-icon">🛒</span>
                     <span class="nav-text">Resource Store</span>
                 </a>
                 <a href="/community" class="nav-item" data-page="community">
-                    <span class="nav-icon">💬</span>
+                    <span class="nav-icon"><img src="/icons/discord.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Community</span>
                 </a>
                 <a href="/dashboard/profile" class="nav-item" data-page="profile">
@@ -55,14 +55,14 @@
                 <div class="sidebar-dropdown admin-only" style="display: none;">
                     <div class="sidebar-dropdown-toggle active">
                         <div class="nav-dropdown-left">
-                            <span class="nav-icon">🛡️</span>
+                            <span class="nav-icon"><img src="/icons/admin-panel.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                             <span class="nav-text">Admin Panel</span>
                         </div>
                         <span class="dropdown-arrow">▼</span>
                     </div>
                     <div class="sidebar-submenu">
                         <a href="/admin" class="nav-item active" data-page="admin">
-                            <span class="nav-icon">📊</span>
+                            <span class="nav-icon"><img src="/icons/overview.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                             <span class="nav-text">Overview</span>
                         </a>
                         
@@ -70,30 +70,21 @@
                         <div class="sidebar-dropdown nested">
                             <div class="sidebar-dropdown-toggle">
                                 <div class="nav-dropdown-left">
-                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-icon"><img src="/icons/admin-setting.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Admin Settings</span>
                                 </div>
                                 <span class="dropdown-arrow">▼</span>
                             </div>
                             <div class="sidebar-submenu">
                                 <a href="/admin/settings/themes" class="nav-item" data-page="admin-themes">
-                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-icon"><img src="/icons/themes.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Themes</span>
                                 </a>
                                 <a href="/admin/settings/branding" class="nav-item" data-page="admin-branding">
-                                    <span class="nav-icon">✨</span>
+                                    <span class="nav-icon"><img src="/icons/branding.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Branding</span>
                                 </a>
-                                <a href="/admin/logs" class="nav-item" data-page="admin-logs"><span class="nav-icon">
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/>
-    <line x1="16" y1="17" x2="8" y2="17"/>
-    <polyline points="10 9 9 9 8 9"/>
-  </svg>
-</span><span class="nav-text">Audit Logs</span>
-                                </a>
+                                <a href="/admin/logs" class="nav-item" data-page="admin-logs"><span class="nav-icon"><img src="/icons/audit.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span><span class="nav-text">Audit Logs</span></a>
                             </div>
                         </div>
                         
@@ -101,18 +92,18 @@
                         <div class="sidebar-dropdown nested">
                             <div class="sidebar-dropdown-toggle">
                                 <div class="nav-dropdown-left">
-                                    <span class="nav-icon">🔌</span>
+                                    <span class="nav-icon"><img src="/icons/integration.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Integrations</span>
                                 </div>
                                 <span class="dropdown-arrow">▼</span>
                             </div>
                             <div class="sidebar-submenu">
                                 <a href="/admin/integrations/linkvertise" class="nav-item" data-page="admin-integrations-linkvertise">
-                                    <span class="nav-icon">💰</span>
+                                    <span class="nav-icon"><img src="/icons/linkvertise.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Linkvertise</span>
                                 </a>
                                 <a href="/admin/integrations/discord" class="nav-item" data-page="admin-integrations-discord">
-                                    <span class="nav-icon">💬</span>
+                                    <span class="nav-icon"><img src="/icons/discord.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Discord</span>
                                 </a>
                             </div>
@@ -138,7 +129,7 @@
                 </div>
                 <div class="header-right">
                     <div class="coin-balance">
-                        <span class="coin-icon">🪙</span>
+                        <span class="coin-icon"><img src="/icons/coin.svg" alt="" width="24" height="24" class="nav-icon-img--color" decoding="async"></span>
                         <span id="coinAmount">0</span> Coins
                     </div>
                 </div>
@@ -166,7 +157,7 @@
                     </div>
                     
                     <div class="stat-card">
-                        <div class="stat-icon">🪙</div>
+                        <div class="stat-icon"><img src="/icons/coin.svg" alt="" width="44" height="44" class="nav-icon-img--color" decoding="async"></div>
                         <div class="stat-info">
                             <h3 id="totalCoins">0</h3>
                             <p>Total Coins</p>
@@ -315,11 +306,21 @@
                             </p>
                             
                             <form id="storePricesForm">
-                                <div style="display: grid; gap: 20px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px;">
                                     <!-- RAM Pricing -->
-                                    <div style="padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
-                                        <h3 style="color: #f8fafc; margin-bottom: 16px; font-size: 18px;">RAM Pricing</h3>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                    <div style="padding: 24px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;">
+                                            <h3 style="color: #f8fafc; margin:0; font-size: 18px;">RAM Pricing</h3>
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <div id="storeIconPreviewRam" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(124,58,237,0.35);background:rgba(10,14,39,0.55);display:inline-flex;align-items:center;justify-content:center;"><img src="/icons/ram.svg" alt="" width="20" height="20" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async"></div>
+                                                <button type="button" class="btn btn-secondary" onclick="openStoreIconPicker('ram')" title="Upload RAM icon" aria-label="Upload RAM icon" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                                                    <img src="/icons/upload.svg" alt="" width="16" height="16" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async">
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" id="ramIconPath" value="/icons/ram.svg">
+                                        <input type="file" id="ramIconFile" accept=".svg,image/svg+xml" style="display:none;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                             <div class="form-group">
                                                 <label for="ramCoins">Coins</label>
                                                 <input type="number" id="ramCoins" min="1" required>
@@ -331,15 +332,30 @@
                                                 <small style="color: #cbd5e1;">Amount of RAM in GB</small>
                                             </div>
                                         </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="maxRamGb">Max RAM (GB)</label>
+                                            <input type="number" id="maxRamGb" min="0" value="0">
+                                            <small style="color: #cbd5e1;">Maximum per user (0 = unlimited)</small>
+                                        </div>
                                         <div style="margin-top: 12px; padding: 12px; background: rgba(124, 58, 237, 0.1); border-radius: 8px;">
                                             <small style="color: #cbd5e1;">Example: 1 coin = 1GB RAM, or 2 coins = 5GB RAM</small>
                                         </div>
                                     </div>
                                     
                                     <!-- CPU Pricing -->
-                                    <div style="padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
-                                        <h3 style="color: #f8fafc; margin-bottom: 16px; font-size: 18px;">CPU Pricing</h3>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                    <div style="padding: 24px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;">
+                                            <h3 style="color: #f8fafc; margin:0; font-size: 18px;">CPU Pricing</h3>
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <div id="storeIconPreviewCpu" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(124,58,237,0.35);background:rgba(10,14,39,0.55);display:inline-flex;align-items:center;justify-content:center;"><img src="/icons/cpu.svg" alt="" width="20" height="20" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async"></div>
+                                                <button type="button" class="btn btn-secondary" onclick="openStoreIconPicker('cpu')" title="Upload CPU icon" aria-label="Upload CPU icon" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                                                    <img src="/icons/upload.svg" alt="" width="16" height="16" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async">
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" id="cpuIconPath" value="/icons/cpu.svg">
+                                        <input type="file" id="cpuIconFile" accept=".svg,image/svg+xml" style="display:none;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                             <div class="form-group">
                                                 <label for="cpuCoins">Coins</label>
                                                 <input type="number" id="cpuCoins" min="1" required>
@@ -351,15 +367,30 @@
                                                 <small style="color: #cbd5e1;">Percentage of CPU (can exceed 100%)</small>
                                             </div>
                                         </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="maxCpuPercent">Max CPU (%)</label>
+                                            <input type="number" id="maxCpuPercent" min="0" value="0">
+                                            <small style="color: #cbd5e1;">Maximum per user (0 = unlimited)</small>
+                                        </div>
                                         <div style="margin-top: 12px; padding: 12px; background: rgba(124, 58, 237, 0.1); border-radius: 8px;">
                                             <small style="color: #cbd5e1;">Example: 1 coin = 1% CPU, or 2 coins = 5% CPU</small>
                                         </div>
                                     </div>
                                     
                                     <!-- Storage Pricing -->
-                                    <div style="padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
-                                        <h3 style="color: #f8fafc; margin-bottom: 16px; font-size: 18px;">Storage Pricing</h3>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                    <div style="padding: 24px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;">
+                                            <h3 style="color: #f8fafc; margin:0; font-size: 18px;">Storage Pricing</h3>
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <div id="storeIconPreviewStorage" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(124,58,237,0.35);background:rgba(10,14,39,0.55);display:inline-flex;align-items:center;justify-content:center;"><img src="/icons/storage.svg" alt="" width="20" height="20" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async"></div>
+                                                <button type="button" class="btn btn-secondary" onclick="openStoreIconPicker('storage')" title="Upload Storage icon" aria-label="Upload Storage icon" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                                                    <img src="/icons/upload.svg" alt="" width="16" height="16" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async">
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" id="storageIconPath" value="/icons/storage.svg">
+                                        <input type="file" id="storageIconFile" accept=".svg,image/svg+xml" style="display:none;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                             <div class="form-group">
                                                 <label for="storageCoins">Coins</label>
                                                 <input type="number" id="storageCoins" min="1" required>
@@ -371,51 +402,112 @@
                                                 <small style="color: #cbd5e1;">Amount of storage in GB</small>
                                             </div>
                                         </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="maxStorageGb">Max Storage (GB)</label>
+                                            <input type="number" id="maxStorageGb" min="0" value="0">
+                                            <small style="color: #cbd5e1;">Maximum per user (0 = unlimited)</small>
+                                        </div>
                                         <div style="margin-top: 12px; padding: 12px; background: rgba(124, 58, 237, 0.1); border-radius: 8px;">
                                             <small style="color: #cbd5e1;">Example: 1 coin = 1GB Storage, or 3 coins = 5GB Storage</small>
                                         </div>
                                     </div>
                                     
                                     <!-- Server Slot Pricing -->
-                                    <div style="padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
-                                        <h3 style="color: #f8fafc; margin-bottom: 16px; font-size: 18px;">Server Slot Pricing</h3>
-                                        <div class="form-group">
-                                            <label for="serverSlotPrice">Price per Slot (Coins)</label>
-                                            <input type="number" id="serverSlotPrice" min="1" required>
-                                            <small style="color: #cbd5e1;">Number of coins required to purchase one additional server slot</small>
+                                    <div style="padding: 24px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;">
+                                            <h3 style="color: #f8fafc; margin:0; font-size: 18px;">Server Slot Pricing</h3>
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <div id="storeIconPreviewServerSlot" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(124,58,237,0.35);background:rgba(10,14,39,0.55);display:inline-flex;align-items:center;justify-content:center;"><img src="/icons/server-slot.svg" alt="" width="20" height="20" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async"></div>
+                                                <button type="button" class="btn btn-secondary" onclick="openStoreIconPicker('server_slot')" title="Upload Server Slot icon" aria-label="Upload Server Slot icon" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                                                    <img src="/icons/upload.svg" alt="" width="16" height="16" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async">
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" id="serverSlotIconPath" value="/icons/server-slot.svg">
+                                        <input type="file" id="serverSlotIconFile" accept=".svg,image/svg+xml" style="display:none;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                            <div class="form-group">
+                                                <label for="serverSlotPrice">Coins</label>
+                                                <input type="number" id="serverSlotPrice" min="1" required>
+                                                <small style="color: #cbd5e1;">Price per purchase</small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Slots</label>
+                                                <input type="number" value="1" disabled>
+                                                <small style="color: #cbd5e1;">Server slots per purchase</small>
+                                            </div>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="maxServerSlots">Max Server Slots</label>
+                                            <input type="number" id="maxServerSlots" min="0" value="0">
+                                            <small style="color: #cbd5e1;">Maximum per user (0 = unlimited)</small>
                                         </div>
                                         <div style="margin-top: 12px; padding: 12px; background: rgba(124, 58, 237, 0.1); border-radius: 8px;">
                                             <small style="color: #cbd5e1;">Users start with 1 server slot by default. They can purchase additional slots at this price.</small>
                                         </div>
                                     </div>
-                                </div>
 
-                                <!-- Resource Limits Section -->
-                                <div style="margin-top: 8px; padding: 20px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
-                                    <h3 style="color: #f8fafc; margin-bottom: 8px; font-size: 18px;">Resource Limits Per User</h3>
-                                    <p style="color: #94a3b8; font-size: 13px; margin-bottom: 16px;">
-                                        Maximum total resources a user can purchase. Set to <strong style="color: #a855f7;">0</strong> for unlimited.
-                                    </p>
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                                        <div class="form-group" style="margin-bottom: 0;">
-                                            <label for="maxRamGb">Max RAM (GB)</label>
-                                            <input type="number" id="maxRamGb" min="0" value="0">
-                                            <small style="color: #cbd5e1;">0 = unlimited</small>
+                                    <!-- Database Pricing -->
+                                    <div style="padding: 24px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;">
+                                            <h3 style="color: #f8fafc; margin:0; font-size: 18px;">Database Pricing</h3>
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <div id="storeIconPreviewDatabase" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(124,58,237,0.35);background:rgba(10,14,39,0.55);display:inline-flex;align-items:center;justify-content:center;"><img src="/icons/database.svg" alt="" width="20" height="20" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async"></div>
+                                                <button type="button" class="btn btn-secondary" onclick="openStoreIconPicker('database')" title="Upload Database icon" aria-label="Upload Database icon" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                                                    <img src="/icons/upload.svg" alt="" width="16" height="16" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async">
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" id="databaseIconPath" value="/icons/database.svg">
+                                        <input type="file" id="databaseIconFile" accept=".svg,image/svg+xml" style="display:none;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                            <div class="form-group">
+                                                <label for="databaseCoins">Coins</label>
+                                                <input type="number" id="databaseCoins" min="1" required>
+                                                <small style="color: #cbd5e1;">Price per purchase</small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="databaseCount">Databases</label>
+                                                <input type="number" id="databaseCount" min="1" required>
+                                                <small style="color: #cbd5e1;">Databases per purchase</small>
+                                            </div>
                                         </div>
                                         <div class="form-group" style="margin-bottom: 0;">
-                                            <label for="maxCpuPercent">Max CPU (%)</label>
-                                            <input type="number" id="maxCpuPercent" min="0" value="0">
-                                            <small style="color: #cbd5e1;">0 = unlimited</small>
+                                            <label for="maxDatabases">Max Databases</label>
+                                            <input type="number" id="maxDatabases" min="0" value="0">
+                                            <small style="color: #cbd5e1;">Maximum per user (0 = unlimited)</small>
+                                        </div>
+                                    </div>
+
+                                    <!-- Backup Pricing -->
+                                    <div style="padding: 24px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;">
+                                            <h3 style="color: #f8fafc; margin:0; font-size: 18px;">Backup Pricing</h3>
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <div id="storeIconPreviewBackup" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(124,58,237,0.35);background:rgba(10,14,39,0.55);display:inline-flex;align-items:center;justify-content:center;"><img src="/icons/backup.svg" alt="" width="20" height="20" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async"></div>
+                                                <button type="button" class="btn btn-secondary" onclick="openStoreIconPicker('backup')" title="Upload Backup icon" aria-label="Upload Backup icon" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                                                    <img src="/icons/upload.svg" alt="" width="16" height="16" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async">
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" id="backupIconPath" value="/icons/backup.svg">
+                                        <input type="file" id="backupIconFile" accept=".svg,image/svg+xml" style="display:none;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                            <div class="form-group">
+                                                <label for="backupCoins">Coins</label>
+                                                <input type="number" id="backupCoins" min="1" required>
+                                                <small style="color: #cbd5e1;">Price per purchase</small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="backupCount">Backups</label>
+                                                <input type="number" id="backupCount" min="1" required>
+                                                <small style="color: #cbd5e1;">Backups per purchase</small>
+                                            </div>
                                         </div>
                                         <div class="form-group" style="margin-bottom: 0;">
-                                            <label for="maxStorageGb">Max Storage (GB)</label>
-                                            <input type="number" id="maxStorageGb" min="0" value="0">
-                                            <small style="color: #cbd5e1;">0 = unlimited</small>
-                                        </div>
-                                        <div class="form-group" style="margin-bottom: 0;">
-                                            <label for="maxServerSlots">Max Server Slots</label>
-                                            <input type="number" id="maxServerSlots" min="0" value="0">
-                                            <small style="color: #cbd5e1;">0 = unlimited</small>
+                                            <label for="maxBackups">Max Backups</label>
+                                            <input type="number" id="maxBackups" min="0" value="0">
+                                            <small style="color: #cbd5e1;">Maximum per user (0 = unlimited)</small>
                                         </div>
                                     </div>
                                 </div>
@@ -616,8 +708,16 @@
                                             <input type="text" id="templateName" required placeholder="e.g., Minecraft Starter">
                                         </div>
                                         <div class="form-group">
-                                            <label>Icon (emoji)</label>
-                                            <input type="text" id="templateIcon" placeholder="🎮" maxlength="4" style="width: 60px;">
+                                            <label>Icon (SVG)</label>
+                                            <div style="display: flex; gap: 8px; align-items: center;">
+                                                <div id="templateIconPreview" style="width: 44px; height: 44px; border-radius: 10px; border: 1px solid rgba(124, 58, 237, 0.35); background: rgba(10, 14, 39, 0.55); display: inline-flex; align-items: center; justify-content: center; color: #cbd5e1; font-size: 22px; flex-shrink: 0;" title="Default icon">🎮</div>
+                                                <button type="button" class="btn btn-secondary" onclick="openTemplateIconPicker()" aria-label="Upload SVG icon" title="Upload SVG icon" style="width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                                    <img src="/icons/upload.svg" alt="" width="20" height="20" style="width:20px;height:20px;object-fit:contain;display:block;filter:none;opacity:1;" decoding="async">
+                                                </button>
+                                            </div>
+                                            <input type="hidden" id="templateIcon" value="">
+                                            <input type="file" id="templateIconFile" accept=".svg,image/svg+xml" style="display:none;">
+                                            <small style="color: #94a3b8; display: block; margin-top: 6px;">SVG only</small>
                                         </div>
                                         <div class="form-group">
                                             <label>Game Type (Egg) *</label>
@@ -1626,7 +1726,10 @@
                            border-bottom: 1px solid rgba(124,58,237,0.1);">
                     <strong style="color: var(--card-text);">${escapeHtml(u.username)}</strong>
                     <span style="color: #94a3b8; margin-left: 8px; font-size: 12px;">${escapeHtml(u.email)}</span>
-                    <span style="color: #f59e0b; margin-left: 8px; font-size: 12px;">🪙 ${formatNumber(u.coins || 0)}</span>
+                    <span style="color: #f59e0b; margin-left: 8px; font-size: 12px; display:inline-flex; align-items:center; gap:6px;">
+                        <img src="/icons/coin.svg" alt="" width="14" height="14" decoding="async" style="display:block;object-fit:contain;filter:none;opacity:1;">
+                        ${formatNumber(u.coins || 0)}
+                    </span>
                 </div>
             `).join('');
             box.style.display = 'block';
@@ -1803,6 +1906,80 @@
         
         
         // Store Management Functions
+        const storeIconMap = {
+            ram: { fileInputId: 'ramIconFile', hiddenInputId: 'ramIconPath', previewId: 'storeIconPreviewRam', defaultPath: '/icons/ram.svg' },
+            cpu: { fileInputId: 'cpuIconFile', hiddenInputId: 'cpuIconPath', previewId: 'storeIconPreviewCpu', defaultPath: '/icons/cpu.svg' },
+            storage: { fileInputId: 'storageIconFile', hiddenInputId: 'storageIconPath', previewId: 'storeIconPreviewStorage', defaultPath: '/icons/storage.svg' },
+            server_slot: { fileInputId: 'serverSlotIconFile', hiddenInputId: 'serverSlotIconPath', previewId: 'storeIconPreviewServerSlot', defaultPath: '/icons/server-slot.svg' },
+            database: { fileInputId: 'databaseIconFile', hiddenInputId: 'databaseIconPath', previewId: 'storeIconPreviewDatabase', defaultPath: '/icons/database.svg' },
+            backup: { fileInputId: 'backupIconFile', hiddenInputId: 'backupIconPath', previewId: 'storeIconPreviewBackup', defaultPath: '/icons/backup.svg' }
+        };
+
+        function updateStoreIconPreview(resourceType, iconPath) {
+            const cfg = storeIconMap[resourceType];
+            if (!cfg) return;
+            const preview = document.getElementById(cfg.previewId);
+            if (!preview) return;
+            const src = iconPath || cfg.defaultPath;
+            preview.innerHTML = `<img src="${escapeHtml(src)}" alt="" width="20" height="20" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async">`;
+            preview.title = src;
+        }
+
+        function openStoreIconPicker(resourceType) {
+            const cfg = storeIconMap[resourceType];
+            if (!cfg) return;
+            const fileInput = document.getElementById(cfg.fileInputId);
+            if (fileInput) fileInput.click();
+        }
+
+        async function uploadStoreResourceIcon(resourceType, file) {
+            if (!file) return null;
+            const fileName = String(file.name || '').toLowerCase();
+            if (!fileName.endsWith('.svg')) {
+                showNotification('Only SVG files are allowed', 'error');
+                return null;
+            }
+
+            const formData = new FormData();
+            formData.append('icon', file);
+            formData.append('resource_type', resourceType);
+
+            const response = await fetch('/admin/api/store/resource-icon-upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success || !data.icon_path) {
+                throw new Error(data.message || 'Failed to upload resource icon');
+            }
+            return data.icon_path;
+        }
+
+        Object.keys(storeIconMap).forEach((resourceType) => {
+            const cfg = storeIconMap[resourceType];
+            const fileInput = document.getElementById(cfg.fileInputId);
+            if (!fileInput) return;
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                try {
+                    showNotification('Uploading icon...', 'info');
+                    const iconPath = await uploadStoreResourceIcon(resourceType, file);
+                    if (iconPath) {
+                        const hiddenInput = document.getElementById(cfg.hiddenInputId);
+                        if (hiddenInput) hiddenInput.value = iconPath;
+                        updateStoreIconPreview(resourceType, iconPath);
+                        showNotification('Icon uploaded. Save prices to apply.', 'success');
+                    }
+                } catch (error) {
+                    console.error('Store icon upload error:', error);
+                    showNotification(error.message || 'Failed to upload icon', 'error');
+                } finally {
+                    e.target.value = '';
+                }
+            });
+        });
+
         async function loadStorePrices() {
             try {
                 const response = await apiFetch('/admin/api/store/prices');
@@ -1818,10 +1995,28 @@
                         document.getElementById('storageCoins').value = prices.storage_coins_per_set || 1;
                         document.getElementById('storageGB').value = prices.storage_gb_per_set || 1;
                         document.getElementById('serverSlotPrice').value = prices.server_slot_price || 100;
+                        document.getElementById('databaseCoins').value = prices.database_coins_per_set || 10;
+                        document.getElementById('databaseCount').value = prices.database_count_per_set || 1;
+                        document.getElementById('backupCoins').value = prices.backup_coins_per_set || 10;
+                        document.getElementById('backupCount').value = prices.backup_count_per_set || 1;
                         document.getElementById('maxRamGb').value = prices.max_ram_gb || 0;
                         document.getElementById('maxCpuPercent').value = prices.max_cpu_percent || 0;
                         document.getElementById('maxStorageGb').value = prices.max_storage_gb || 0;
                         document.getElementById('maxServerSlots').value = prices.max_server_slots || 0;
+                        document.getElementById('maxDatabases').value = prices.max_databases || 0;
+                        document.getElementById('maxBackups').value = prices.max_backups || 0;
+                        document.getElementById('ramIconPath').value = prices.ram_icon_path || '/icons/ram.svg';
+                        document.getElementById('cpuIconPath').value = prices.cpu_icon_path || '/icons/cpu.svg';
+                        document.getElementById('storageIconPath').value = prices.storage_icon_path || '/icons/storage.svg';
+                        document.getElementById('serverSlotIconPath').value = prices.server_slot_icon_path || '/icons/server-slot.svg';
+                        document.getElementById('databaseIconPath').value = prices.database_icon_path || '/icons/database.svg';
+                        document.getElementById('backupIconPath').value = prices.backup_icon_path || '/icons/backup.svg';
+                        updateStoreIconPreview('ram', document.getElementById('ramIconPath').value);
+                        updateStoreIconPreview('cpu', document.getElementById('cpuIconPath').value);
+                        updateStoreIconPreview('storage', document.getElementById('storageIconPath').value);
+                        updateStoreIconPreview('server_slot', document.getElementById('serverSlotIconPath').value);
+                        updateStoreIconPreview('database', document.getElementById('databaseIconPath').value);
+                        updateStoreIconPreview('backup', document.getElementById('backupIconPath').value);
                         
                         // Display current pricing
                         displayCurrentPricing(prices);
@@ -1841,6 +2036,10 @@
             const cpuPercent = prices.cpu_percent_per_set || 1;
             const storageCoins = prices.storage_coins_per_set || 1;
             const storageGB = prices.storage_gb_per_set || 1;
+            const databaseCoins = prices.database_coins_per_set || 10;
+            const databaseCount = prices.database_count_per_set || 1;
+            const backupCoins = prices.backup_coins_per_set || 10;
+            const backupCount = prices.backup_count_per_set || 1;
             
             container.innerHTML = `
                 <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
@@ -1871,7 +2070,21 @@
                     </div>
                     <div style="color: #94a3b8; font-size: 14px;">Users can purchase additional server slots at this price</div>
                 </div>
-                ${(prices.max_ram_gb || prices.max_cpu_percent || prices.max_storage_gb || prices.max_server_slots) ? `
+                <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <strong style="color: #f8fafc; font-weight: 600;">Databases:</strong>
+                        <span style="color: #cbd5e1;">${databaseCoins} coin${databaseCoins !== 1 ? 's' : ''} = ${databaseCount} DB${databaseCount !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div style="color: #94a3b8; font-size: 14px;">1 coin = ${(databaseCount / databaseCoins).toFixed(2)} database${(databaseCount / databaseCoins) === 1 ? '' : 's'}</div>
+                </div>
+                <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <strong style="color: #f8fafc; font-weight: 600;">Backups:</strong>
+                        <span style="color: #cbd5e1;">${backupCoins} coin${backupCoins !== 1 ? 's' : ''} = ${backupCount} backup${backupCount !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div style="color: #94a3b8; font-size: 14px;">1 coin = ${(backupCount / backupCoins).toFixed(2)} backup${(backupCount / backupCoins) === 1 ? '' : 's'}</div>
+                </div>
+                ${(prices.max_ram_gb || prices.max_cpu_percent || prices.max_storage_gb || prices.max_server_slots || prices.max_databases || prices.max_backups) ? `
                 <div style="margin-top: 16px; padding: 12px; background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px;">
                     <strong style="color: #a855f7; font-size: 13px;">Active Limits Per User</strong>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; font-size: 13px; color: #cbd5e1;">
@@ -1879,6 +2092,8 @@
                         <span>CPU: ${prices.max_cpu_percent > 0 ? prices.max_cpu_percent + '% max' : 'Unlimited'}</span>
                         <span>Storage: ${prices.max_storage_gb > 0 ? prices.max_storage_gb + 'GB max' : 'Unlimited'}</span>
                         <span>Slots: ${prices.max_server_slots > 0 ? prices.max_server_slots + ' max' : 'Unlimited'}</span>
+                        <span>Databases: ${prices.max_databases > 0 ? prices.max_databases + ' max' : 'Unlimited'}</span>
+                        <span>Backups: ${prices.max_backups > 0 ? prices.max_backups + ' max' : 'Unlimited'}</span>
                     </div>
                 </div>` : ''}
             `;
@@ -1896,16 +2111,30 @@
                 storage_coins_per_set: parseInt(document.getElementById('storageCoins').value),
                 storage_gb_per_set: parseInt(document.getElementById('storageGB').value),
                 server_slot_price: parseInt(document.getElementById('serverSlotPrice').value),
+                database_coins_per_set: parseInt(document.getElementById('databaseCoins').value),
+                database_count_per_set: parseInt(document.getElementById('databaseCount').value),
+                backup_coins_per_set: parseInt(document.getElementById('backupCoins').value),
+                backup_count_per_set: parseInt(document.getElementById('backupCount').value),
                 max_ram_gb: parseInt(document.getElementById('maxRamGb').value) || 0,
                 max_cpu_percent: parseInt(document.getElementById('maxCpuPercent').value) || 0,
                 max_storage_gb: parseInt(document.getElementById('maxStorageGb').value) || 0,
                 max_server_slots: parseInt(document.getElementById('maxServerSlots').value) || 0,
+                max_databases: parseInt(document.getElementById('maxDatabases').value) || 0,
+                max_backups: parseInt(document.getElementById('maxBackups').value) || 0,
+                ram_icon_path: document.getElementById('ramIconPath').value.trim() || '/icons/ram.svg',
+                cpu_icon_path: document.getElementById('cpuIconPath').value.trim() || '/icons/cpu.svg',
+                storage_icon_path: document.getElementById('storageIconPath').value.trim() || '/icons/storage.svg',
+                server_slot_icon_path: document.getElementById('serverSlotIconPath').value.trim() || '/icons/server-slot.svg',
+                database_icon_path: document.getElementById('databaseIconPath').value.trim() || '/icons/database.svg',
+                backup_icon_path: document.getElementById('backupIconPath').value.trim() || '/icons/backup.svg',
             };
             
             // Validate prices
             if (prices.ram_coins_per_set < 1 || prices.ram_gb_per_set < 1 || 
                 prices.cpu_coins_per_set < 1 || prices.cpu_percent_per_set < 1 || 
-                prices.storage_coins_per_set < 1 || prices.storage_gb_per_set < 1) {
+                prices.storage_coins_per_set < 1 || prices.storage_gb_per_set < 1 ||
+                prices.database_coins_per_set < 1 || prices.database_count_per_set < 1 ||
+                prices.backup_coins_per_set < 1 || prices.backup_count_per_set < 1) {
                 showNotification('All values must be at least 1', 'error');
                 return;
             }
@@ -3132,6 +3361,79 @@
             }
         }
         
+        function isTemplateSvgIcon(icon) {
+            return typeof icon === 'string' && /^\/icons\/template-icons\/[a-z0-9._-]+\.svg$/i.test(icon.trim());
+        }
+
+        function renderTemplateIcon(icon, size = 24) {
+            if (isTemplateSvgIcon(icon)) {
+                const src = escapeHtml(icon.trim());
+                return `<img src="${src}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px;object-fit:contain;display:block;filter:none;opacity:1;" decoding="async">`;
+            }
+            return `<span style="font-size: ${size}px; line-height: 1;">${escapeHtml(icon || '🎮')}</span>`;
+        }
+
+        function updateTemplateIconPreview(iconPath) {
+            const preview = document.getElementById('templateIconPreview');
+            if (!preview) return;
+            if (isTemplateSvgIcon(iconPath)) {
+                const src = escapeHtml(iconPath.trim());
+                preview.innerHTML = `<img src="${src}" alt="" width="26" height="26" style="width:26px;height:26px;object-fit:contain;display:block;filter:none;opacity:1;" decoding="async">`;
+                preview.title = iconPath.trim();
+            } else {
+                preview.innerHTML = '🎮';
+                preview.title = 'Default icon';
+            }
+        }
+
+        function openTemplateIconPicker() {
+            const fileInput = document.getElementById('templateIconFile');
+            if (fileInput) {
+                fileInput.click();
+            }
+        }
+
+        async function uploadTemplateIcon(file) {
+            if (!file) return null;
+            const fileName = String(file.name || '').toLowerCase();
+            if (!fileName.endsWith('.svg')) {
+                showNotification('Only SVG files are allowed for template icons', 'error');
+                return null;
+            }
+
+            const formData = new FormData();
+            formData.append('icon', file);
+
+            const response = await fetch('/admin/api/templates/icon-upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success || !data.icon_path) {
+                throw new Error(data.message || 'Failed to upload template icon');
+            }
+            return data.icon_path;
+        }
+
+        document.getElementById('templateIconFile').addEventListener('change', async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            try {
+                showNotification('Uploading template icon...', 'info');
+                const iconPath = await uploadTemplateIcon(file);
+                if (iconPath) {
+                    document.getElementById('templateIcon').value = iconPath;
+                    updateTemplateIconPreview(iconPath);
+                    showNotification('Template icon uploaded successfully', 'success');
+                }
+            } catch (error) {
+                console.error('Template icon upload error:', error);
+                showNotification(error.message || 'Failed to upload template icon', 'error');
+            } finally {
+                e.target.value = '';
+            }
+        });
+
         // Render templates list
         function renderTemplatesList(templates) {
             const container = document.getElementById('templatesList');
@@ -3156,7 +3458,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: start; gap: 16px;">
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                    <span style="font-size: 24px;">${template.icon || '🎮'}</span>
+                                    ${renderTemplateIcon(template.icon, 24)}
                                     <h4 style="margin: 0; color: #f8fafc;">${escapeHtml(template.name)}</h4>
                                     <span style="padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; ${isActive ? 'background: rgba(34, 197, 94, 0.2); color: #22c55e;' : 'background: rgba(107, 114, 128, 0.2); color: #9ca3af;'}">
                                         ${isActive ? 'Active' : 'Inactive'}
@@ -3198,7 +3500,7 @@
                 ram_mb: parseInt(document.getElementById('templateRam').value) || 1024,
                 cpu_percent: parseInt(document.getElementById('templateCpu').value) || 100,
                 storage_mb: parseInt(document.getElementById('templateStorage').value) || 5120,
-                icon: document.getElementById('templateIcon').value.trim() || '🎮'
+                icon: document.getElementById('templateIcon').value.trim()
             };
             
             if (!formData.name || !formData.egg_id) {
@@ -3218,7 +3520,8 @@
                 if (data.success) {
                     showNotification('Template created successfully!', 'success');
                     document.getElementById('addTemplateForm').reset();
-                    document.getElementById('templateIcon').value = '🎮';
+                    document.getElementById('templateIcon').value = '';
+                    updateTemplateIconPreview('');
                     loadTemplates();
                 } else {
                     showNotification(data.message || 'Failed to create template', 'error');

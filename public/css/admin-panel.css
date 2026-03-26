@@ -413,6 +413,22 @@ table.admin-logs-table {
     box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.3);
 }
 
+.dashboard-container.admin-panel .glass-preset-btn {
+    background: linear-gradient(145deg, rgba(34, 211, 238, 0.1) 0%, rgba(168, 85, 247, 0.08) 100%);
+    border-color: rgba(34, 211, 238, 0.28);
+}
+
+.dashboard-container.admin-panel .glass-preset-btn:hover {
+    background: linear-gradient(145deg, rgba(34, 211, 238, 0.16) 0%, rgba(244, 114, 182, 0.1) 100%);
+    border-color: rgba(34, 211, 238, 0.45);
+}
+
+.dashboard-container.admin-panel .glass-preset-btn.active {
+    background: linear-gradient(145deg, rgba(34, 211, 238, 0.22) 0%, rgba(192, 38, 211, 0.18) 100%);
+    border-color: rgba(244, 114, 182, 0.55);
+    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25), 0 0 20px rgba(34, 211, 238, 0.12);
+}
+
 .dashboard-container.admin-panel .preset-icon {
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
@@ -863,6 +879,7 @@ table.admin-logs-table {
 @media (prefers-reduced-motion: reduce) {
     .dashboard-container.admin-panel .tab-btn,
     .dashboard-container.admin-panel .preset-btn,
+    .dashboard-container.admin-panel .glass-preset-btn,
     .dashboard-container.admin-panel .card {
         transition: none;
     }

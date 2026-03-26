@@ -444,6 +444,25 @@
     width: 24px;
     text-align: center;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nav-icon > img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: block;
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
+}
+
+/* Multicolor SVGs: add class="nav-icon-img--color" on the <img> to keep original colors */
+.nav-icon > img.nav-icon-img--color {
+    filter: none;
+    opacity: 1;
 }
 
 .nav-text {
@@ -527,6 +546,13 @@
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
+.coin-icon > img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    display: block;
+}
+
 .dashboard-content {
     padding: 32px;
 }
@@ -594,6 +620,13 @@
     box-shadow: 0 4px 20px rgba(var(--accent-primary-rgb), 0.4),
                 inset 0 0 20px rgba(255, 255, 255, 0.1);
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.stat-icon > img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    display: block;
 }
 
 .stat-info h3 {
@@ -932,6 +965,50 @@
     }
 }
 
+/* Glassy preset pack — stronger frost + edge glow (data-aether-glass set by theme.js) */
+:root[data-aether-glass="1"] .sidebar {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        inset 0 0 60px rgba(255, 255, 255, 0.04);
+}
+
+:root[data-aether-glass="1"] .sidebar-header {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom-color: rgba(255, 255, 255, 0.14);
+}
+
+:root[data-aether-glass="1"] .dashboard-header {
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+:root[data-aether-glass="1"] .card {
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 0 32px rgba(var(--accent-primary-rgb), 0.12);
+}
+
+:root[data-aether-glass="1"] .stat-card,
+:root[data-aether-glass="1"] .quick-actions {
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 0 28px rgba(var(--accent-primary-rgb), 0.15);
+}
+
+:root[data-aether-glass="1"] .coin-balance {
+    box-shadow: 0 4px 24px rgba(var(--accent-primary-rgb), 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
 /* Scrollbar Styling */
 .sidebar-nav::-webkit-scrollbar,
 .main-content::-webkit-scrollbar {
@@ -953,4 +1030,101 @@
 .sidebar-nav::-webkit-scrollbar-thumb:hover,
 .main-content::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
+}
+
+/* Resource Store (icon-based tiles) */
+.resource-store-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+@media (max-width: 980px) {
+    .resource-store-choice-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.resource-store-choice {
+    background: rgba(30, 30, 50, 0.55);
+    border: 1px solid rgba(124, 58, 237, 0.22);
+    border-radius: 14px;
+    padding: 16px 16px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+    display: grid;
+    grid-template-columns: 30% 70%;
+    gap: 10px;
+    min-height: 136px;
+    align-items: center;
+}
+
+.resource-store-choice:hover {
+    transform: translateY(-2px);
+    border-color: rgba(124, 58, 237, 0.45);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+.resource-store-choice.active {
+    border-color: rgba(124, 58, 237, 0.8);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.22),
+        0 14px 40px rgba(124, 58, 237, 0.12);
+}
+
+.resource-store-choice-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.resource-store-choice-icon {
+    width: 62px;
+    height: 62px;
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    display: block;
+    filter: none;
+    opacity: 1;
+}
+
+.resource-store-choice-info {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 6px;
+    min-width: 0;
+}
+
+.resource-store-choice-title {
+    color: #f8fafc;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    font-size: 1.5rem; /* h2-like */
+    line-height: 1.1;
+}
+
+.resource-store-choice-sub {
+    color: #cbd5e1;
+    font-size: 0.83rem; /* h5-like */
+    line-height: 1.35;
+    font-weight: 500;
+}
+
+.resource-store-choice-limit {
+    color: #94a3b8;
+    font-size: 0.83rem; /* h5-like */
+    line-height: 1.35;
+    font-weight: 500;
+}
+
+.resource-store-panel {
+    margin-top: 6px;
+}
+
+/* Keep the select for backend wiring, but hide it from the UI */
+.resource-type-hidden {
+    display: none;
 }

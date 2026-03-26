@@ -52,6 +52,16 @@ async function loadDashboardStats() {
                 if (totalCoinsElement) {
                     totalCoinsElement.textContent = formatNumber(userData.user.coins || 0);
                 }
+
+                const databasesPurchasedElement = document.getElementById('totalDatabasesPurchased');
+                if (databasesPurchasedElement) {
+                    databasesPurchasedElement.textContent = formatNumber(userData.user.purchased_extras?.databases || 0);
+                }
+
+                const backupsPurchasedElement = document.getElementById('totalBackupsPurchased');
+                if (backupsPurchasedElement) {
+                    backupsPurchasedElement.textContent = formatNumber(userData.user.purchased_extras?.backups || 0);
+                }
             }
         }
     } catch (error) {

@@ -20,10 +20,27 @@ function utcYesterdayString(date = new Date()) {
     return y.toISOString().slice(0, 10);
 }
 
+function normalizeClaimDate(value) {
+    if (!value) return null;
+    const raw = String(value).trim();
+    const dateOnlyMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (dateOnlyMatch) return dateOnlyMatch[1];
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return utcDateString(parsed);
+}
+
+function utcDayDiff(fromDateString, toDateString) {
+    if (!fromDateString || !toDateString) return null;
+    const from = new Date(`${fromDateString}T00:00:00Z`);
+    const to = new Date(`${toDateString}T00:00:00Z`);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;
+    return Math.floor((to.getTime() - from.getTime()) / 86400000);
+}
+
 router.get('/api/status', requireAuth, async (req, res) => {
     try {
         const today = utcDateString();
-        const yesterday = utcYesterdayString();
 
         const flag = await get(
             `SELECT enabled FROM feature_flags WHERE name = ?`,
@@ -36,27 +53,34 @@ router.get('/api/status', requireAuth, async (req, res) => {
             [req.session.user.id]
         );
 
-        const claimed = Boolean(user?.streak_last_claim && user.streak_last_claim === today);
-
         let nextDay = 1;
         let streak = 0;
 
-        const lastClaim = user?.streak_last_claim || null;
+        const lastClaim = normalizeClaimDate(user?.streak_last_claim || null);
         const storedStreakDay = Number(user?.streak_day || 0);
+        const daysSinceLastClaim = lastClaim ? utcDayDiff(lastClaim, today) : null;
+        const claimed = daysSinceLastClaim === 0;
 
         if (claimed) {
             streak = storedStreakDay;
-        } else if (lastClaim === yesterday) {
+        } else if (daysSinceLastClaim === 1) {
             streak = storedStreakDay;
         } else {
             // Streak reset if last claim wasn't yesterday.
             streak = 0;
+            // Keep DB in sync so stale streak values cannot leak into later claims.
+            if (storedStreakDay > 0) {
+                await run(
+                    `UPDATE users SET streak_day = 0 WHERE id = ?`,
+                    [req.session.user.id]
+                );
+            }
         }
 
         if (claimed) {
             // Already claimed today — next day is the one after current streak
             nextDay = storedStreakDay >= 7 ? 1 : storedStreakDay + 1;
-        } else if (lastClaim === yesterday) {
+        } else if (daysSinceLastClaim === 1) {
             // Streak continuing — next claim will be the next day
             nextDay = storedStreakDay >= 7 ? 1 : storedStreakDay + 1;
         } else {
@@ -84,7 +108,6 @@ router.get('/api/status', requireAuth, async (req, res) => {
 router.post('/api/claim', requireAuth, async (req, res) => {
     try {
         const today = utcDateString();
-        const yesterday = utcYesterdayString();
 
         const flag = await get(
             `SELECT enabled FROM feature_flags WHERE name = ?`,
@@ -106,16 +129,20 @@ router.post('/api/claim', requireAuth, async (req, res) => {
                 throw new Error('User not found');
             }
 
-            if (user.streak_last_claim === today) {
+            const normalizedLastClaim = normalizeClaimDate(user.streak_last_claim || null);
+            const daysSinceLastClaim = normalizedLastClaim ? utcDayDiff(normalizedLastClaim, today) : null;
+
+            if (daysSinceLastClaim === 0) {
                 const err = new Error('Already claimed today');
                 err.code = 'ALREADY_CLAIMED';
                 throw err;
             }
 
-            const lastClaim = user.streak_last_claim || null;
             const storedStreakDay = Number(user.streak_day || 0);
 
-            const nextDay = lastClaim === yesterday ? (storedStreakDay >= 7 ? 1 : storedStreakDay + 1) : 1;
+            // Missing even a single day resets streak to Day 1.
+            const isConsecutive = daysSinceLastClaim === 1;
+            const nextDay = isConsecutive ? (storedStreakDay >= 7 ? 1 : storedStreakDay + 1) : 1;
 
             const rewardRow = await get(
                 `SELECT coins FROM daily_reward_config WHERE day_number = ?`,

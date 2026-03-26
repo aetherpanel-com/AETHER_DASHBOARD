@@ -809,48 +809,48 @@ function initializeDatabase() {
                 CREATE TABLE IF NOT EXISTS theme_settings (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     
-                    -- Sidebar Theme
+                    -- Sidebar Theme (default: Midnight Dark preset)
                     sidebar_bg_type TEXT DEFAULT 'gradient',
-                    sidebar_color_1 TEXT DEFAULT '#7c3aed',
-                    sidebar_color_2 TEXT DEFAULT '#a855f7',
-                    sidebar_color_3 TEXT DEFAULT '#06b6d4',
+                    sidebar_color_1 TEXT DEFAULT '#18181b',
+                    sidebar_color_2 TEXT DEFAULT '#27272a',
+                    sidebar_color_3 TEXT DEFAULT '#3f3f46',
                     sidebar_gradient_direction TEXT DEFAULT '180deg',
-                    sidebar_text_color TEXT DEFAULT '#ffffff',
-                    sidebar_active_bg TEXT DEFAULT 'rgba(255, 255, 255, 0.25)',
-                    sidebar_hover_bg TEXT DEFAULT 'rgba(255, 255, 255, 0.15)',
+                    sidebar_text_color TEXT DEFAULT '#fafafa',
+                    sidebar_active_bg TEXT DEFAULT 'rgba(255, 255, 255, 0.15)',
+                    sidebar_hover_bg TEXT DEFAULT 'rgba(255, 255, 255, 0.1)',
                     
                     -- Main Frame Theme
                     main_bg_type TEXT DEFAULT 'gradient',
-                    main_color_1 TEXT DEFAULT '#0a0e27',
-                    main_color_2 TEXT DEFAULT '#141b2d',
-                    main_color_3 TEXT DEFAULT '#1a1f3a',
+                    main_color_1 TEXT DEFAULT '#09090b',
+                    main_color_2 TEXT DEFAULT '#18181b',
+                    main_color_3 TEXT DEFAULT '#27272a',
                     main_gradient_direction TEXT DEFAULT '135deg',
                     
                     -- Card Theme
-                    card_bg_color TEXT DEFAULT 'rgba(30, 30, 50, 0.6)',
-                    card_border_color TEXT DEFAULT 'rgba(124, 58, 237, 0.2)',
-                    card_text_color TEXT DEFAULT '#f8fafc',
+                    card_bg_color TEXT DEFAULT 'rgba(39, 39, 42, 0.6)',
+                    card_border_color TEXT DEFAULT 'rgba(113, 113, 122, 0.3)',
+                    card_text_color TEXT DEFAULT '#fafafa',
                     
                     -- Accent Colors
-                    accent_primary TEXT DEFAULT '#7c3aed',
-                    accent_secondary TEXT DEFAULT '#a855f7',
-                    accent_tertiary TEXT DEFAULT '#06b6d4',
-                    accent_success TEXT DEFAULT '#10b981',
+                    accent_primary TEXT DEFAULT '#a1a1aa',
+                    accent_secondary TEXT DEFAULT '#d4d4d8',
+                    accent_tertiary TEXT DEFAULT '#e4e4e7',
+                    accent_success TEXT DEFAULT '#22c55e',
                     accent_warning TEXT DEFAULT '#f59e0b',
                     accent_danger TEXT DEFAULT '#ef4444',
                     
                     -- Input Theme
-                    input_bg_color TEXT DEFAULT 'rgba(30, 30, 50, 0.4)',
-                    input_border_color TEXT DEFAULT 'rgba(124, 58, 237, 0.3)',
-                    input_text_color TEXT DEFAULT '#f8fafc',
-                    input_placeholder_color TEXT DEFAULT '#94a3b8',
+                    input_bg_color TEXT DEFAULT 'rgba(39, 39, 42, 0.4)',
+                    input_border_color TEXT DEFAULT 'rgba(113, 113, 122, 0.3)',
+                    input_text_color TEXT DEFAULT '#fafafa',
+                    input_placeholder_color TEXT DEFAULT '#a1a1aa',
                     
                     -- Header Theme
-                    header_bg_color TEXT DEFAULT 'rgba(20, 27, 45, 0.8)',
-                    header_text_color TEXT DEFAULT '#f8fafc',
+                    header_bg_color TEXT DEFAULT 'rgba(24, 24, 27, 0.9)',
+                    header_text_color TEXT DEFAULT '#fafafa',
                     
                     -- Active Preset
-                    active_preset TEXT DEFAULT 'default',
+                    active_preset TEXT DEFAULT 'midnight',
                     
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
@@ -863,13 +863,54 @@ function initializeDatabase() {
                     // Create default theme settings if table is empty
                     db.get('SELECT id FROM theme_settings', (err, row) => {
                         if (!err && !row) {
-                            db.run(`INSERT INTO theme_settings (active_preset) VALUES (?)`, ['default'], (err) => {
+                            db.run(`INSERT INTO theme_settings (active_preset) VALUES (?)`, ['midnight'], (err) => {
                                 if (!err) {
                                     console.log('✅ Default theme settings created');
                                 }
                             });
                         }
                     });
+
+                    // Removed "Default Purple" preset — migrate legacy active_preset to Midnight Dark
+                    db.run(
+                        `UPDATE theme_settings SET
+                            sidebar_bg_type = 'gradient',
+                            sidebar_color_1 = '#18181b',
+                            sidebar_color_2 = '#27272a',
+                            sidebar_color_3 = '#3f3f46',
+                            sidebar_gradient_direction = '180deg',
+                            sidebar_text_color = '#fafafa',
+                            sidebar_active_bg = 'rgba(255, 255, 255, 0.15)',
+                            sidebar_hover_bg = 'rgba(255, 255, 255, 0.1)',
+                            main_bg_type = 'gradient',
+                            main_color_1 = '#09090b',
+                            main_color_2 = '#18181b',
+                            main_color_3 = '#27272a',
+                            main_gradient_direction = '135deg',
+                            card_bg_color = 'rgba(39, 39, 42, 0.6)',
+                            card_border_color = 'rgba(113, 113, 122, 0.3)',
+                            card_text_color = '#fafafa',
+                            accent_primary = '#a1a1aa',
+                            accent_secondary = '#d4d4d8',
+                            accent_tertiary = '#e4e4e7',
+                            accent_success = '#22c55e',
+                            accent_warning = '#f59e0b',
+                            accent_danger = '#ef4444',
+                            input_bg_color = 'rgba(39, 39, 42, 0.4)',
+                            input_border_color = 'rgba(113, 113, 122, 0.3)',
+                            input_text_color = '#fafafa',
+                            input_placeholder_color = '#a1a1aa',
+                            header_bg_color = 'rgba(24, 24, 27, 0.9)',
+                            header_text_color = '#fafafa',
+                            active_preset = 'midnight',
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE active_preset = 'default'`,
+                        (mErr) => {
+                            if (mErr) {
+                                console.error('Theme preset migration:', mErr);
+                            }
+                        }
+                    );
                 }
             });
 
@@ -911,10 +952,22 @@ function initializeDatabase() {
                     storage_coins_per_set INTEGER DEFAULT 1,
                     storage_gb_per_set INTEGER DEFAULT 1,
                     server_slot_price INTEGER DEFAULT 100,
+                    database_coins_per_set INTEGER DEFAULT 10,
+                    database_count_per_set INTEGER DEFAULT 1,
+                    backup_coins_per_set INTEGER DEFAULT 10,
+                    backup_count_per_set INTEGER DEFAULT 1,
                     max_ram_gb INTEGER DEFAULT 0,
                     max_cpu_percent INTEGER DEFAULT 0,
                     max_storage_gb INTEGER DEFAULT 0,
                     max_server_slots INTEGER DEFAULT 0,
+                    max_databases INTEGER DEFAULT 0,
+                    max_backups INTEGER DEFAULT 0,
+                    ram_icon_path TEXT DEFAULT '/icons/ram.svg',
+                    cpu_icon_path TEXT DEFAULT '/icons/cpu.svg',
+                    storage_icon_path TEXT DEFAULT '/icons/storage.svg',
+                    server_slot_icon_path TEXT DEFAULT '/icons/server-slot.svg',
+                    database_icon_path TEXT DEFAULT '/icons/database.svg',
+                    backup_icon_path TEXT DEFAULT '/icons/backup.svg',
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             `, (err) => {
@@ -929,8 +982,8 @@ function initializeDatabase() {
                 const createDefaultPricesAndAdmin = () => {
                     db.get('SELECT id FROM resource_prices', (err, row) => {
                         if (!err && !row) {
-                            db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-                                [1, 1, 1, 1, 1, 1, 100, 0, 0, 0, 0], (err) => {
+                            db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, database_coins_per_set, database_count_per_set, backup_coins_per_set, backup_count_per_set, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots, max_databases, max_backups, ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path, database_icon_path, backup_icon_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+                                [1, 1, 1, 1, 1, 1, 100, 10, 1, 10, 1, 0, 0, 0, 0, 0, 0, '/icons/ram.svg', '/icons/cpu.svg', '/icons/storage.svg', '/icons/server-slot.svg', '/icons/database.svg', '/icons/backup.svg'], (err) => {
                                     if (!err) {
                                         console.log('✅ Default resource prices created');
                                     }
@@ -980,6 +1033,78 @@ function initializeDatabase() {
                                             else console.log('✅ max_server_slots column added to resource_prices');
                                         });
                                     }
+                                    if (!columnNames.includes('database_coins_per_set')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN database_coins_per_set INTEGER DEFAULT 10', (err) => {
+                                            if (err) console.error('Error adding database_coins_per_set column:', err);
+                                            else console.log('✅ database_coins_per_set column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('database_count_per_set')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN database_count_per_set INTEGER DEFAULT 1', (err) => {
+                                            if (err) console.error('Error adding database_count_per_set column:', err);
+                                            else console.log('✅ database_count_per_set column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('backup_coins_per_set')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN backup_coins_per_set INTEGER DEFAULT 10', (err) => {
+                                            if (err) console.error('Error adding backup_coins_per_set column:', err);
+                                            else console.log('✅ backup_coins_per_set column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('backup_count_per_set')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN backup_count_per_set INTEGER DEFAULT 1', (err) => {
+                                            if (err) console.error('Error adding backup_count_per_set column:', err);
+                                            else console.log('✅ backup_count_per_set column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('max_databases')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN max_databases INTEGER DEFAULT 0', (err) => {
+                                            if (err) console.error('Error adding max_databases column:', err);
+                                            else console.log('✅ max_databases column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('max_backups')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN max_backups INTEGER DEFAULT 0', (err) => {
+                                            if (err) console.error('Error adding max_backups column:', err);
+                                            else console.log('✅ max_backups column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('ram_icon_path')) {
+                                        db.run("ALTER TABLE resource_prices ADD COLUMN ram_icon_path TEXT DEFAULT '/icons/ram.svg'", (err) => {
+                                            if (err) console.error('Error adding ram_icon_path column:', err);
+                                            else console.log('✅ ram_icon_path column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('cpu_icon_path')) {
+                                        db.run("ALTER TABLE resource_prices ADD COLUMN cpu_icon_path TEXT DEFAULT '/icons/cpu.svg'", (err) => {
+                                            if (err) console.error('Error adding cpu_icon_path column:', err);
+                                            else console.log('✅ cpu_icon_path column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('storage_icon_path')) {
+                                        db.run("ALTER TABLE resource_prices ADD COLUMN storage_icon_path TEXT DEFAULT '/icons/storage.svg'", (err) => {
+                                            if (err) console.error('Error adding storage_icon_path column:', err);
+                                            else console.log('✅ storage_icon_path column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('server_slot_icon_path')) {
+                                        db.run("ALTER TABLE resource_prices ADD COLUMN server_slot_icon_path TEXT DEFAULT '/icons/server-slot.svg'", (err) => {
+                                            if (err) console.error('Error adding server_slot_icon_path column:', err);
+                                            else console.log('✅ server_slot_icon_path column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('database_icon_path')) {
+                                        db.run("ALTER TABLE resource_prices ADD COLUMN database_icon_path TEXT DEFAULT '/icons/database.svg'", (err) => {
+                                            if (err) console.error('Error adding database_icon_path column:', err);
+                                            else console.log('✅ database_icon_path column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('backup_icon_path')) {
+                                        db.run("ALTER TABLE resource_prices ADD COLUMN backup_icon_path TEXT DEFAULT '/icons/backup.svg'", (err) => {
+                                            if (err) console.error('Error adding backup_icon_path column:', err);
+                                            else console.log('✅ backup_icon_path column added to resource_prices');
+                                        });
+                                    }
                                 }
                             });
                         }
@@ -1025,10 +1150,22 @@ function initializeDatabase() {
                                     storage_coins_per_set INTEGER DEFAULT 1,
                                     storage_gb_per_set INTEGER DEFAULT 1,
                                     server_slot_price INTEGER DEFAULT 100,
+                                    database_coins_per_set INTEGER DEFAULT 10,
+                                    database_count_per_set INTEGER DEFAULT 1,
+                                    backup_coins_per_set INTEGER DEFAULT 10,
+                                    backup_count_per_set INTEGER DEFAULT 1,
                                     max_ram_gb INTEGER DEFAULT 0,
                                     max_cpu_percent INTEGER DEFAULT 0,
                                     max_storage_gb INTEGER DEFAULT 0,
                                     max_server_slots INTEGER DEFAULT 0,
+                                    max_databases INTEGER DEFAULT 0,
+                                    max_backups INTEGER DEFAULT 0,
+                                    ram_icon_path TEXT DEFAULT '/icons/ram.svg',
+                                    cpu_icon_path TEXT DEFAULT '/icons/cpu.svg',
+                                    storage_icon_path TEXT DEFAULT '/icons/storage.svg',
+                                    server_slot_icon_path TEXT DEFAULT '/icons/server-slot.svg',
+                                    database_icon_path TEXT DEFAULT '/icons/database.svg',
+                                    backup_icon_path TEXT DEFAULT '/icons/backup.svg',
                                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                                 )
                             `, (err) => {
@@ -1040,8 +1177,8 @@ function initializeDatabase() {
                                 console.log('✅ Table migrated successfully');
                                 
                                 // Create default prices
-                                db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-                                    [1, 1, 1, 1, 1, 1, 100, 0, 0, 0, 0], (err) => {
+                                db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, database_coins_per_set, database_count_per_set, backup_coins_per_set, backup_count_per_set, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots, max_databases, max_backups, ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path, database_icon_path, backup_icon_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+                                    [1, 1, 1, 1, 1, 1, 100, 10, 1, 10, 1, 0, 0, 0, 0, 0, 0, '/icons/ram.svg', '/icons/cpu.svg', '/icons/storage.svg', '/icons/server-slot.svg', '/icons/database.svg', '/icons/backup.svg'], (err) => {
                                         if (!err) {
                                             console.log('✅ Default resource prices created');
                                         }

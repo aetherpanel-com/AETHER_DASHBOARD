@@ -19,27 +19,27 @@
             
             <nav class="sidebar-nav">
                 <a href="/dashboard" class="nav-item" data-page="dashboard">
-                    <span class="nav-icon">🏠</span>
+                    <span class="nav-icon"><img src="/icons/nav-dashboard.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Dashboard</span>
                 </a>
                 <a href="/servers" class="nav-item" data-page="servers">
-                    <span class="nav-icon">🖥️</span>
+                    <span class="nav-icon"><img src="/icons/manage-server.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Manage Servers</span>
                 </a>
                 <a href="/servers/create" class="nav-item" data-page="create-server">
-                    <span class="nav-icon">➕</span>
+                    <span class="nav-icon"><img src="/icons/create-server.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Create Server</span>
                 </a>
                 <a href="/linkvertise" class="nav-item" data-page="linkvertise">
-                    <span class="nav-icon">💰</span>
-                    <span class="nav-text">Linkvertise</span>
+                    <span class="nav-icon"><img src="/icons/coin.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                    <span class="nav-text">Earn Coins</span>
                 </a>
                 <a href="/servers/store" class="nav-item active" data-page="store">
                     <span class="nav-icon">🛒</span>
                     <span class="nav-text">Resource Store</span>
                 </a>
                 <a href="/community" class="nav-item" data-page="community">
-                    <span class="nav-icon">💬</span>
+                    <span class="nav-icon"><img src="/icons/discord.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Community</span>
                 </a>
                 <a href="/dashboard/profile" class="nav-item" data-page="profile">
@@ -55,14 +55,14 @@
                 <div class="sidebar-dropdown admin-only" style="display: none;">
                     <div class="sidebar-dropdown-toggle">
                         <div class="nav-dropdown-left">
-                            <span class="nav-icon">🛡️</span>
+                            <span class="nav-icon"><img src="/icons/admin-panel.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                             <span class="nav-text">Admin Panel</span>
                         </div>
                         <span class="dropdown-arrow">▼</span>
                     </div>
                     <div class="sidebar-submenu">
                         <a href="/admin" class="nav-item" data-page="admin">
-                            <span class="nav-icon">📊</span>
+                            <span class="nav-icon"><img src="/icons/overview.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                             <span class="nav-text">Overview</span>
                         </a>
                         
@@ -70,30 +70,21 @@
                         <div class="sidebar-dropdown nested">
                             <div class="sidebar-dropdown-toggle">
                                 <div class="nav-dropdown-left">
-                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-icon"><img src="/icons/admin-setting.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Admin Settings</span>
                                 </div>
                                 <span class="dropdown-arrow">▼</span>
                             </div>
                             <div class="sidebar-submenu">
                                 <a href="/admin/settings/themes" class="nav-item" data-page="admin-themes">
-                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-icon"><img src="/icons/themes.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Themes</span>
                                 </a>
                                 <a href="/admin/settings/branding" class="nav-item" data-page="admin-branding">
-                                    <span class="nav-icon">✨</span>
+                                    <span class="nav-icon"><img src="/icons/branding.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Branding</span>
                                 </a>
-                                <a href="/admin/logs" class="nav-item" data-page="admin-logs"><span class="nav-icon">
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/>
-    <line x1="16" y1="17" x2="8" y2="17"/>
-    <polyline points="10 9 9 9 8 9"/>
-  </svg>
-</span><span class="nav-text">Audit Logs</span>
-                                </a>
+                                <a href="/admin/logs" class="nav-item" data-page="admin-logs"><span class="nav-icon"><img src="/icons/audit.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span><span class="nav-text">Audit Logs</span></a>
                             </div>
                         </div>
                         
@@ -101,18 +92,18 @@
                         <div class="sidebar-dropdown nested">
                             <div class="sidebar-dropdown-toggle">
                                 <div class="nav-dropdown-left">
-                                    <span class="nav-icon">🔌</span>
+                                    <span class="nav-icon"><img src="/icons/integration.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Integrations</span>
                                 </div>
                                 <span class="dropdown-arrow">▼</span>
                             </div>
                             <div class="sidebar-submenu">
                                 <a href="/admin/integrations/linkvertise" class="nav-item" data-page="admin-integrations-linkvertise">
-                                    <span class="nav-icon">💰</span>
+                                    <span class="nav-icon"><img src="/icons/linkvertise.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Linkvertise</span>
                                 </a>
                                 <a href="/admin/integrations/discord" class="nav-item" data-page="admin-integrations-discord">
-                                    <span class="nav-icon">💬</span>
+                                    <span class="nav-icon"><img src="/icons/discord.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Discord</span>
                                 </a>
                             </div>
@@ -138,52 +129,125 @@
                 </div>
                 <div class="header-right">
                     <div class="coin-balance">
-                        <span class="coin-icon">🪙</span>
+                        <span class="coin-icon"><img src="/icons/coin.svg" alt="" width="24" height="24" class="nav-icon-img--color" decoding="async"></span>
                         <span id="coinAmount">0</span> Coins
                     </div>
                 </div>
             </header>
             
             <div class="dashboard-content">
-                <div class="card">
+                <div class="card resource-store-card">
                     <div class="card-header">Purchase Resources</div>
                     <p style="margin-bottom: 20px; color: #cbd5e1;">
-                        Use your coins to purchase resources. These resources will be added to your resource pool and can be used when creating new servers.
+                        Pick what you want to buy using the icons below. RAM/CPU/Storage add to your resource pool, and Server Slots let you create more servers.
                     </p>
                     
-                    <form id="purchaseForm">
-                        <div class="form-group">
-                            <label for="resourceType">Resource Type</label>
-                            <select id="resourceType" required>
-                                <option value="">Select resource type</option>
-                                <option value="ram">RAM (Memory)</option>
-                                <option value="cpu">CPU Limit</option>
-                                <option value="storage">Storage</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="amount">Amount</label>
-                            <input type="number" id="amount" min="1" required>
-                            <small style="color: #cbd5e1; display: block; margin-top: 4px;">
-                                <span id="resourceUnit">units</span> - Cost: <span id="costDisplay">0</span> coins
-                            </small>
-                            <small id="limitWarning" style="display: none; color: #f59e0b; margin-top: 4px; display: block;"></small>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary">Purchase</button>
-                    </form>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">Purchase Server Slot</div>
-                    <p style="margin-bottom: 20px; color: #cbd5e1;">
-                        Buy additional server slots to create more servers. You start with 1 slot by default.
-                    </p>
-                    <div id="serverSlotInfo" style="padding: 16px; background: rgba(30, 30, 50, 0.6); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; margin-bottom: 16px;">
-                        <p style="color: #cbd5e1; margin: 0;">Loading slot information...</p>
+                    <div class="resource-store-choice-grid" role="tablist" aria-label="Resource Store Choices">
+                        <button type="button" class="resource-store-choice active" data-choice="ram" aria-controls="resourcePurchasePanel">
+                            <div class="resource-store-choice-icon-wrap">
+                                <img id="storeChoiceIconRam" src="/icons/ram.svg" alt="" width="44" height="44" class="resource-store-choice-icon" decoding="async">
+                            </div>
+                            <div class="resource-store-choice-info">
+                                <div class="resource-store-choice-title">RAM</div>
+                                <div class="resource-store-choice-sub" id="choice-sub-ram">Loading...</div>
+                                <div class="resource-store-choice-limit" id="choice-limit-ram">Max: Loading...</div>
+                            </div>
+                        </button>
+
+                        <button type="button" class="resource-store-choice" data-choice="cpu" aria-controls="resourcePurchasePanel">
+                            <div class="resource-store-choice-icon-wrap">
+                                <img id="storeChoiceIconCpu" src="/icons/cpu.svg" alt="" width="44" height="44" class="resource-store-choice-icon" decoding="async">
+                            </div>
+                            <div class="resource-store-choice-info">
+                                <div class="resource-store-choice-title">CPU</div>
+                                <div class="resource-store-choice-sub" id="choice-sub-cpu">Loading...</div>
+                                <div class="resource-store-choice-limit" id="choice-limit-cpu">Max: Loading...</div>
+                            </div>
+                        </button>
+
+                        <button type="button" class="resource-store-choice" data-choice="storage" aria-controls="resourcePurchasePanel">
+                            <div class="resource-store-choice-icon-wrap">
+                                <img id="storeChoiceIconStorage" src="/icons/storage.svg" alt="" width="44" height="44" class="resource-store-choice-icon" decoding="async">
+                            </div>
+                            <div class="resource-store-choice-info">
+                                <div class="resource-store-choice-title">Storage</div>
+                                <div class="resource-store-choice-sub" id="choice-sub-storage">Loading...</div>
+                                <div class="resource-store-choice-limit" id="choice-limit-storage">Max: Loading...</div>
+                            </div>
+                        </button>
+
+                        <button type="button" class="resource-store-choice" data-choice="server_slot" aria-controls="serverSlotPurchasePanel">
+                            <div class="resource-store-choice-icon-wrap">
+                                <img id="storeChoiceIconServerSlot" src="/icons/server-slot.svg" alt="" width="44" height="44" class="resource-store-choice-icon" decoding="async">
+                            </div>
+                            <div class="resource-store-choice-info">
+                                <div class="resource-store-choice-title">Server Slot</div>
+                                <div class="resource-store-choice-sub" id="choice-sub-server-slot">Loading...</div>
+                                <div class="resource-store-choice-limit" id="choice-limit-server-slot">Max: Loading...</div>
+                            </div>
+                        </button>
+
+                        <button type="button" class="resource-store-choice" data-choice="database" aria-controls="resourcePurchasePanel">
+                            <div class="resource-store-choice-icon-wrap">
+                                <img id="storeChoiceIconDatabase" src="/icons/database.svg" alt="" width="44" height="44" class="resource-store-choice-icon" decoding="async">
+                            </div>
+                            <div class="resource-store-choice-info">
+                                <div class="resource-store-choice-title">Database</div>
+                                <div class="resource-store-choice-sub" id="choice-sub-database">Loading...</div>
+                                <div class="resource-store-choice-limit" id="choice-limit-database">Max: Loading...</div>
+                            </div>
+                        </button>
+
+                        <button type="button" class="resource-store-choice" data-choice="backup" aria-controls="resourcePurchasePanel">
+                            <div class="resource-store-choice-icon-wrap">
+                                <img id="storeChoiceIconBackup" src="/icons/backup.svg" alt="" width="44" height="44" class="resource-store-choice-icon" decoding="async">
+                            </div>
+                            <div class="resource-store-choice-info">
+                                <div class="resource-store-choice-title">Backup</div>
+                                <div class="resource-store-choice-sub" id="choice-sub-backup">Loading...</div>
+                                <div class="resource-store-choice-limit" id="choice-limit-backup">Max: Loading...</div>
+                            </div>
+                        </button>
                     </div>
-                    <button id="purchaseSlotBtn" class="btn btn-primary" onclick="purchaseServerSlot()">Purchase Server Slot</button>
+                    
+                    <div class="resource-store-panels">
+                        <div id="resourcePurchasePanel" class="resource-store-panel">
+                            <form id="purchaseForm">
+                                <div class="form-group resource-type-hidden">
+                                    <label for="resourceType">Resource Type</label>
+                                    <select id="resourceType" required>
+                                        <option value="">Select resource type</option>
+                                        <option value="ram" selected>RAM (Memory)</option>
+                                        <option value="cpu">CPU Limit</option>
+                                        <option value="storage">Storage</option>
+                                        <option value="database">Databases</option>
+                                        <option value="backup">Backups</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="amount">Amount</label>
+                                    <input type="number" id="amount" min="1" required value="1">
+                                    <small style="color: #cbd5e1; display: block; margin-top: 4px;">
+                                        <span id="resourceUnit">units</span> - Cost: <span id="costDisplay">0</span> coins
+                                    </small>
+                                    <small id="limitWarning" style="display: none; color: #f59e0b; margin-top: 4px; display: block;"></small>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Purchase</button>
+                            </form>
+                        </div>
+                        
+                        <div id="serverSlotPurchasePanel" class="resource-store-panel" style="display: none;">
+                            <p style="margin-bottom: 20px; color: #cbd5e1;">
+                                Buy additional server slots to create more servers. You start with 1 slot by default.
+                            </p>
+                            <div id="serverSlotInfo" style="padding: 16px; background: rgba(30, 30, 50, 0.6); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; margin-bottom: 16px;">
+                                <p style="color: #cbd5e1; margin: 0;">Loading slot information...</p>
+                            </div>
+                            <button id="purchaseSlotBtn" class="btn btn-primary" onclick="purchaseServerSlot()">Purchase Server Slot</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="card">
@@ -223,7 +287,11 @@
             cpu_coins_per_set: 1,
             cpu_percent_per_set: 1,
             storage_coins_per_set: 1,
-            storage_gb_per_set: 1
+            storage_gb_per_set: 1,
+            database_coins_per_set: 10,
+            database_count_per_set: 1,
+            backup_coins_per_set: 10,
+            backup_count_per_set: 1
         };
         
         document.addEventListener('DOMContentLoaded', async () => {
@@ -251,7 +319,10 @@
                     const pricesData = await pricesResponse.json();
                     if (pricesData.success && pricesData.prices) {
                         resourcePrices = pricesData.prices;
+                        applyStoreIconsFromPricing(resourcePrices);
                         updatePricingDisplay();
+                        renderChoicePriceTiles();
+                        setActiveStoreChoice('ram');
                     }
                 }
             } catch (error) {
@@ -264,6 +335,16 @@
             // Update cost when amount or resource type changes
             document.getElementById('amount').addEventListener('input', updateCost);
             document.getElementById('resourceType').addEventListener('change', updateCost);
+            
+            // Icon-based selection for store
+            document.querySelectorAll('.resource-store-choice').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setActiveStoreChoice(btn.dataset.choice);
+                });
+            });
+            
+            // Ensure the cost box is correct even if price loading fails
+            updateCost();
         });
         
         function updatePricingDisplay() {
@@ -273,36 +354,176 @@
             const cpuPercent = resourcePrices.cpu_percent_per_set || 1;
             const storageCoins = resourcePrices.storage_coins_per_set || 1;
             const storageGB = resourcePrices.storage_gb_per_set || 1;
+            const databaseCoins = resourcePrices.database_coins_per_set || 10;
+            const databaseCount = resourcePrices.database_count_per_set || 1;
+            const backupCoins = resourcePrices.backup_coins_per_set || 10;
+            const backupCount = resourcePrices.backup_count_per_set || 1;
             
             // Calculate per-coin values
             const ramPerCoin = (ramGB / ramCoins).toFixed(2);
             const cpuPerCoin = (cpuPercent / cpuCoins).toFixed(2);
             const storagePerCoin = (storageGB / storageCoins).toFixed(2);
             
-            // Update pricing cards - find the pricing card section
-            const cards = document.querySelectorAll('.card');
-            if (cards.length > 1) {
-                const pricingSection = cards[1];
-                if (pricingSection && pricingSection.querySelector('.card-header')?.textContent === 'Pricing') {
-                    pricingSection.innerHTML = `
-                        <div class="card-header">Pricing</div>
-                        <div style="display: grid; gap: 12px;">
-                            <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                                <strong style="color: #f8fafc; font-weight: 600;">RAM:</strong> <span style="color: #cbd5e1;">${ramCoins} coin${ramCoins !== 1 ? 's' : ''} = ${ramGB}GB</span>
-                                <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${ramPerCoin}GB</div>
-                            </div>
-                            <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                                <strong style="color: #f8fafc; font-weight: 600;">CPU:</strong> <span style="color: #cbd5e1;">${cpuCoins} coin${cpuCoins !== 1 ? 's' : ''} = ${cpuPercent}%</span>
-                                <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${cpuPerCoin}%</div>
-                            </div>
-                            <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-                                <strong style="color: #f8fafc; font-weight: 600;">Storage:</strong> <span style="color: #cbd5e1;">${storageCoins} coin${storageCoins !== 1 ? 's' : ''} = ${storageGB}GB</span>
-                                <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${storagePerCoin}GB</div>
-                            </div>
+            const pricingCard = Array.from(document.querySelectorAll('.card')).find(card => {
+                return card.querySelector('.card-header')?.textContent?.trim() === 'Pricing';
+            });
+            
+            if (pricingCard) {
+                pricingCard.innerHTML = `
+                    <div class="card-header">Pricing</div>
+                    <div style="display: grid; gap: 12px;">
+                        <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            <strong style="color: #f8fafc; font-weight: 600;">RAM:</strong> <span style="color: #cbd5e1;">${ramCoins} coin${ramCoins !== 1 ? 's' : ''} = ${ramGB}GB</span>
+                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${ramPerCoin}GB</div>
                         </div>
-                    `;
-                }
+                        <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            <strong style="color: #f8fafc; font-weight: 600;">CPU:</strong> <span style="color: #cbd5e1;">${cpuCoins} coin${cpuCoins !== 1 ? 's' : ''} = ${cpuPercent}%</span>
+                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${cpuPerCoin}%</div>
+                        </div>
+                        <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            <strong style="color: #f8fafc; font-weight: 600;">Storage:</strong> <span style="color: #cbd5e1;">${storageCoins} coin${storageCoins !== 1 ? 's' : ''} = ${storageGB}GB</span>
+                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${storagePerCoin}GB</div>
+                        </div>
+                        <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            <strong style="color: #f8fafc; font-weight: 600;">Databases:</strong> <span style="color: #cbd5e1;">${databaseCoins} coin${databaseCoins !== 1 ? 's' : ''} = ${databaseCount} DB${databaseCount !== 1 ? 's' : ''}</span>
+                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${(databaseCount / databaseCoins).toFixed(2)} database(s)</div>
+                        </div>
+                        <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            <strong style="color: #f8fafc; font-weight: 600;">Backups:</strong> <span style="color: #cbd5e1;">${backupCoins} coin${backupCoins !== 1 ? 's' : ''} = ${backupCount} backup${backupCount !== 1 ? 's' : ''}</span>
+                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${(backupCount / backupCoins).toFixed(2)} backup(s)</div>
+                        </div>
+                    </div>
+                `;
             }
+        }
+
+        function applyStoreIconsFromPricing(prices) {
+            const ramIcon = (prices && prices.ram_icon_path) || '/icons/ram.svg';
+            const cpuIcon = (prices && prices.cpu_icon_path) || '/icons/cpu.svg';
+            const storageIcon = (prices && prices.storage_icon_path) || '/icons/storage.svg';
+            const slotIcon = (prices && prices.server_slot_icon_path) || '/icons/server-slot.svg';
+            const databaseIcon = (prices && prices.database_icon_path) || '/icons/database.svg';
+            const backupIcon = (prices && prices.backup_icon_path) || '/icons/backup.svg';
+
+            const ramEl = document.getElementById('storeChoiceIconRam');
+            const cpuEl = document.getElementById('storeChoiceIconCpu');
+            const storageEl = document.getElementById('storeChoiceIconStorage');
+            const slotEl = document.getElementById('storeChoiceIconServerSlot');
+            const databaseEl = document.getElementById('storeChoiceIconDatabase');
+            const backupEl = document.getElementById('storeChoiceIconBackup');
+
+            if (ramEl) ramEl.src = ramIcon;
+            if (cpuEl) cpuEl.src = cpuIcon;
+            if (storageEl) storageEl.src = storageIcon;
+            if (slotEl) slotEl.src = slotIcon;
+            if (databaseEl) databaseEl.src = databaseIcon;
+            if (backupEl) backupEl.src = backupIcon;
+        }
+        
+        function renderChoicePriceTiles() {
+            const ramCoins = resourcePrices.ram_coins_per_set || 1;
+            const ramGB = resourcePrices.ram_gb_per_set || 1;
+            const cpuCoins = resourcePrices.cpu_coins_per_set || 1;
+            const cpuPercent = resourcePrices.cpu_percent_per_set || 1;
+            const storageCoins = resourcePrices.storage_coins_per_set || 1;
+            const storageGB = resourcePrices.storage_gb_per_set || 1;
+            const slotPrice = resourcePrices.server_slot_price || 100;
+            const databaseCoins = resourcePrices.database_coins_per_set || 10;
+            const databaseCount = resourcePrices.database_count_per_set || 1;
+            const backupCoins = resourcePrices.backup_coins_per_set || 10;
+            const backupCount = resourcePrices.backup_count_per_set || 1;
+            
+            const ramSub = document.getElementById('choice-sub-ram');
+            const cpuSub = document.getElementById('choice-sub-cpu');
+            const storageSub = document.getElementById('choice-sub-storage');
+            const slotSub = document.getElementById('choice-sub-server-slot');
+            const databaseSub = document.getElementById('choice-sub-database');
+            const backupSub = document.getElementById('choice-sub-backup');
+            const ramLimit = document.getElementById('choice-limit-ram');
+            const cpuLimit = document.getElementById('choice-limit-cpu');
+            const storageLimit = document.getElementById('choice-limit-storage');
+            const slotLimit = document.getElementById('choice-limit-server-slot');
+            const databaseLimit = document.getElementById('choice-limit-database');
+            const backupLimit = document.getElementById('choice-limit-backup');
+            
+            if (ramSub) ramSub.textContent = `${ramCoins} coin${ramCoins !== 1 ? 's' : ''} per ${ramGB}GB set`;
+            if (cpuSub) cpuSub.textContent = `${cpuCoins} coin${cpuCoins !== 1 ? 's' : ''} per ${cpuPercent}% set`;
+            if (storageSub) storageSub.textContent = `${storageCoins} coin${storageCoins !== 1 ? 's' : ''} per ${storageGB}GB set`;
+            if (slotSub) slotSub.textContent = `${formatNumber(slotPrice)} coins per slot`;
+            if (databaseSub) databaseSub.textContent = `${databaseCoins} coin${databaseCoins !== 1 ? 's' : ''} per ${databaseCount} DB`;
+            if (backupSub) backupSub.textContent = `${backupCoins} coin${backupCoins !== 1 ? 's' : ''} per ${backupCount} backup`;
+            
+            // Row 3: configured max limits from admin settings
+            if (ramLimit) {
+                const maxRam = resourcePrices.max_ram_gb;
+                ramLimit.textContent = !maxRam || maxRam <= 0 ? 'Maximum limit: Unlimited' : `Maximum limit: ${Number(maxRam)}GB`;
+            }
+            if (cpuLimit) {
+                const maxCpu = resourcePrices.max_cpu_percent;
+                cpuLimit.textContent = !maxCpu || maxCpu <= 0 ? 'Maximum limit: Unlimited' : `Maximum limit: ${Number(maxCpu)}%`;
+            }
+            if (storageLimit) {
+                const maxStorage = resourcePrices.max_storage_gb;
+                storageLimit.textContent = !maxStorage || maxStorage <= 0 ? 'Maximum limit: Unlimited' : `Maximum limit: ${Number(maxStorage)}GB`;
+            }
+            if (slotLimit) {
+                const maxSlots = resourcePrices.max_server_slots;
+                slotLimit.textContent = !maxSlots || maxSlots <= 0 ? 'Maximum limit: Unlimited' : `Maximum limit: ${Number(maxSlots)} slot${Number(maxSlots) !== 1 ? 's' : ''}`;
+            }
+            if (databaseLimit) {
+                const maxDatabases = resourcePrices.max_databases;
+                databaseLimit.textContent = !maxDatabases || maxDatabases <= 0 ? 'Maximum limit: Unlimited' : `Maximum limit: ${Number(maxDatabases)} DB${Number(maxDatabases) !== 1 ? 's' : ''}`;
+            }
+            if (backupLimit) {
+                const maxBackups = resourcePrices.max_backups;
+                backupLimit.textContent = !maxBackups || maxBackups <= 0 ? 'Maximum limit: Unlimited' : `Maximum limit: ${Number(maxBackups)} backup${Number(maxBackups) !== 1 ? 's' : ''}`;
+            }
+        }
+        
+        function setActiveStoreChoice(choice) {
+            const resourcePanel = document.getElementById('resourcePurchasePanel');
+            const slotPanel = document.getElementById('serverSlotPurchasePanel');
+            const resourceTypeSelect = document.getElementById('resourceType');
+            const amountInput = document.getElementById('amount');
+            
+            document.querySelectorAll('.resource-store-choice').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.choice === choice);
+            });
+            
+            if (choice === 'server_slot') {
+                if (resourcePanel) resourcePanel.style.display = 'none';
+                if (slotPanel) slotPanel.style.display = 'block';
+                return;
+            }
+            
+            if (resourcePanel) resourcePanel.style.display = 'block';
+            if (slotPanel) slotPanel.style.display = 'none';
+            
+            // Map choice -> backend resource_type
+            resourceTypeSelect.value = choice;
+            
+            // Set a sensible default amount based on configured set size.
+            let defaultAmount = 1;
+            switch(choice) {
+                case 'ram':
+                    defaultAmount = resourcePrices.ram_gb_per_set || 1;
+                    break;
+                case 'cpu':
+                    defaultAmount = resourcePrices.cpu_percent_per_set || 1;
+                    break;
+                case 'storage':
+                    defaultAmount = resourcePrices.storage_gb_per_set || 1;
+                    break;
+                case 'database':
+                    defaultAmount = resourcePrices.database_count_per_set || 1;
+                    break;
+                case 'backup':
+                    defaultAmount = resourcePrices.backup_count_per_set || 1;
+                    break;
+            }
+            
+            amountInput.value = Math.max(1, Math.floor(defaultAmount || 1));
+            updateCost();
         }
         
         function updateCost() {
@@ -346,6 +567,18 @@
                     cost = Math.ceil((amount / storageGBPerSet) * storageCoinsPerSet);
                     unit = 'GB';
                     break;
+                case 'database':
+                    const databaseCoinsPerSet = resourcePrices.database_coins_per_set || 10;
+                    const databaseCountPerSet = resourcePrices.database_count_per_set || 1;
+                    cost = Math.ceil((amount / databaseCountPerSet) * databaseCoinsPerSet);
+                    unit = 'DB';
+                    break;
+                case 'backup':
+                    const backupCoinsPerSet = resourcePrices.backup_coins_per_set || 10;
+                    const backupCountPerSet = resourcePrices.backup_count_per_set || 1;
+                    cost = Math.ceil((amount / backupCountPerSet) * backupCoinsPerSet);
+                    unit = 'backup';
+                    break;
             }
             
             unitSpan.textContent = unit;
@@ -359,6 +592,10 @@
                     limitMsg = `Max allowed: ${resourcePrices.max_cpu_percent}%`;
                 } else if (resourceType === 'storage' && resourcePrices.max_storage_gb > 0) {
                     limitMsg = `Max allowed: ${resourcePrices.max_storage_gb}GB`;
+                } else if (resourceType === 'database' && resourcePrices.max_databases > 0) {
+                    limitMsg = `Max allowed: ${resourcePrices.max_databases} DB`;
+                } else if (resourceType === 'backup' && resourcePrices.max_backups > 0) {
+                    limitMsg = `Max allowed: ${resourcePrices.max_backups} backup`;
                 }
                 limitWarning.textContent = limitMsg;
                 limitWarning.style.display = limitMsg ? 'block' : 'none';
@@ -421,10 +658,14 @@
             
             let html = '<div style="display: grid; gap: 12px;">';
             purchases.forEach(purchase => {
+                const label = getResourceLabel(purchase.resource_type);
+                const amount = purchase.amount ?? 0;
+                const unit = getResourceUnit(purchase.resource_type);
+                
                 html += `
                     <div style="padding: 12px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <strong style="color: #f8fafc; font-weight: 600;">${purchase.resource_type.toUpperCase()}</strong> - <span style="color: #cbd5e1;">${purchase.amount} ${getResourceUnit(purchase.resource_type)}</span>
+                            <strong style="color: #f8fafc; font-weight: 600;">${label}</strong> - <span style="color: #cbd5e1;">${amount} ${unit}</span>
                             <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">
                                 ${formatDate(purchase.purchased_at)}
                             </div>
@@ -439,11 +680,26 @@
             container.innerHTML = html;
         }
         
+        function getResourceLabel(type) {
+            switch(type) {
+                case 'ram': return 'RAM';
+                case 'cpu': return 'CPU';
+                case 'storage': return 'Storage';
+                case 'server_slot': return 'Server Slot';
+                case 'database': return 'Database';
+                case 'backup': return 'Backup';
+                default: return (type || '').toString().toUpperCase();
+            }
+        }
+        
         function getResourceUnit(type) {
             switch(type) {
                 case 'ram': return 'GB';
                 case 'cpu': return '%';
                 case 'storage': return 'GB';
+                case 'server_slot': return 'slot';
+                case 'database': return 'DB';
+                case 'backup': return 'backup';
                 default: return '';
             }
         }

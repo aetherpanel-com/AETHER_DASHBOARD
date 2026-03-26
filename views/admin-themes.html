@@ -20,27 +20,27 @@
             
             <nav class="sidebar-nav">
                 <a href="/dashboard" class="nav-item" data-page="dashboard">
-                    <span class="nav-icon">🏠</span>
+                    <span class="nav-icon"><img src="/icons/nav-dashboard.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Dashboard</span>
                 </a>
                 <a href="/servers" class="nav-item" data-page="servers">
-                    <span class="nav-icon">🖥️</span>
+                            <span class="nav-icon"><img src="/icons/manage-server.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Manage Servers</span>
                 </a>
                 <a href="/servers/create" class="nav-item" data-page="create-server">
-                    <span class="nav-icon">➕</span>
+                    <span class="nav-icon"><img src="/icons/create-server.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Create Server</span>
                 </a>
                 <a href="/linkvertise" class="nav-item" data-page="linkvertise">
-                    <span class="nav-icon">💰</span>
-                    <span class="nav-text">Linkvertise</span>
+                    <span class="nav-icon"><img src="/icons/coin.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                    <span class="nav-text">Earn Coins</span>
                 </a>
                 <a href="/servers/store" class="nav-item" data-page="store">
                     <span class="nav-icon">🛒</span>
                     <span class="nav-text">Resource Store</span>
                 </a>
                 <a href="/community" class="nav-item" data-page="community">
-                    <span class="nav-icon">💬</span>
+                    <span class="nav-icon"><img src="/icons/discord.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                     <span class="nav-text">Community</span>
                 </a>
                 <a href="/dashboard/profile" class="nav-item" data-page="profile">
@@ -55,14 +55,14 @@
                 <div class="sidebar-dropdown admin-only" style="display: none;">
                     <div class="sidebar-dropdown-toggle active">
                         <div class="nav-dropdown-left">
-                            <span class="nav-icon">🛡️</span>
+                            <span class="nav-icon"><img src="/icons/admin-panel.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                             <span class="nav-text">Admin Panel</span>
                         </div>
                         <span class="dropdown-arrow">▼</span>
                     </div>
                     <div class="sidebar-submenu">
                         <a href="/admin" class="nav-item" data-page="admin">
-                            <span class="nav-icon">📊</span>
+                            <span class="nav-icon"><img src="/icons/overview.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                             <span class="nav-text">Overview</span>
                         </a>
                         
@@ -70,30 +70,21 @@
                         <div class="sidebar-dropdown nested">
                             <div class="sidebar-dropdown-toggle active">
                                 <div class="nav-dropdown-left">
-                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-icon"><img src="/icons/admin-setting.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Admin Settings</span>
                                 </div>
                                 <span class="dropdown-arrow">▼</span>
                             </div>
                             <div class="sidebar-submenu">
                                 <a href="/admin/settings/themes" class="nav-item active" data-page="admin-themes">
-                                    <span class="nav-icon">🎨</span>
+                                    <span class="nav-icon"><img src="/icons/themes.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Themes</span>
                                 </a>
                                 <a href="/admin/settings/branding" class="nav-item" data-page="admin-branding">
-                                    <span class="nav-icon">✨</span>
+                                    <span class="nav-icon"><img src="/icons/branding.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Branding</span>
                                 </a>
-                                <a href="/admin/logs" class="nav-item" data-page="admin-logs"><span class="nav-icon">
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/>
-    <line x1="16" y1="17" x2="8" y2="17"/>
-    <polyline points="10 9 9 9 8 9"/>
-  </svg>
-</span><span class="nav-text">Audit Logs</span>
-                                </a>
+                                <a href="/admin/logs" class="nav-item" data-page="admin-logs"><span class="nav-icon"><img src="/icons/audit.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span><span class="nav-text">Audit Logs</span></a>
                             </div>
                         </div>
                         
@@ -101,18 +92,18 @@
                         <div class="sidebar-dropdown nested">
                             <div class="sidebar-dropdown-toggle">
                                 <div class="nav-dropdown-left">
-                                    <span class="nav-icon">🔌</span>
+                                    <span class="nav-icon"><img src="/icons/integration.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Integrations</span>
                                 </div>
                                 <span class="dropdown-arrow">▼</span>
                             </div>
                             <div class="sidebar-submenu">
                                 <a href="/admin/integrations/linkvertise" class="nav-item" data-page="admin-integrations-linkvertise">
-                                    <span class="nav-icon">💰</span>
+                                    <span class="nav-icon"><img src="/icons/linkvertise.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Linkvertise</span>
                                 </a>
                                 <a href="/admin/integrations/discord" class="nav-item" data-page="admin-integrations-discord">
-                                    <span class="nav-icon">💬</span>
+                                    <span class="nav-icon"><img src="/icons/discord.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Discord</span>
                                 </a>
                             </div>
@@ -138,7 +129,7 @@
                 </div>
                 <div class="header-right">
                     <div class="coin-balance">
-                        <span class="coin-icon">🪙</span>
+                        <span class="coin-icon"><img src="/icons/coin.svg" alt="" width="24" height="24" class="nav-icon-img--color" decoding="async"></span>
                         <span id="coinAmount">0</span> Coins
                     </div>
                 </div>
@@ -156,6 +147,16 @@
                         <h3 style="color: #f8fafc; font-size: 16px; margin-bottom: 12px;">Quick Presets</h3>
                         <div id="themePresets" class="admin-theme-presets-grid">
                             <!-- Presets will be loaded here -->
+                            <div class="spinner small"></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="color: #f8fafc; font-size: 16px; margin-bottom: 6px;">Glassy Presets</h3>
+                        <p style="color: #94a3b8; font-size: 13px; margin: 0 0 12px 0; line-height: 1.45;">
+                            Frosted panels, neon cyan and magenta accents, and HUD-style depth — tuned for a gamified, glassmorphism look.
+                        </p>
+                        <div id="glassThemePresets" class="admin-theme-presets-grid">
                             <div class="spinner small"></div>
                         </div>
                     </div>
@@ -181,7 +182,7 @@
                                     <div id="previewActiveItem" style="
                                         display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 6px;
                                         background: rgba(255,255,255,0.25); border-left: 3px solid #fff; margin-bottom: 4px;">
-                                        <span style="font-size: 14px;">🏠</span>
+                                        <img src="/icons/nav-dashboard.svg" alt="" width="14" height="14" decoding="async">
                                         <span style="color: #fff; font-size: 12px; font-weight: 600;">Dashboard</span>
                                     </div>
                                     <div id="previewHoverItem" style="
@@ -191,7 +192,7 @@
                                         <span style="color: #fff; font-size: 12px;">Servers</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 6px; opacity: 0.75;">
-                                        <span style="font-size: 14px;">🪙</span>
+                                        <img src="/icons/coin.svg" alt="" width="14" height="14" decoding="async" style="display:block;object-fit:contain;filter:none;opacity:1;">
                                         <span style="color: #fff; font-size: 12px;">Resource Store</span>
                                     </div>
                                 </div>
@@ -410,7 +411,7 @@
                     if (data.success && data.theme) {
                         currentTheme = {
                             ...data.theme,
-                            active_preset: data.active_preset || data.theme.active_preset || 'default'
+                            active_preset: data.active_preset || data.theme.active_preset || 'midnight'
                         };
                         populateThemeForm(data.theme);
                     }
@@ -425,11 +426,12 @@
             try {
                 const response = await fetch('/admin/api/theme/presets');
                 const presetsContainer = document.getElementById('themePresets');
+                const glassContainer = document.getElementById('glassThemePresets');
                 
                 if (response.ok) {
                     const data = await response.json();
+                    const activeId = currentTheme.active_preset || 'midnight';
                     if (data.success && data.presets) {
-                        const activeId = currentTheme.active_preset || 'default';
                         presetsContainer.innerHTML = data.presets.map(preset => `
                             <button type="button" class="preset-btn ${activeId === preset.id ? 'active' : ''}" 
                                     data-preset="${preset.id}" onclick="applyPreset('${preset.id}')">
@@ -438,22 +440,38 @@
                             </button>
                         `).join('');
                     }
+                    if (data.success && data.glassPresets && glassContainer) {
+                        glassContainer.innerHTML = data.glassPresets.map(preset => `
+                            <button type="button" class="preset-btn glass-preset-btn ${activeId === preset.id ? 'active' : ''}" 
+                                    data-preset="${preset.id}" onclick="applyPreset('${preset.id}')">
+                                <span class="preset-icon">${getPresetIcon(preset.id)}</span>
+                                <span class="preset-name">${preset.name}</span>
+                            </button>
+                        `).join('');
+                    } else if (glassContainer) {
+                        glassContainer.innerHTML = '<p style="color: #94a3b8;">No glass presets available</p>';
+                    }
                 }
             } catch (error) {
                 console.error('Error loading presets:', error);
                 document.getElementById('themePresets').innerHTML = '<p style="color: #94a3b8;">Failed to load presets</p>';
+                const gc = document.getElementById('glassThemePresets');
+                if (gc) gc.innerHTML = '<p style="color: #94a3b8;">Failed to load glass presets</p>';
             }
         }
         
         // Get icon for preset
         function getPresetIcon(presetId) {
             const icons = {
-                'default': '💜',
                 'ocean': '🌊',
                 'sunset': '🌅',
                 'forest': '🌲',
                 'midnight': '🌙',
-                'rose': '🌹'
+                'rose': '🌹',
+                'glass_frost': '❄️',
+                'glass_nexus': '🎯',
+                'glass_prism': '💎',
+                'glass_cyber': '⚡'
             };
             return icons[presetId] || '🎨';
         }
@@ -474,10 +492,11 @@
                     
                     // Apply theme immediately
                     if (window.AetherTheme) {
+                        window.AetherTheme.setGlassPresetFlag(presetId);
                         window.AetherTheme.apply(data.theme);
                     }
                     
-                    // Update preset buttons
+                    // Update preset buttons (quick + glassy grids)
                     document.querySelectorAll('.preset-btn').forEach(btn => {
                         btn.classList.remove('active');
                         if (btn.dataset.preset === presetId) {
@@ -718,6 +737,7 @@
                     
                     // Apply theme immediately
                     if (window.AetherTheme) {
+                        window.AetherTheme.setGlassPresetFlag('custom');
                         window.AetherTheme.apply(theme);
                     }
                     

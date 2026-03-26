@@ -218,8 +218,9 @@
                 box-shadow: 0 22px 60px rgba(0,0,0,0.5);
                 padding: 22px 22px 18px;
             ">
-                <div id="discordInviteModalTitle" style="color:#f8fafc; font-weight: 900; font-size: 17px; margin-bottom: 10px;">
-                    💬 Discord
+                <div id="discordInviteModalTitle" style="color:#f8fafc; font-weight: 900; font-size: 17px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                    <img src="/icons/discord.svg" alt="" width="26" height="26" style="flex-shrink:0;" decoding="async">
+                    <span>Discord</span>
                 </div>
                 <div style="color:#cbd5e1; font-size: 14px; line-height: 1.5; margin-bottom: 18px;">
                     Discord Link Not Configured by Admin
@@ -333,7 +334,7 @@
                 padding: 10px 12px;
                 border-radius: 10px;
             `;
-            discordBtn.innerHTML = `<span style="font-size: 20px; line-height: 1;" aria-hidden="true">💬</span>`;
+            discordBtn.innerHTML = `<img src="/icons/discord.svg" alt="" width="22" height="22" style="display:block;object-fit:contain;" decoding="async" aria-hidden="true">`;
             discordBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 e.stopPropagation();

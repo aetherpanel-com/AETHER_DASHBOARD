@@ -51,6 +51,15 @@ router.get('/api/user', requireAuth, async (req, res) => {
         
         // Get user's server count
         const serverCount = await get('SELECT COUNT(*) as count FROM servers WHERE user_id = ?', [req.session.user.id]);
+
+        // Get purchased database/backup counts from purchase history
+        const purchasedExtras = await get(`
+            SELECT
+                COALESCE(SUM(CASE WHEN resource_type = 'database' THEN amount ELSE 0 END), 0) as purchased_databases,
+                COALESCE(SUM(CASE WHEN resource_type = 'backup' THEN amount ELSE 0 END), 0) as purchased_backups
+            FROM resource_purchases
+            WHERE user_id = ?
+        `, [req.session.user.id]);
         
         // Calculate used resources from all servers
         const usedResources = await get(`
@@ -81,6 +90,10 @@ router.get('/api/user', requireAuth, async (req, res) => {
                     ram: usedResources.used_ram || 0,
                     cpu: usedResources.used_cpu || 0,
                     storage: usedResources.used_storage || 0
+                },
+                purchased_extras: {
+                    databases: purchasedExtras?.purchased_databases || 0,
+                    backups: purchasedExtras?.purchased_backups || 0
                 },
                 available_resources: {
                     ram: (user.purchased_ram || 0) - (usedResources.used_ram || 0),

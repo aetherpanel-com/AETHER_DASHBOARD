@@ -674,7 +674,7 @@ pm2 restart aether-dashboard
 | 🤖 **Discord Bot Integration** | Complete Discord bot system for invite tracking and chat synchronization |
 | 💰 **Invite Reward System** | Users automatically earn coins when someone joins Discord using their invite link |
 | 🔄 **Auto Deduction System** | Rewards automatically removed if invited user leaves the Discord server |
-| 💬 **Real-time Discord Chat** | Discord messages mirrored in dashboard Community page with WebSocket |
+| **Real-time Discord Chat** | Discord messages mirrored in dashboard Community page with WebSocket. Sidebar **Community** (and other Discord-related nav items) use `public/icons/discord.svg`. |
 | 📤 **Bidirectional Messaging** | Send messages from dashboard to Discord and receive Discord messages in dashboard |
 | 🏆 **Invite Leaderboard** | Live leaderboard showing top inviters with coins earned |
 | 🔍 **Invite Join Detection** | Automatic detection of which invite was used when users join |

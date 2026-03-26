@@ -50,6 +50,67 @@ const brandingUpload = upload.fields([
     { name: 'favicon', maxCount: 1 }
 ]);
 
+// Template icon upload (SVG only)
+const templateIconUploadPath = path.join(__dirname, '../public/icons/template-icons');
+const templateIconStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, templateIconUploadPath);
+    },
+    filename: (req, file, cb) => {
+        const safeBase = path.basename(file.originalname, path.extname(file.originalname))
+            .toLowerCase()
+            .replace(/[^a-z0-9-_]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '') || 'template-icon';
+        const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        cb(null, `${safeBase}-${unique}.svg`);
+    }
+});
+
+const templateIconUpload = multer({
+    storage: templateIconStorage,
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname || '').toLowerCase();
+        const mime = String(file.mimetype || '').toLowerCase();
+        const isSvgMime = mime.includes('svg');
+        if (ext === '.svg' && (isSvgMime || mime === 'application/octet-stream' || mime === 'text/plain')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only SVG files are allowed'));
+        }
+    }
+});
+
+// Store resource icon upload (SVG only)
+const storeIconUploadPath = path.join(__dirname, '../public/icons/resource-custom');
+const storeIconStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, storeIconUploadPath);
+    },
+    filename: (req, file, cb) => {
+        const resourceType = String(req.body?.resource_type || 'resource').toLowerCase().replace(/[^a-z_]/g, '');
+        const safeResourceType = ['ram', 'cpu', 'storage', 'server_slot', 'database', 'backup'].includes(resourceType) ? resourceType : 'resource';
+        const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        cb(null, `${safeResourceType}-${unique}.svg`);
+    }
+});
+
+const storeIconUpload = multer({
+    storage: storeIconStorage,
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname || '').toLowerCase();
+        const mime = String(file.mimetype || '').toLowerCase();
+        const isSvgMime = mime.includes('svg');
+        if (ext === '.svg' && (isSvgMime || mime === 'application/octet-stream' || mime === 'text/plain')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only SVG files are allowed'));
+        }
+    }
+});
+
 // Validate URL format
 function isValidUrl(url) {
     if (typeof url !== 'string' || url.trim().length === 0) {
@@ -61,6 +122,17 @@ function isValidUrl(url) {
     } catch {
         return false;
     }
+}
+
+function isValidTemplateIcon(iconValue) {
+    if (typeof iconValue !== 'string') return false;
+    const icon = iconValue.trim();
+    if (!icon) return true;
+    if (icon.startsWith('/icons/template-icons/')) {
+        return /^\/icons\/template-icons\/[a-z0-9._-]+\.svg$/i.test(icon);
+    }
+    // Backward compatibility for older emoji icons
+    return icon.length <= 8;
 }
 
 // Middleware to check if user is logged in and is admin
@@ -764,14 +836,21 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
             cpu_coins_per_set, cpu_percent_per_set,
             storage_coins_per_set, storage_gb_per_set,
             server_slot_price,
-            max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots
+            database_coins_per_set, database_count_per_set,
+            backup_coins_per_set, backup_count_per_set,
+            max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots,
+            max_databases, max_backups,
+            ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path,
+            database_icon_path, backup_icon_path
         } = req.body;
         
         // Validate all fields are present
         if (ram_coins_per_set === undefined || ram_gb_per_set === undefined ||
             cpu_coins_per_set === undefined || cpu_percent_per_set === undefined ||
             storage_coins_per_set === undefined || storage_gb_per_set === undefined ||
-            server_slot_price === undefined) {
+            server_slot_price === undefined ||
+            database_coins_per_set === undefined || database_count_per_set === undefined ||
+            backup_coins_per_set === undefined || backup_count_per_set === undefined) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'All price fields are required' 
@@ -782,7 +861,9 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
         if (ram_coins_per_set < 1 || ram_gb_per_set < 1 ||
             cpu_coins_per_set < 1 || cpu_percent_per_set < 1 || cpu_percent_per_set > 100 ||
             storage_coins_per_set < 1 || storage_gb_per_set < 1 ||
-            server_slot_price < 1) {
+            server_slot_price < 1 ||
+            database_coins_per_set < 1 || database_count_per_set < 1 ||
+            backup_coins_per_set < 1 || backup_count_per_set < 1) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Invalid price values. All values must be at least 1, and CPU % must be between 1 and 100.' 
@@ -794,6 +875,14 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
         const parsedMaxCpuPercent = Math.max(0, parseInt(max_cpu_percent) || 0);
         const parsedMaxStorageGb = Math.max(0, parseInt(max_storage_gb) || 0);
         const parsedMaxSlots = Math.max(0, parseInt(max_server_slots) || 0);
+        const parsedMaxDatabases = Math.max(0, parseInt(max_databases) || 0);
+        const parsedMaxBackups = Math.max(0, parseInt(max_backups) || 0);
+        const parsedRamIconPath = (typeof ram_icon_path === 'string' && ram_icon_path.trim()) ? ram_icon_path.trim() : '/icons/ram.svg';
+        const parsedCpuIconPath = (typeof cpu_icon_path === 'string' && cpu_icon_path.trim()) ? cpu_icon_path.trim() : '/icons/cpu.svg';
+        const parsedStorageIconPath = (typeof storage_icon_path === 'string' && storage_icon_path.trim()) ? storage_icon_path.trim() : '/icons/storage.svg';
+        const parsedServerSlotIconPath = (typeof server_slot_icon_path === 'string' && server_slot_icon_path.trim()) ? server_slot_icon_path.trim() : '/icons/server-slot.svg';
+        const parsedDatabaseIconPath = (typeof database_icon_path === 'string' && database_icon_path.trim()) ? database_icon_path.trim() : '/icons/database.svg';
+        const parsedBackupIconPath = (typeof backup_icon_path === 'string' && backup_icon_path.trim()) ? backup_icon_path.trim() : '/icons/backup.svg';
         
         // Check if prices exist
         const existing = await get('SELECT id FROM resource_prices ORDER BY id DESC LIMIT 1');
@@ -806,30 +895,42 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
                      cpu_coins_per_set = ?, cpu_percent_per_set = ?,
                      storage_coins_per_set = ?, storage_gb_per_set = ?,
                      server_slot_price = ?,
+                     database_coins_per_set = ?, database_count_per_set = ?,
+                     backup_coins_per_set = ?, backup_count_per_set = ?,
                      max_ram_gb = ?, max_cpu_percent = ?,
-                     max_storage_gb = ?, max_server_slots = ?,
+                     max_storage_gb = ?, max_server_slots = ?, max_databases = ?, max_backups = ?,
+                     ram_icon_path = ?, cpu_icon_path = ?,
+                     storage_icon_path = ?, server_slot_icon_path = ?, database_icon_path = ?, backup_icon_path = ?,
                      updated_at = CURRENT_TIMESTAMP 
                  WHERE id = ?`,
                 [ram_coins_per_set, ram_gb_per_set,
                  cpu_coins_per_set, cpu_percent_per_set,
                  storage_coins_per_set, storage_gb_per_set,
                  server_slot_price,
+                 database_coins_per_set, database_count_per_set,
+                 backup_coins_per_set, backup_count_per_set,
                  parsedMaxRamGb, parsedMaxCpuPercent,
-                 parsedMaxStorageGb, parsedMaxSlots,
+                 parsedMaxStorageGb, parsedMaxSlots, parsedMaxDatabases, parsedMaxBackups,
+                 parsedRamIconPath, parsedCpuIconPath,
+                 parsedStorageIconPath, parsedServerSlotIconPath, parsedDatabaseIconPath, parsedBackupIconPath,
                  existing.id]
             );
         } else {
             // Create new prices
             await run(
                 `INSERT INTO resource_prices 
-                 (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                 (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, database_coins_per_set, database_count_per_set, backup_coins_per_set, backup_count_per_set, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots, max_databases, max_backups, ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path, database_icon_path, backup_icon_path) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [ram_coins_per_set, ram_gb_per_set,
                  cpu_coins_per_set, cpu_percent_per_set,
                  storage_coins_per_set, storage_gb_per_set,
                  server_slot_price,
+                 database_coins_per_set, database_count_per_set,
+                 backup_coins_per_set, backup_count_per_set,
                  parsedMaxRamGb, parsedMaxCpuPercent,
-                 parsedMaxStorageGb, parsedMaxSlots]
+                 parsedMaxStorageGb, parsedMaxSlots, parsedMaxDatabases, parsedMaxBackups,
+                 parsedRamIconPath, parsedCpuIconPath,
+                 parsedStorageIconPath, parsedServerSlotIconPath, parsedDatabaseIconPath, parsedBackupIconPath]
             );
         }
         
@@ -837,6 +938,37 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error saving store prices:', error);
         res.status(500).json({ success: false, message: 'Error saving prices' });
+    }
+});
+
+router.post('/api/store/resource-icon-upload', requireAdmin, (req, res, next) => {
+    fs.mkdir(storeIconUploadPath, { recursive: true })
+        .then(() => {
+            storeIconUpload.single('icon')(req, res, (err) => {
+                if (err) {
+                    return res.status(400).json({ success: false, message: err.message });
+                }
+                next();
+            });
+        })
+        .catch((error) => {
+            console.error('Error creating resource icon upload directory:', error);
+            res.status(500).json({ success: false, message: 'Error setting up resource icon upload directory' });
+        });
+}, async (req, res) => {
+    try {
+        const resourceType = String(req.body?.resource_type || '').toLowerCase();
+        if (!['ram', 'cpu', 'storage', 'server_slot', 'database', 'backup'].includes(resourceType)) {
+            return res.status(400).json({ success: false, message: 'Invalid resource type' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'SVG file is required' });
+        }
+        const iconPath = `/icons/resource-custom/${req.file.filename}`;
+        res.json({ success: true, icon_path: iconPath });
+    } catch (error) {
+        console.error('Error uploading resource icon:', error);
+        res.status(500).json({ success: false, message: 'Error uploading resource icon' });
     }
 });
 
@@ -1513,6 +1645,9 @@ router.post('/api/panel/eggs/sync', requireAdmin, async (req, res) => {
         // BUGFIX #7: Ensure egg_ids are all integers for consistent comparison
         const normalizedEggIds = egg_ids.map(id => parseInt(id, 10));
         
+        // Track identity keys to avoid processing duplicate entries in one sync batch.
+        const processedIdentityKeys = new Set();
+
         // Sync only selected eggs to database
         for (const egg of eggs) {
             // BUGFIX #7: Parse eggId as integer to avoid type mismatch with includes()
@@ -1524,22 +1659,79 @@ router.post('/api/panel/eggs/sync', requireAdmin, async (req, res) => {
             }
             
             try {
+                if (Number.isNaN(eggId)) {
+                    errors.push('Skipping egg with invalid ID');
+                    continue;
+                }
+
+                const nestId = parseInt(egg.nest_id || egg.attributes?.nest_id, 10);
+                const eggName = (egg.name || egg.attributes?.name || '').trim();
+                const dockerImage = egg.docker_image || egg.attributes?.docker_image;
+                const startupCommand = egg.startup || egg.startup_command || egg.attributes?.startup || '';
+
+                if (Number.isNaN(nestId) || !eggName) {
+                    errors.push(`Skipping egg ${eggId}: missing nest_id or name`);
+                    continue;
+                }
+
+                const identityKey = `${nestId}:${eggName.toLowerCase()}`;
+                if (processedIdentityKeys.has(identityKey)) {
+                    continue;
+                }
+                processedIdentityKeys.add(identityKey);
+
                 // Extract environment variables as JSON string
                 const envVars = egg.relationships?.variables?.data || egg.environment_variables || [];
                 const envVarsJson = typeof envVars === 'string' ? envVars : JSON.stringify(envVars);
-                
-                await run(`
-                    INSERT OR REPLACE INTO pterodactyl_eggs 
-                    (egg_id, nest_id, name, docker_image, startup_command, environment_variables, is_active, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
-                `, [
-                    eggId,
-                    egg.nest_id || egg.attributes?.nest_id,
-                    egg.name || egg.attributes?.name,
-                    egg.docker_image || egg.attributes?.docker_image,
-                    egg.startup || egg.startup_command || egg.attributes?.startup || '',
-                    envVarsJson
-                ]);
+
+                // First preference: exact egg_id match (normal update path)
+                const existingById = await get(
+                    `SELECT id, egg_id FROM pterodactyl_eggs WHERE egg_id = ? LIMIT 1`,
+                    [eggId]
+                );
+
+                if (existingById) {
+                    await run(
+                        `UPDATE pterodactyl_eggs
+                         SET nest_id = ?, name = ?, docker_image = ?, startup_command = ?, environment_variables = ?, is_active = 1, updated_at = CURRENT_TIMESTAMP
+                         WHERE egg_id = ?`,
+                        [nestId, eggName, dockerImage, startupCommand, envVarsJson, eggId]
+                    );
+                } else {
+                    // If egg id changed in panel, match by stable identity (nest + name) and update row to new ID.
+                    const existingByIdentity = await get(
+                        `SELECT id, egg_id FROM pterodactyl_eggs
+                         WHERE nest_id = ? AND LOWER(name) = LOWER(?)
+                         ORDER BY updated_at DESC, id DESC
+                         LIMIT 1`,
+                        [nestId, eggName]
+                    );
+
+                    if (existingByIdentity) {
+                        await run(
+                            `UPDATE pterodactyl_eggs
+                             SET egg_id = ?, nest_id = ?, name = ?, docker_image = ?, startup_command = ?, environment_variables = ?, is_active = 1, updated_at = CURRENT_TIMESTAMP
+                             WHERE id = ?`,
+                            [eggId, nestId, eggName, dockerImage, startupCommand, envVarsJson, existingByIdentity.id]
+                        );
+                    } else {
+                        await run(
+                            `INSERT INTO pterodactyl_eggs
+                             (egg_id, nest_id, name, docker_image, startup_command, environment_variables, is_active, updated_at)
+                             VALUES (?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)`,
+                            [eggId, nestId, eggName, dockerImage, startupCommand, envVarsJson]
+                        );
+                    }
+                }
+
+                // Safety cleanup: keep only one active row per logical egg identity.
+                await run(
+                    `UPDATE pterodactyl_eggs
+                     SET is_active = 0
+                     WHERE nest_id = ? AND LOWER(name) = LOWER(?) AND egg_id != ?`,
+                    [nestId, eggName, eggId]
+                );
+
                 synced++;
             } catch (error) {
                 console.error(`Error syncing egg ${eggId}:`, error);
@@ -2040,11 +2232,16 @@ router.post('/api/templates', requireAdmin, sanitizeBody, async (req, res) => {
         const cpuValue = parseInt(cpu_percent) || 100;
         const storageValue = parseInt(storage_mb) || 5120;
         const orderValue = parseInt(display_order) || 0;
+        const iconValue = typeof icon === 'string' ? icon.trim() : '';
+
+        if (!isValidTemplateIcon(iconValue)) {
+            return res.status(400).json({ success: false, message: 'Invalid template icon value' });
+        }
         
         const result = await run(
             `INSERT INTO server_templates (name, description, egg_id, ram_mb, cpu_percent, storage_mb, icon, display_order) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [name.trim(), description?.trim() || '', parseInt(egg_id), ramValue, cpuValue, storageValue, icon || '🎮', orderValue]
+            [name.trim(), description?.trim() || '', parseInt(egg_id), ramValue, cpuValue, storageValue, iconValue || '🎮', orderValue]
         );
         
         res.json({ 
@@ -2081,7 +2278,14 @@ router.put('/api/templates/:id', requireAdmin, sanitizeBody, async (req, res) =>
         if (cpu_percent !== undefined) { updates.push('cpu_percent = ?'); values.push(parseInt(cpu_percent)); }
         if (storage_mb !== undefined) { updates.push('storage_mb = ?'); values.push(parseInt(storage_mb)); }
         if (is_active !== undefined) { updates.push('is_active = ?'); values.push(is_active ? 1 : 0); }
-        if (icon !== undefined) { updates.push('icon = ?'); values.push(icon); }
+        if (icon !== undefined) {
+            const iconValue = typeof icon === 'string' ? icon.trim() : '';
+            if (!isValidTemplateIcon(iconValue)) {
+                return res.status(400).json({ success: false, message: 'Invalid template icon value' });
+            }
+            updates.push('icon = ?');
+            values.push(iconValue || '🎮');
+        }
         if (display_order !== undefined) { updates.push('display_order = ?'); values.push(parseInt(display_order)); }
         
         updates.push('updated_at = CURRENT_TIMESTAMP');
@@ -2144,43 +2348,44 @@ router.post('/api/templates/:id/toggle', requireAdmin, async (req, res) => {
     }
 });
 
+// Upload template icon (SVG only)
+router.post('/api/templates/icon-upload', requireAdmin, (req, res, next) => {
+    fs.mkdir(templateIconUploadPath, { recursive: true })
+        .then(() => {
+            templateIconUpload.single('icon')(req, res, (err) => {
+                if (err) {
+                    return res.status(400).json({ success: false, message: err.message });
+                }
+                next();
+            });
+        })
+        .catch((error) => {
+            console.error('Error creating template icon upload directory:', error);
+            res.status(500).json({ success: false, message: 'Error setting up template icon upload directory' });
+        });
+}, async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'SVG file is required' });
+        }
+        const iconPath = `/icons/template-icons/${req.file.filename}`;
+        return res.json({
+            success: true,
+            message: 'Template icon uploaded successfully',
+            icon_path: iconPath
+        });
+    } catch (error) {
+        console.error('Error uploading template icon:', error);
+        res.status(500).json({ success: false, message: 'Error uploading template icon' });
+    }
+});
+
 // ============================================
 // Theme Customization Settings (v1.3)
 // ============================================
 
 // Preset themes configuration
 const PRESET_THEMES = {
-    default: {
-        name: 'Default Purple',
-        sidebar_bg_type: 'gradient',
-        sidebar_color_1: '#7c3aed',
-        sidebar_color_2: '#a855f7',
-        sidebar_color_3: '#06b6d4',
-        sidebar_gradient_direction: '180deg',
-        sidebar_text_color: '#ffffff',
-        sidebar_active_bg: 'rgba(255, 255, 255, 0.25)',
-        sidebar_hover_bg: 'rgba(255, 255, 255, 0.15)',
-        main_bg_type: 'gradient',
-        main_color_1: '#0a0e27',
-        main_color_2: '#141b2d',
-        main_color_3: '#1a1f3a',
-        main_gradient_direction: '135deg',
-        card_bg_color: 'rgba(30, 30, 50, 0.6)',
-        card_border_color: 'rgba(124, 58, 237, 0.2)',
-        card_text_color: '#f8fafc',
-        accent_primary: '#7c3aed',
-        accent_secondary: '#a855f7',
-        accent_tertiary: '#06b6d4',
-        accent_success: '#10b981',
-        accent_warning: '#f59e0b',
-        accent_danger: '#ef4444',
-        input_bg_color: 'rgba(30, 30, 50, 0.4)',
-        input_border_color: 'rgba(124, 58, 237, 0.3)',
-        input_text_color: '#f8fafc',
-        input_placeholder_color: '#94a3b8',
-        header_bg_color: 'rgba(20, 27, 45, 0.8)',
-        header_text_color: '#f8fafc'
-    },
     ocean: {
         name: 'Ocean Blue',
         sidebar_bg_type: 'gradient',
@@ -2335,8 +2540,136 @@ const PRESET_THEMES = {
         input_placeholder_color: '#f9a8d4',
         header_bg_color: 'rgba(50, 15, 35, 0.8)',
         header_text_color: '#fdf2f8'
+    },
+    // Glassmorphism / gamified HUD-style presets (active_preset id prefix glass_ → client glass mode)
+    glass_frost: {
+        name: 'Frost Cyan',
+        sidebar_bg_type: 'gradient',
+        sidebar_color_1: '#0c4a6e',
+        sidebar_color_2: '#0891b2',
+        sidebar_color_3: '#22d3ee',
+        sidebar_gradient_direction: '180deg',
+        sidebar_text_color: '#ecfeff',
+        sidebar_active_bg: 'rgba(255, 255, 255, 0.18)',
+        sidebar_hover_bg: 'rgba(34, 211, 238, 0.15)',
+        main_bg_type: 'gradient',
+        main_color_1: '#020617',
+        main_color_2: '#0f172a',
+        main_color_3: '#134e4a',
+        main_gradient_direction: '135deg',
+        card_bg_color: 'rgba(255, 255, 255, 0.07)',
+        card_border_color: 'rgba(34, 211, 238, 0.4)',
+        card_text_color: '#f0fdfa',
+        accent_primary: '#22d3ee',
+        accent_secondary: '#06b6d4',
+        accent_tertiary: '#67e8f9',
+        accent_success: '#34d399',
+        accent_warning: '#fbbf24',
+        accent_danger: '#fb7185',
+        input_bg_color: 'rgba(15, 23, 42, 0.45)',
+        input_border_color: 'rgba(34, 211, 238, 0.35)',
+        input_text_color: '#ecfeff',
+        input_placeholder_color: '#5eead4',
+        header_bg_color: 'rgba(8, 47, 73, 0.55)',
+        header_text_color: '#ecfeff'
+    },
+    glass_nexus: {
+        name: 'Nexus HUD',
+        sidebar_bg_type: 'gradient',
+        sidebar_color_1: '#172554',
+        sidebar_color_2: '#1e40af',
+        sidebar_color_3: '#0e7490',
+        sidebar_gradient_direction: '180deg',
+        sidebar_text_color: '#f8fafc',
+        sidebar_active_bg: 'rgba(56, 189, 248, 0.2)',
+        sidebar_hover_bg: 'rgba(56, 189, 248, 0.12)',
+        main_bg_type: 'gradient',
+        main_color_1: '#030712',
+        main_color_2: '#111827',
+        main_color_3: '#1e293b',
+        main_gradient_direction: '135deg',
+        card_bg_color: 'rgba(15, 23, 42, 0.5)',
+        card_border_color: 'rgba(56, 189, 248, 0.28)',
+        card_text_color: '#f1f5f9',
+        accent_primary: '#38bdf8',
+        accent_secondary: '#4ade80',
+        accent_tertiary: '#22d3ee',
+        accent_success: '#4ade80',
+        accent_warning: '#facc15',
+        accent_danger: '#f87171',
+        input_bg_color: 'rgba(30, 41, 59, 0.55)',
+        input_border_color: 'rgba(56, 189, 248, 0.3)',
+        input_text_color: '#f8fafc',
+        input_placeholder_color: '#94a3b8',
+        header_bg_color: 'rgba(15, 23, 42, 0.75)',
+        header_text_color: '#f8fafc'
+    },
+    glass_prism: {
+        name: 'Prism Aura',
+        sidebar_bg_type: 'gradient',
+        sidebar_color_1: '#4c1d95',
+        sidebar_color_2: '#7c3aed',
+        sidebar_color_3: '#0891b2',
+        sidebar_gradient_direction: '180deg',
+        sidebar_text_color: '#ffffff',
+        sidebar_active_bg: 'rgba(255, 255, 255, 0.2)',
+        sidebar_hover_bg: 'rgba(167, 139, 250, 0.2)',
+        main_bg_type: 'gradient',
+        main_color_1: '#1e1b4b',
+        main_color_2: '#172554',
+        main_color_3: '#0c4a6e',
+        main_gradient_direction: '140deg',
+        card_bg_color: 'rgba(255, 255, 255, 0.08)',
+        card_border_color: 'rgba(167, 139, 250, 0.38)',
+        card_text_color: '#faf5ff',
+        accent_primary: '#a78bfa',
+        accent_secondary: '#22d3ee',
+        accent_tertiary: '#34d399',
+        accent_success: '#34d399',
+        accent_warning: '#fbbf24',
+        accent_danger: '#fb7185',
+        input_bg_color: 'rgba(49, 46, 129, 0.4)',
+        input_border_color: 'rgba(167, 139, 250, 0.35)',
+        input_text_color: '#faf5ff',
+        input_placeholder_color: '#c4b5fd',
+        header_bg_color: 'rgba(30, 27, 75, 0.65)',
+        header_text_color: '#faf5ff'
+    },
+    glass_cyber: {
+        name: 'Cyber Neon',
+        sidebar_bg_type: 'gradient',
+        sidebar_color_1: '#86198f',
+        sidebar_color_2: '#c026d3',
+        sidebar_color_3: '#06b6d4',
+        sidebar_gradient_direction: '180deg',
+        sidebar_text_color: '#fdf4ff',
+        sidebar_active_bg: 'rgba(244, 114, 182, 0.22)',
+        sidebar_hover_bg: 'rgba(6, 182, 212, 0.18)',
+        main_bg_type: 'gradient',
+        main_color_1: '#0a0a0f',
+        main_color_2: '#18181b',
+        main_color_3: '#1e1b4b',
+        main_gradient_direction: '135deg',
+        card_bg_color: 'rgba(255, 255, 255, 0.05)',
+        card_border_color: 'rgba(244, 114, 182, 0.38)',
+        card_text_color: '#fafafa',
+        accent_primary: '#f472b6',
+        accent_secondary: '#22d3ee',
+        accent_tertiary: '#e879f9',
+        accent_success: '#4ade80',
+        accent_warning: '#fbbf24',
+        accent_danger: '#fb7185',
+        input_bg_color: 'rgba(24, 24, 27, 0.55)',
+        input_border_color: 'rgba(244, 114, 182, 0.3)',
+        input_text_color: '#fafafa',
+        input_placeholder_color: '#d4d4d8',
+        header_bg_color: 'rgba(10, 10, 15, 0.82)',
+        header_text_color: '#fafafa'
     }
 };
+
+/** Default preset for new installs, API fallbacks, and theme reset */
+const DEFAULT_PRESET_ID = 'midnight';
 
 // Get theme settings (public - all users need this to render the dashboard)
 router.get('/api/theme', async (req, res) => {
@@ -2347,37 +2680,42 @@ router.get('/api/theme', async (req, res) => {
         if (!theme) {
             return res.json({
                 success: true,
-                theme: PRESET_THEMES.default,
-                active_preset: 'default'
+                theme: PRESET_THEMES[DEFAULT_PRESET_ID],
+                active_preset: DEFAULT_PRESET_ID
             });
         }
         
         res.json({
             success: true,
             theme: theme,
-            active_preset: theme.active_preset || 'default'
+            active_preset: theme.active_preset || DEFAULT_PRESET_ID
         });
     } catch (error) {
         console.error('Error fetching theme settings:', error);
         // Return default theme on error
         res.json({
             success: true,
-            theme: PRESET_THEMES.default,
-            active_preset: 'default'
+            theme: PRESET_THEMES[DEFAULT_PRESET_ID],
+            active_preset: DEFAULT_PRESET_ID
         });
     }
 });
 
 // Get available preset themes
 router.get('/api/theme/presets', requireAdmin, (req, res) => {
-    const presetOrder = ['default', 'ocean', 'sunset', 'forest', 'midnight', 'rose'];
+    const presetOrder = ['midnight', 'ocean', 'sunset', 'forest', 'rose'];
+    const glassPresetOrder = ['glass_frost', 'glass_nexus', 'glass_prism', 'glass_cyber'];
     const presets = presetOrder
         .filter((id) => PRESET_THEMES[id])
         .map((id) => ({ id, name: PRESET_THEMES[id].name }));
-    
+    const glassPresets = glassPresetOrder
+        .filter((id) => PRESET_THEMES[id])
+        .map((id) => ({ id, name: PRESET_THEMES[id].name }));
+
     res.json({
         success: true,
-        presets: presets
+        presets,
+        glassPresets
     });
 });
 
@@ -2581,7 +2919,7 @@ router.post('/api/theme', requireAdmin, async (req, res) => {
             ]);
         } else {
             // Insert new theme with custom preset
-            const defaultTheme = PRESET_THEMES.default;
+            const defaultTheme = PRESET_THEMES[DEFAULT_PRESET_ID];
             await run(`
                 INSERT INTO theme_settings (
                     sidebar_bg_type, sidebar_color_1, sidebar_color_2, sidebar_color_3,
@@ -2635,7 +2973,7 @@ router.post('/api/theme', requireAdmin, async (req, res) => {
 // Reset theme to default
 router.post('/api/theme/reset', requireAdmin, async (req, res) => {
     try {
-        const defaultTheme = PRESET_THEMES.default;
+        const defaultTheme = PRESET_THEMES[DEFAULT_PRESET_ID];
         const existingTheme = await get('SELECT id FROM theme_settings LIMIT 1');
         
         if (existingTheme) {
@@ -2669,7 +3007,7 @@ router.post('/api/theme/reset', requireAdmin, async (req, res) => {
                     input_placeholder_color = ?,
                     header_bg_color = ?,
                     header_text_color = ?,
-                    active_preset = 'default',
+                    active_preset = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `, [
@@ -2701,6 +3039,7 @@ router.post('/api/theme/reset', requireAdmin, async (req, res) => {
                 defaultTheme.input_placeholder_color,
                 defaultTheme.header_bg_color,
                 defaultTheme.header_text_color,
+                DEFAULT_PRESET_ID,
                 existingTheme.id
             ]);
         }

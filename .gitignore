@@ -36,3 +36,4 @@ cloudflared.exe
 #custom files
 backups/
 public/assets/branding/
+public/icons/template-icons/
