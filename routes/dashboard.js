@@ -52,11 +52,12 @@ router.get('/api/user', requireAuth, async (req, res) => {
         // Get user's server count
         const serverCount = await get('SELECT COUNT(*) as count FROM servers WHERE user_id = ?', [req.session.user.id]);
 
-        // Get purchased database/backup counts from purchase history
+        // Get purchased extras from purchase history
         const purchasedExtras = await get(`
             SELECT
                 COALESCE(SUM(CASE WHEN resource_type = 'database' THEN amount ELSE 0 END), 0) as purchased_databases,
-                COALESCE(SUM(CASE WHEN resource_type = 'backup' THEN amount ELSE 0 END), 0) as purchased_backups
+                COALESCE(SUM(CASE WHEN resource_type = 'backup' THEN amount ELSE 0 END), 0) as purchased_backups,
+                COALESCE(SUM(CASE WHEN resource_type = 'port' THEN amount ELSE 0 END), 0) as purchased_ports
             FROM resource_purchases
             WHERE user_id = ?
         `, [req.session.user.id]);
@@ -93,7 +94,9 @@ router.get('/api/user', requireAuth, async (req, res) => {
                 },
                 purchased_extras: {
                     databases: purchasedExtras?.purchased_databases || 0,
-                    backups: purchasedExtras?.purchased_backups || 0
+                    backups: purchasedExtras?.purchased_backups || 0,
+                    // Users always have one default primary port.
+                    ports: Number(purchasedExtras?.purchased_ports || 0) + 1
                 },
                 available_resources: {
                     ram: (user.purchased_ram || 0) - (usedResources.used_ram || 0),

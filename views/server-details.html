@@ -1497,16 +1497,19 @@
                 }
 
                 const rows = allocations.map((a) => {
-                    const address = a.address || ((a.ip || 'Unknown') + ':' + (a.port || '?'));
+                    const address = a.address || 'Node alias not configured';
                     return `
                         <div style="padding: 10px 12px; border-bottom: 1px solid rgba(124, 58, 237, 0.12); display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <img src="/icons/ip.svg" alt="" width="16" height="16" decoding="async" style="display:block;object-fit:contain;filter:none;opacity:1;">
                                 <span class="console-mono" style="color:#f8fafc;">${escapeHtml(address)}</span>
                             </div>
-                            <span style="font-size:11px; padding: 2px 8px; border-radius: 999px; border: 1px solid ${a.is_default ? 'rgba(34,197,94,0.45)' : 'rgba(148,163,184,0.35)'}; color: ${a.is_default ? '#22c55e' : '#94a3b8'};">
-                                ${a.is_default ? 'Default' : 'Extra'}
-                            </span>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="font-size:11px; padding: 2px 8px; border-radius: 999px; border: 1px solid ${a.is_default ? 'rgba(34,197,94,0.45)' : 'rgba(148,163,184,0.35)'}; color: ${a.is_default ? '#22c55e' : '#94a3b8'};">
+                                    ${a.is_default ? 'Default' : 'Extra'}
+                                </span>
+                                ${a.is_default ? '' : `<button type="button" class="btn btn-danger" style="padding:4px 10px;font-size:11px;" onclick="removeAdditionalPort(${Number(a.allocation_id) || 0}, ${Number(a.port) || 0})">Delete</button>`}
+                            </div>
                         </div>
                     `;
                 }).join('');
@@ -1543,6 +1546,70 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = originalText;
+            }
+        }
+
+        async function removeAdditionalPort(allocationId, port) {
+            if (!allocationId && !port) return;
+            if (!confirm('Remove this extra port from this server and return it to free pool?')) return;
+
+            const isSameAllocation = (item) => {
+                const itemAllocationId = Number(item?.allocation_id || 0);
+                const itemPort = Number(item?.port || 0);
+                if (allocationId && itemAllocationId === Number(allocationId)) return true;
+                if (port && itemPort === Number(port) && !item.is_default) return true;
+                return false;
+            };
+
+            const checkIfStillAttached = async () => {
+                try {
+                    const listResponse = await fetch(`/servers/api/allocations/${serverId}/list`);
+                    const listData = await listResponse.json();
+                    if (!listData?.success) return true;
+                    const allocations = listData.allocations || [];
+                    return allocations.some((item) => isSameAllocation(item));
+                } catch (_) {
+                    // If we cannot verify, preserve conservative behavior.
+                    return true;
+                }
+            };
+
+            let shouldRefreshAllocations = false;
+            try {
+                const response = await fetch(`/servers/api/allocations/${serverId}/remove`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ allocation_id: allocationId, port })
+                });
+                shouldRefreshAllocations = true;
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (_) {
+                    data = { success: false, message: response.ok ? 'Unexpected response from server.' : 'Failed to remove port' };
+                }
+                if (data.success) {
+                    showNotification(data.message || 'Port removed', 'success');
+                } else {
+                    const stillAttached = await checkIfStillAttached();
+                    if (!stillAttached) {
+                        showNotification('Extra port removed and returned to your allocation pool.', 'success');
+                    } else {
+                        showNotification(data.message || 'Failed to remove port', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error removing additional port:', error);
+                const stillAttached = await checkIfStillAttached();
+                if (!stillAttached) {
+                    showNotification('Extra port removed and returned to your allocation pool.', 'success');
+                } else {
+                    showNotification('Error removing additional port', 'error');
+                }
+            } finally {
+                if (shouldRefreshAllocations) {
+                    await loadAllocations();
+                }
             }
         }
         

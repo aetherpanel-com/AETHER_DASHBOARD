@@ -127,9 +127,66 @@ function formatAllocationAddress(allocation) {
     if (!allocation) return null;
     const host = allocation.ip_alias && String(allocation.ip_alias).trim() !== ''
         ? String(allocation.ip_alias).trim()
-        : allocation.ip;
+        : null;
     if (!host || !allocation.port) return null;
     return `${host}:${allocation.port}`;
+}
+
+function isRawIpAddressHost(host) {
+    if (!host || typeof host !== 'string') return false;
+    const value = host.trim();
+    if (!value) return false;
+    const ipv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
+    // Broad IPv6 pattern (with/without brackets).
+    const ipv6 = /^\[?[0-9a-fA-F:]+\]?$/;
+    return ipv4.test(value) || ipv6.test(value);
+}
+
+function sanitizePublicAddressForDisplay(address) {
+    if (!address || typeof address !== 'string') return null;
+    const value = address.trim();
+    if (!value) return null;
+
+    const host = value.includes(':') ? value.slice(0, value.lastIndexOf(':')) : value;
+    if (!host || isRawIpAddressHost(host)) {
+        return null;
+    }
+    return value;
+}
+
+function extractHostFromAddress(address) {
+    if (!address || typeof address !== 'string') return null;
+    const value = String(address).trim();
+    if (!value) return null;
+    const idx = value.lastIndexOf(':');
+    if (idx <= 0) return null;
+    return value.slice(0, idx).trim() || null;
+}
+
+async function getNodeAliasMap() {
+    const rows = await query(
+        'SELECT node_id, default_alias FROM pterodactyl_node_aliases WHERE default_alias IS NOT NULL AND TRIM(default_alias) != ""'
+    );
+    const aliases = new Map();
+    rows.forEach((row) => {
+        const nodeId = Number(row?.node_id || 0);
+        const alias = String(row?.default_alias || '').trim();
+        if (nodeId > 0 && alias) {
+            aliases.set(nodeId, alias);
+        }
+    });
+    return aliases;
+}
+
+function formatAllocationAddressWithNodeAlias(allocation, nodeAliasMap) {
+    if (!allocation || !allocation.port) return null;
+    const direct = formatAllocationAddress(allocation);
+    if (direct) return direct;
+
+    const nodeId = Number(allocation.node_id || 0);
+    const nodeAlias = nodeId > 0 ? nodeAliasMap?.get(nodeId) : null;
+    if (!nodeAlias) return null;
+    return `${nodeAlias}:${allocation.port}`;
 }
 
 async function getPurchasedPortTotal(userId) {
@@ -211,6 +268,7 @@ function extractAllocationsFromServerDetails(serverDetailsData) {
                 allocation_id: allocId,
                 ip: merged.ip || null,
                 ip_alias: merged.ip_alias || null,
+                node_id: merged.node || merged.node_id || null,
                 port: merged.port || null,
                 is_default: allocId === primaryAllocationId
             });
@@ -221,6 +279,7 @@ function extractAllocationsFromServerDetails(serverDetailsData) {
                 allocation_id: allocId,
                 ip: merged.ip || null,
                 ip_alias: merged.ip_alias || null,
+                node_id: merged.node || merged.node_id || null,
                 port: merged.port || null,
                 is_default: allocId === primaryAllocationId
             });
@@ -276,7 +335,9 @@ router.get('/api/list', requireAuth, async (req, res) => {
                     try {
                         const serverDetails = await pterodactyl.getServerDetails(server.pterodactyl_id);
                         if (serverDetails.success) {
-                            const publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
+                            const allocationRows = extractAllocationsFromServerDetails(serverDetails.data);
+                            const primaryAlloc = allocationRows.find((row) => row.is_default) || allocationRows[0] || null;
+                            const publicAddress = formatAllocationAddress(primaryAlloc);
                             
                             // Update database if found
                             if (publicAddress) {
@@ -293,6 +354,11 @@ router.get('/api/list', requireAuth, async (req, res) => {
                     }
                 }
             }
+        }
+        
+        // Never expose raw IP-based addresses to the dashboard UI.
+        for (const server of servers) {
+            server.public_address = sanitizePublicAddressForDisplay(server.public_address);
         }
         
         // Note: Real-time stats are not available via Application API
@@ -660,25 +726,10 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
                 // pterodactyl_identifier = 8-char string (for Client API panel URLs)
                 const pterodactyl_identifier = createResult.data?.attributes?.identifier || createResult.data?.identifier || null;
                 
-                // Extract public_address — prefer cached ip_alias from our allocations table
+                // Extract public_address — alias only (never show raw IPs)
                 let publicAddress = null;
                 if (allocation.ip_alias && String(allocation.ip_alias).trim() !== '') {
                     publicAddress = `${String(allocation.ip_alias).trim()}:${allocation.port}`;
-                } else if (allocation.ip) {
-                    publicAddress = `${allocation.ip}:${allocation.port}`;
-                }
-                if (!publicAddress && createResult.data) {
-                    publicAddress = pterodactyl.extractPublicAddress(createResult.data);
-                }
-                if (!publicAddress && pterodactyl_id) {
-                    try {
-                        const serverDetails = await pterodactyl.getServerDetails(pterodactyl_id);
-                        if (serverDetails.success) {
-                            publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
-                        }
-                    } catch (error) {
-                        console.error('Error fetching server details for public_address:', error);
-                    }
                 }
                 
                 // Update the placeholder server record with Pterodactyl details
@@ -1217,9 +1268,19 @@ router.get('/api/allocations/:id/list', requireAuth, async (req, res) => {
             return res.status(500).json({ success: false, message: details.error || 'Failed to fetch allocations from panel' });
         }
 
-        const allocations = extractAllocationsFromServerDetails(details.data).map((row) => ({
+        const nodeAliasMap = await getNodeAliasMap();
+        const rawAllocations = extractAllocationsFromServerDetails(details.data);
+        const primaryRow = rawAllocations.find((row) => row.is_default) || rawAllocations[0] || null;
+        const primaryAddress =
+            sanitizePublicAddressForDisplay(server.public_address) ||
+            formatAllocationAddressWithNodeAlias(primaryRow, nodeAliasMap);
+        const primaryHost = extractHostFromAddress(primaryAddress);
+
+        const allocations = rawAllocations.map((row) => ({
             ...row,
-            address: formatAllocationAddress(row)
+            address: row.is_default
+                ? (formatAllocationAddressWithNodeAlias(row, nodeAliasMap) || primaryAddress || null)
+                : (primaryHost && row.port ? `${primaryHost}:${row.port}` : formatAllocationAddressWithNodeAlias(row, nodeAliasMap))
         }));
 
         res.json({ success: true, allocations });
@@ -1356,6 +1417,118 @@ router.post('/api/allocations/:id/add', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error assigning additional port:', error);
         res.status(500).json({ success: false, message: 'Error assigning additional port' });
+    }
+});
+
+// Remove one additional allocation from a server and return it to free pool
+router.post('/api/allocations/:id/remove', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        if (!server.pterodactyl_id || !server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server is not linked to panel yet' });
+        }
+        if (!await pterodactyl.isConfigured()) {
+            return res.status(500).json({ success: false, message: 'Pterodactyl is not configured' });
+        }
+
+        const allocationId = parseInt(String(req.body?.allocation_id || ''), 10);
+        const allocationPort = parseInt(String(req.body?.port || ''), 10);
+        const hasValidAllocationId = !Number.isNaN(allocationId) && allocationId > 0;
+        const hasValidPort = !Number.isNaN(allocationPort) && allocationPort > 0;
+        if (!hasValidAllocationId && !hasValidPort) {
+            return res.status(400).json({ success: false, message: 'Valid allocation reference is required.' });
+        }
+
+        const applicationServerId = await resolveApplicationServerId(server);
+        if (!applicationServerId) {
+            return res.status(500).json({
+                success: false,
+                message: 'Unable to resolve panel server ID for allocation removal.'
+            });
+        }
+
+        const beforeDetails = await pterodactyl.getServerDetails(applicationServerId);
+        if (!beforeDetails.success) {
+            return res.status(502).json({
+                success: false,
+                message: beforeDetails.error || 'Failed to read current server allocations.'
+            });
+        }
+
+        const currentAllocations = extractAllocationsFromServerDetails(beforeDetails.data);
+        let target = null;
+        if (hasValidAllocationId) {
+            target = currentAllocations.find((row) => Number(row.allocation_id) === allocationId) || null;
+        }
+        if (!target && hasValidPort) {
+            target = currentAllocations.find((row) => !row.is_default && Number(row.port) === allocationPort) || null;
+        }
+        if (!target) {
+            return res.status(404).json({
+                success: false,
+                message: 'This port is not currently attached to the selected server.'
+            });
+        }
+        if (target.is_default) {
+            return res.status(400).json({
+                success: false,
+                message: 'Default server port cannot be removed.'
+            });
+        }
+
+        const removeResult = await pterodactyl.removeServerAllocation(applicationServerId, Number(target.allocation_id));
+        const removeAttemptError = removeResult.success
+            ? null
+            : (removeResult.error || 'Failed to remove allocation in panel.');
+
+        const verifyDetails = await pterodactyl.getServerDetails(applicationServerId);
+        if (!verifyDetails.success) {
+            return res.status(502).json({
+                success: false,
+                message: removeAttemptError || verifyDetails.error || 'Allocation removal could not be verified.'
+            });
+        }
+
+        const stillAttached = extractAllocationsFromServerDetails(verifyDetails.data)
+            .some((row) => Number(row.allocation_id) === Number(target.allocation_id));
+        if (stillAttached) {
+            return res.status(502).json({
+                success: false,
+                message: removeAttemptError || 'Panel did not detach the selected port. Please retry.'
+            });
+        }
+
+        // Return removed allocation into the local free pool for reuse.
+        const existingRow = await get(
+            'SELECT id FROM pterodactyl_allocations WHERE allocation_id = ?',
+            [Number(target.allocation_id)]
+        );
+        if (existingRow) {
+            await run(
+                `UPDATE pterodactyl_allocations
+                 SET ip = ?, ip_alias = ?, port = ?, node_id = ?, is_active = 1, priority = 0
+                 WHERE allocation_id = ?`,
+                [target.ip || null, target.ip_alias || null, target.port || null, target.node_id || null, Number(target.allocation_id)]
+            );
+        } else {
+            await run(
+                `INSERT INTO pterodactyl_allocations
+                 (allocation_id, ip, ip_alias, port, node_id, priority, is_active, created_at)
+                 VALUES (?, ?, ?, ?, ?, 0, 1, datetime('now'))`,
+                [Number(target.allocation_id), target.ip || null, target.ip_alias || null, target.port || null, target.node_id || null]
+            );
+        }
+
+        res.json({
+            success: true,
+            message: 'Extra port removed and returned to your allocation pool.'
+        });
+    } catch (error) {
+        console.error('Error removing additional port:', error);
+        res.status(500).json({ success: false, message: 'Error removing additional port' });
     }
 });
 
@@ -2314,7 +2487,10 @@ router.get('/api/details/:id', requireAuth, async (req, res) => {
         
         res.json({ 
             success: true, 
-            server: server
+            server: {
+                ...server,
+                public_address: sanitizePublicAddressForDisplay(server.public_address)
+            }
         });
     } catch (error) {
         console.error('Error getting server details:', error);
@@ -2341,12 +2517,17 @@ router.get('/api/resolve-address/:id', requireAuth, async (req, res) => {
             });
         }
         
-        // If already stored, return it directly
+        // If already stored and not a raw IP, return it directly
         if (server.public_address) {
-            return res.json({
-                success: true,
-                public_address: server.public_address
-            });
+            const safeAddress = sanitizePublicAddressForDisplay(server.public_address);
+            if (safeAddress) {
+                return res.json({
+                    success: true,
+                    public_address: safeAddress
+                });
+            }
+            // Stored value is raw/legacy; clear it.
+            await run('UPDATE servers SET public_address = NULL WHERE id = ?', [server.id]);
         }
         
         // Need Pterodactyl configured and an ID to resolve address
@@ -2361,6 +2542,7 @@ router.get('/api/resolve-address/:id', requireAuth, async (req, res) => {
         try {
             const serverDetails = await pterodactyl.getServerDetails(server.pterodactyl_id);
             if (serverDetails.success) {
+                const nodeAliasMap = await getNodeAliasMap();
                 const serverAttrs = serverDetails.data?.attributes || serverDetails.data;
                 const primaryAllocationId = serverAttrs?.allocation;
                 if (primaryAllocationId != null && primaryAllocationId !== '') {
@@ -2369,15 +2551,16 @@ router.get('/api/resolve-address/:id', requireAuth, async (req, res) => {
                         ? await get('SELECT * FROM pterodactyl_allocations WHERE allocation_id = ?', [aid])
                         : await get('SELECT * FROM pterodactyl_allocations WHERE allocation_id = ?', [primaryAllocationId]);
                     if (localAlloc) {
-                        const address = (localAlloc.ip_alias && String(localAlloc.ip_alias).trim() !== '')
-                            ? String(localAlloc.ip_alias).trim()
-                            : localAlloc.ip;
-                        publicAddress = `${address}:${localAlloc.port}`;
+                        publicAddress = formatAllocationAddressWithNodeAlias(localAlloc, nodeAliasMap);
                     } else {
-                        publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
+                        const allocationRows = extractAllocationsFromServerDetails(serverDetails.data);
+                        const primaryAlloc = allocationRows.find((row) => row.is_default) || allocationRows[0] || null;
+                        publicAddress = formatAllocationAddressWithNodeAlias(primaryAlloc, nodeAliasMap);
                     }
                 } else {
-                    publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
+                    const allocationRows = extractAllocationsFromServerDetails(serverDetails.data);
+                    const primaryAlloc = allocationRows.find((row) => row.is_default) || allocationRows[0] || null;
+                    publicAddress = formatAllocationAddressWithNodeAlias(primaryAlloc, nodeAliasMap);
                 }
             }
         } catch (error) {
@@ -2607,9 +2790,11 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                         [req.session.user.id]
                     );
                     const portCount = Number(currentPorts?.total || 0);
-                    if (portCount + amount > limits.max_ports) {
-                        const remaining = Math.max(0, limits.max_ports - portCount);
-                        throw new Error(`Purchase would exceed the port limit of ${limits.max_ports}. You can purchase up to ${remaining} more.`);
+                    // max_ports represents total ports per user (includes 1 default primary port).
+                    const maxPurchasableExtraPorts = Math.max(0, Number(limits.max_ports || 0) - 1);
+                    if (portCount + amount > maxPurchasableExtraPorts) {
+                        const remaining = Math.max(0, maxPurchasableExtraPorts - portCount);
+                        throw new Error(`Purchase would exceed the total port limit of ${limits.max_ports} (includes 1 default port). You can purchase up to ${remaining} more extra port(s).`);
                     }
                 }
             }
@@ -3214,21 +3399,6 @@ router.post('/api/create-from-template', requireAuth, async (req, res) => {
         let publicAddress = null;
         if (allocation.ip_alias && String(allocation.ip_alias).trim() !== '') {
             publicAddress = `${String(allocation.ip_alias).trim()}:${allocation.port}`;
-        } else if (allocation.ip) {
-            publicAddress = `${allocation.ip}:${allocation.port}`;
-        }
-        if (!publicAddress && createResult.data) {
-            publicAddress = pterodactyl.extractPublicAddress(createResult.data);
-        }
-        if (!publicAddress && pterodactylId) {
-            try {
-                const serverDetails = await pterodactyl.getServerDetails(pterodactylId);
-                if (serverDetails.success) {
-                    publicAddress = pterodactyl.extractPublicAddress(serverDetails.data);
-                }
-            } catch (e) {
-                console.error('Error fetching server details:', e);
-            }
         }
         
         // Delete the used allocation
@@ -3304,7 +3474,8 @@ router.get('/api/purchased-resources', requireAuth, async (req, res) => {
             purchased_extras: {
                 databases: Number(purchasedExtras?.databases || 0),
                 backups: Number(purchasedExtras?.backups || 0),
-                ports: Number(purchasedExtras?.ports || 0)
+                // Users always have 1 default primary port from server allocation.
+                ports: Number(purchasedExtras?.ports || 0) + 1
             }
         });
     } catch (error) {

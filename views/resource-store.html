@@ -508,7 +508,12 @@
             }
             if (portLimit) {
                 const maxPorts = resourcePrices.max_ports;
-                portLimit.textContent = !maxPorts || maxPorts <= 0 ? 'Maximum limit: Unlimited' : `Maximum limit: ${Number(maxPorts)} port${Number(maxPorts) !== 1 ? 's' : ''}`;
+                if (!maxPorts || maxPorts <= 0) {
+                    portLimit.textContent = 'Maximum extra purchasable: Unlimited';
+                } else {
+                    const maxExtraPorts = Math.max(0, Number(maxPorts) - 1);
+                    portLimit.textContent = `Maximum extra purchasable: ${maxExtraPorts} port${maxExtraPorts !== 1 ? 's' : ''} (total limit: ${Number(maxPorts)} incl. default)`;
+                }
             }
         }
         
@@ -638,7 +643,8 @@
                 } else if (resourceType === 'backup' && resourcePrices.max_backups > 0) {
                     limitMsg = `Max allowed: ${resourcePrices.max_backups} backup`;
                 } else if (resourceType === 'port' && resourcePrices.max_ports > 0) {
-                    limitMsg = `Max allowed: ${resourcePrices.max_ports} port`;
+                    const maxExtraPorts = Math.max(0, Number(resourcePrices.max_ports) - 1);
+                    limitMsg = `Max extra purchasable: ${maxExtraPorts} port`;
                 }
                 limitWarning.textContent = limitMsg;
                 limitWarning.style.display = limitMsg ? 'block' : 'none';

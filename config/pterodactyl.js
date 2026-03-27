@@ -1038,6 +1038,49 @@ async function addServerAllocation(serverId, allocationId) {
     });
 }
 
+// Remove an additional allocation from a server (Application API).
+// Prefer PATCH /build with remove_allocations; fall back to DELETE endpoint if needed.
+async function removeServerAllocation(serverId, allocationId) {
+    const serverDetails = await getServerDetails(serverId);
+    if (!serverDetails.success) {
+        return serverDetails;
+    }
+
+    const serverAttrs = serverDetails.data?.attributes || serverDetails.data;
+    const currentLimits = serverAttrs.limits || {};
+    const currentFeatureLimits = serverAttrs.feature_limits || {};
+    const primaryAllocationId = parseInt(serverAttrs.allocation, 10);
+    const removeAllocationId = parseInt(allocationId, 10);
+
+    if (!primaryAllocationId || Number.isNaN(primaryAllocationId) || Number.isNaN(removeAllocationId)) {
+        return { success: false, error: 'Invalid allocation information' };
+    }
+
+    const patchResult = await makeRequest('PATCH', `/application/servers/${serverId}/build`, {
+        allocation: primaryAllocationId,
+        oom_disabled: serverAttrs.oom_disabled ?? false,
+        limits: {
+            memory: currentLimits.memory,
+            swap: currentLimits.swap ?? 0,
+            disk: currentLimits.disk,
+            io: currentLimits.io ?? 500,
+            cpu: currentLimits.cpu
+        },
+        feature_limits: {
+            databases: currentFeatureLimits.databases !== undefined ? currentFeatureLimits.databases : 0,
+            allocations: currentFeatureLimits.allocations !== undefined ? currentFeatureLimits.allocations : 1,
+            backups: currentFeatureLimits.backups !== undefined ? currentFeatureLimits.backups : 0
+        },
+        remove_allocations: [removeAllocationId]
+    });
+    if (patchResult.success) {
+        return patchResult;
+    }
+
+    // Fallback path for panels that expose dedicated allocation remove endpoint.
+    return await makeRequest('DELETE', `/application/servers/${serverId}/allocations/${removeAllocationId}`);
+}
+
 // Suspend server
 async function suspendServer(serverId) {
     return await makeRequest('POST', `/application/servers/${serverId}/suspend`);
@@ -1423,5 +1466,6 @@ module.exports = {
     createDatabase,
     rotateDatabasePassword,
     deleteDatabase,
-    addServerAllocation
+    addServerAllocation,
+    removeServerAllocation
 };
