@@ -570,11 +570,9 @@ router.post('/api/linkvertise/config', requireAdmin, sanitizeBody, async (req, r
         // Validate cooldown_seconds
         const cooldown = (cooldown_seconds !== undefined && cooldown_seconds >= 0) ? cooldown_seconds : 30;
         
-        // Check if config exists
         const existing = await get('SELECT id FROM linkvertise_config ORDER BY id DESC LIMIT 1');
         
-        if (previous) {
-            // Update existing config
+        if (existing) {
             await run(
                 'UPDATE linkvertise_config SET publisher_link = ?, publisher_id = ?, default_coins = ?, cooldown_seconds = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
                 [publisher_link || '', extractedId || '', default_coins || 10, cooldown, existing.id]
@@ -1240,7 +1238,7 @@ router.post('/api/renewals/settings', requireAdmin, sanitizeBody, async (req, re
 
         const previous = await get('SELECT id, renewal_enabled FROM renewal_settings ORDER BY id DESC LIMIT 1');
         const wasEnabled = Number(previous?.renewal_enabled || 0) === 1;
-        if (existing) {
+        if (previous) {
             await run(
                 `UPDATE renewal_settings
                  SET renewal_enabled = ?, renewal_frequency = ?, renewal_coins_per_cycle = ?,
