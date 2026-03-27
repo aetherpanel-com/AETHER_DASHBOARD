@@ -181,6 +181,7 @@
                             <div class="admin-tab-row">
                                 <button type="button" class="tab-btn" onclick="showTab('store', this)">Store</button>
                                 <button type="button" class="tab-btn" onclick="showTab('templates', this)">Templates</button>
+                                <button type="button" class="tab-btn" onclick="showTab('renewals', this)">Renewals</button>
                             </div>
                         </div>
                         <div class="admin-tab-group">
@@ -786,6 +787,59 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Renewals Tab -->
+                    <div id="renewalsTab" class="tab-content" style="display: none;">
+                        <div class="card" style="margin-bottom: 20px;">
+                            <div class="card-header">Renewal Settings</div>
+                            <form id="renewalSettingsForm">
+                                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+                                    <div class="form-group">
+                                        <label for="renewalEnabled">Status</label>
+                                        <select id="renewalEnabled">
+                                            <option value="0">Disabled</option>
+                                            <option value="1">Enabled</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="renewalFrequency">Frequency</label>
+                                        <select id="renewalFrequency">
+                                            <option value="hourly">Hourly</option>
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="monthly">Monthly</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="renewalCoinsPerCycle">Coins Per Cycle</label>
+                                        <input type="number" id="renewalCoinsPerCycle" min="0" value="0" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="renewalDeductionMode">Deduction Mode</label>
+                                        <select id="renewalDeductionMode">
+                                            <option value="manual">Manual</option>
+                                            <option value="auto">Auto Deduct</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="renewalGraceCycles">Grace Cycles</label>
+                                        <input type="number" id="renewalGraceCycles" min="0" value="0">
+                                        <small style="color:#94a3b8;">Suspend when overdue count goes above this number.</small>
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+                                    <button type="submit" class="btn btn-primary">Save Renewal Settings</button>
+                                    <button type="button" class="btn btn-secondary" onclick="runRenewalCycleNow()">Run Renewal Cycle Now</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="card" style="margin-bottom: 20px;">
+                            <div class="card-header">Renewal Server Queue</div>
+                            <div id="renewalServersList">
+                                <p style="color:#94a3b8;">Loading renewal server queue...</p>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Panel Tab -->
                     <div id="panelTab" class="tab-content" style="display: none;">
@@ -1187,9 +1241,17 @@
                 }
             });
 
+            const renewalSettingsForm = document.getElementById('renewalSettingsForm');
+            if (renewalSettingsForm) {
+                renewalSettingsForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await saveRenewalSettings();
+                });
+            }
+
             // Restore tab from URL hash on load
             const hash = window.location.hash.replace('#', '');
-            const validTabs = ['users', 'servers', 'coins', 'store', 'dailyRewards', 'maintenance', 'broadcast', 'templates', 'panel'];
+            const validTabs = ['users', 'servers', 'coins', 'store', 'dailyRewards', 'maintenance', 'broadcast', 'templates', 'renewals', 'panel'];
             if (hash && validTabs.includes(hash)) {
                 const btn = findTabButtonForName(hash);
                 showTab(hash, btn || null);
@@ -1257,10 +1319,159 @@
             } else if (tabName === 'templates') {
                 loadTemplates();
                 loadEggsForTemplates();
+            } else if (tabName === 'renewals') {
+                loadRenewalSettings();
+                loadRenewalServers();
             } else if (tabName === 'panel') {
                 loadPanelConfig();
                 loadPanelSettings();
                 loadNodeAliases();
+            }
+        }
+
+        // Renewals (Admin) Functions
+        async function loadRenewalSettings() {
+            try {
+                const response = await apiFetch('/admin/api/renewals/settings');
+                const data = await response.json();
+                if (!data.success) {
+                    showNotification(data.message || 'Failed to load renewal settings', 'error');
+                    return;
+                }
+                const s = data.settings || {};
+                document.getElementById('renewalEnabled').value = String(Number(s.renewal_enabled || 0));
+                document.getElementById('renewalFrequency').value = s.renewal_frequency || 'monthly';
+                document.getElementById('renewalCoinsPerCycle').value = Number(s.renewal_coins_per_cycle || 0);
+                document.getElementById('renewalDeductionMode').value = s.renewal_deduction_mode || 'manual';
+                document.getElementById('renewalGraceCycles').value = Number(s.renewal_grace_cycles || 0);
+            } catch (error) {
+                console.error('Error loading renewal settings:', error);
+                showNotification('Error loading renewal settings', 'error');
+            }
+        }
+
+        async function saveRenewalSettings() {
+            try {
+                const payload = {
+                    renewal_enabled: document.getElementById('renewalEnabled').value === '1',
+                    renewal_frequency: document.getElementById('renewalFrequency').value,
+                    renewal_coins_per_cycle: parseInt(document.getElementById('renewalCoinsPerCycle').value, 10) || 0,
+                    renewal_deduction_mode: document.getElementById('renewalDeductionMode').value,
+                    renewal_grace_cycles: parseInt(document.getElementById('renewalGraceCycles').value, 10) || 0
+                };
+                const response = await apiFetch('/admin/api/renewals/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    showNotification(data.message || 'Failed to save renewal settings', 'error');
+                    return;
+                }
+                showNotification(data.message || 'Renewal settings saved', 'success');
+                await loadRenewalServers();
+            } catch (error) {
+                console.error('Error saving renewal settings:', error);
+                showNotification('Error saving renewal settings', 'error');
+            }
+        }
+
+        async function runRenewalCycleNow() {
+            try {
+                const response = await apiFetch('/admin/api/renewals/run-now', { method: 'POST' });
+                const data = await response.json();
+                if (!data.success) {
+                    showNotification(data.message || 'Failed to run renewal cycle', 'error');
+                    return;
+                }
+                showNotification(data.message || 'Renewal cycle processed', 'success');
+                await loadRenewalServers();
+            } catch (error) {
+                console.error('Error running renewal cycle:', error);
+                showNotification('Error running renewal cycle', 'error');
+            }
+        }
+
+        async function loadRenewalServers() {
+            const container = document.getElementById('renewalServersList');
+            if (!container) return;
+            container.innerHTML = '<p style="color:#94a3b8;">Loading renewal server queue...</p>';
+            try {
+                const response = await apiFetch('/admin/api/renewals/servers');
+                const data = await response.json();
+                if (!data.success) {
+                    container.innerHTML = `<p style="color:#ef4444;">${escapeHtml(data.message || 'Failed to load renewal servers')}</p>`;
+                    return;
+                }
+
+                const rows = data.servers || [];
+                if (rows.length === 0) {
+                    container.innerHTML = '<p style="color:#94a3b8;">No servers available for renewal tracking yet.</p>';
+                    return;
+                }
+
+                const tableRows = rows.map((row) => {
+                    const status = String(row.renewal_status || 'active');
+                    const statusColor = status === 'active' ? '#22c55e' : (status === 'suspended' ? '#ef4444' : '#f59e0b');
+                    const dueAt = row.renewal_next_due_at ? new Date(row.renewal_next_due_at).toLocaleString() : 'Not scheduled';
+                    return `
+                        <tr>
+                            <td style="padding:8px 10px;">${escapeHtml(row.name || '')}</td>
+                            <td style="padding:8px 10px;">${escapeHtml(row.username || '')}</td>
+                            <td style="padding:8px 10px;">${escapeHtml(dueAt)}</td>
+                            <td style="padding:8px 10px; color:${statusColor}; text-transform:capitalize;">${escapeHtml(status)}</td>
+                            <td style="padding:8px 10px;">${Number(row.renewal_overdue_count || 0)}</td>
+                            <td style="padding:8px 10px;">${formatNumber(row.coins || 0)}</td>
+                            <td style="padding:8px 10px;">
+                                <button type="button" class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="processManualRenewal(${Number(row.id)})">Deduct Now</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                container.innerHTML = `
+                    <div class="table-scroll-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Server</th>
+                                    <th>User</th>
+                                    <th>Next Due</th>
+                                    <th>Status</th>
+                                    <th>Overdue</th>
+                                    <th>User Coins</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading renewal servers:', error);
+                container.innerHTML = '<p style="color:#ef4444;">Error loading renewal servers</p>';
+            }
+        }
+
+        async function processManualRenewal(serverId) {
+            if (!serverId) return;
+            try {
+                const response = await apiFetch('/admin/api/renewals/process-manual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ server_id: serverId })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    showNotification(data.message || 'Manual renewal deduction failed', 'error');
+                    return;
+                }
+                showNotification(data.message || 'Manual renewal deduction completed', 'success');
+                await loadRenewalServers();
+            } catch (error) {
+                console.error('Error processing manual renewal:', error);
+                showNotification('Error processing manual renewal', 'error');
             }
         }
 

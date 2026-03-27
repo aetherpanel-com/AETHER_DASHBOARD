@@ -4,6 +4,23 @@
 
 ---
 
+## 🆕 Version 1.6 Quick Checks (Renewals + Ports)
+
+If you updated to v1.6 and features seem missing:
+
+1. Restart dashboard service (required for renewal worker):
+   ```bash
+   pm2 restart aether-dashboard
+   ```
+2. Confirm DB migration happened (tables/columns auto-created on startup):
+   - `renewal_settings`
+   - `server_renewal_events`
+   - `servers.renewal_next_due_at`, `renewal_last_processed_at`, `renewal_status`, `renewal_overdue_count`
+3. Verify admin renewal policy is saved in Admin Panel → Overview → Commerce → Renewals.
+4. If Additional Ports alias is blank, sync allocations from Admin Panel → Panel and verify node default alias settings.
+
+---
+
 ## 🔧 Installation Issues
 
 ### "Installer script fails to run"
@@ -139,6 +156,40 @@
    pm2 restart aether-dashboard
    pm2 restart aether-discord-bot
    ```
+
+---
+
+## 🔁 Renewal System Issues
+
+### "Renewals are not processing automatically"
+
+**Checklist:**
+- ✅ Renewal Status is enabled in Admin Renewals tab
+- ✅ Coins Per Cycle is greater than 0
+- ✅ Dashboard process was restarted after update
+
+**Fix:**
+1. Restart service:
+   ```bash
+   pm2 restart aether-dashboard
+   ```
+2. In Admin Renewals tab, click **Run Renewal Cycle Now** and verify queue status updates.
+
+### "Renew button is disabled for user"
+
+**Expected behavior:** Renew is only available when remaining time is within one cycle (hour/day/week/month based on admin setting).
+
+**Fix:** Wait until server enters allowed renewal window, then retry.
+
+### "The user has already used maximum renewable cycles."
+
+**Meaning:** Server is already extended to the allowed one-extra-cycle window.  
+This applies to both user renew and admin manual deduct.
+
+### "Server is suspended immediately on missed renewal"
+
+If **Grace Cycles = 0**, first missed cycle can suspend the server.  
+Increase grace cycles if you want an overdue buffer before suspension.
 
 ---
 

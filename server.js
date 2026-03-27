@@ -356,6 +356,14 @@ try {
     console.error('[healthPoller] Failed to start:', e);
 }
 
+// Renewal processor (auto/manual due cycle handling)
+try {
+    const renewalWorker = require('./config/renewalWorker');
+    renewalWorker.start();
+} catch (e) {
+    console.error('[renewalWorker] Failed to start:', e);
+}
+
 // Minimal WebSocket connection handler (Phase 1 + Phase 2 + Phase 3)
 io.on('connection', (socket) => {
     console.log('[WebSocket] Client connected:', socket.id);

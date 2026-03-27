@@ -401,6 +401,18 @@ function initializeDatabase() {
                         if (!columnNames.includes('pterodactyl_identifier')) {
                             columnsToAdd.push({ name: 'pterodactyl_identifier', type: 'TEXT' });
                         }
+                        if (!columnNames.includes('renewal_next_due_at')) {
+                            columnsToAdd.push({ name: 'renewal_next_due_at', type: 'TEXT' });
+                        }
+                        if (!columnNames.includes('renewal_last_processed_at')) {
+                            columnsToAdd.push({ name: 'renewal_last_processed_at', type: 'TEXT' });
+                        }
+                        if (!columnNames.includes('renewal_status')) {
+                            columnsToAdd.push({ name: 'renewal_status', type: "TEXT DEFAULT 'active'" });
+                        }
+                        if (!columnNames.includes('renewal_overdue_count')) {
+                            columnsToAdd.push({ name: 'renewal_overdue_count', type: 'INTEGER DEFAULT 0' });
+                        }
                         
                         // Add missing columns
                         columnsToAdd.forEach(col => {
@@ -474,6 +486,58 @@ function initializeDatabase() {
                     return;
                 }
                 console.log('✅ Server_Slot_Purchases table created/verified');
+            });
+
+            // Renewal system settings (global MVP policy)
+            db.run(`
+                CREATE TABLE IF NOT EXISTS renewal_settings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    renewal_enabled INTEGER DEFAULT 0,
+                    renewal_frequency TEXT DEFAULT 'monthly',
+                    renewal_coins_per_cycle INTEGER DEFAULT 0,
+                    renewal_deduction_mode TEXT DEFAULT 'manual',
+                    renewal_grace_cycles INTEGER DEFAULT 0,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating renewal_settings table:', err);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ renewal_settings table created/verified');
+                db.get('SELECT id FROM renewal_settings LIMIT 1', (rowErr, row) => {
+                    if (!rowErr && !row) {
+                        db.run(
+                            `INSERT INTO renewal_settings (renewal_enabled, renewal_frequency, renewal_coins_per_cycle, renewal_deduction_mode, renewal_grace_cycles)
+                             VALUES (0, 'monthly', 0, 'manual', 0)`
+                        );
+                    }
+                });
+            });
+
+            // Renewal processing/audit events
+            db.run(`
+                CREATE TABLE IF NOT EXISTS server_renewal_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    server_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    due_at TEXT,
+                    processed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    amount INTEGER DEFAULT 0,
+                    mode TEXT,
+                    result TEXT,
+                    notes TEXT,
+                    FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating server_renewal_events table:', err);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ server_renewal_events table created/verified');
             });
 
             // Create Linkvertise_Links table

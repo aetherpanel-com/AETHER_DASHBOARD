@@ -2,7 +2,7 @@
 
 Complete guide for setting up and managing your Aether Dashboard after installation.
 
-**Version:** 1.5.8 | **Status:** Production Ready ✅
+**Version:** 1.6 | **Status:** Production Ready ✅
 
 > **New to Aether Dashboard?** Complete the installation steps in [README.md](README.md) first, then return here to set up your admin panel.
 
@@ -18,10 +18,11 @@ Complete guide for setting up and managing your Aether Dashboard after installat
 6. [Coin Management Tab](#-coin-management-tab)
 7. [Store Management Tab](#-store-management-tab)
 8. [Server Templates Tab](#-server-templates-tab)
-9. [Panel Tab — Pterodactyl Setup](#-panel-tab--pterodactyl-setup)
-10. [Admin Settings — Themes](#-admin-settings--themes)
-11. [Admin Settings — Branding](#-admin-settings--branding)
-12. [Integrations — Linkvertise](#-integrations--linkvertise)
+9. [Renewals Tab](#-renewals-tab)
+10. [Panel Tab — Pterodactyl Setup](#-panel-tab--pterodactyl-setup)
+11. [Admin Settings — Themes](#-admin-settings--themes)
+12. [Admin Settings — Branding](#-admin-settings--branding)
+13. [Integrations — Linkvertise](#-integrations--linkvertise)
     - [Target URL on Linkvertise (Post & earn)](#setting-the-target-url-in-linkvertise-post--earn)
 13. [Integrations — Discord](#integrations--discord)
 14. [Audit Logs](#-audit-logs)
@@ -95,7 +96,7 @@ The main card is organised into **groups** so related tools stay together. Each 
 | Group | Tabs |
 |-------|------|
 | **People & servers** | Users, Servers, Coin management |
-| **Commerce** | Store, Templates |
+| **Commerce** | Store, Templates, Renewals |
 | **Platform** | Daily rewards, Maintenance, Broadcast, Panel |
 
 Click a tab to switch. The active section is stored in the **URL hash** (e.g. `#users`, `#coins`, `#templates`) so you can bookmark or reload the same view.
@@ -219,6 +220,53 @@ one click, without selecting egg, RAM, CPU, and storage manually.
 - Use the **Active** toggle on each template to show or hide it from users
 - Use **Display Order** to control the order templates appear in
 - Click **Delete** to remove a template permanently
+
+---
+
+## 🔁 Renewals Tab
+
+The Renewals tab (Admin Panel → Overview → Commerce → Renewals) is the control center for recurring server renewals.
+
+### Renewal Settings
+
+Configure:
+
+- **Status**: Enabled / Disabled
+- **Frequency**: Hourly, Daily, Weekly, Monthly
+- **Coins Per Cycle**: Renewal cost charged per cycle
+- **Deduction Mode**:
+  - **Auto Deduct**: worker attempts automatic coin deduction on due cycle
+  - **Manual**: no auto deduction; admin/user actions handle payment
+- **Grace Cycles**: allowed missed cycles before suspension
+
+Use **Save Renewal Settings** to persist policy and **Run Renewal Cycle Now** to execute one immediate processing pass.
+
+### Renewal Server Queue
+
+Queue columns:
+
+- Server
+- User
+- Next Due
+- Status (`active`, `overdue`, `suspended`)
+- Overdue count
+- User coins
+- Action (`Deduct Now`)
+
+#### Deduct Now rules
+
+- Uses the same max-extension policy as user renew:
+  - no more than one extra cycle ahead.
+- If server is already extended to max window, admin receives:
+  - **"The user has already used maximum renewable cycles."**
+
+### Practical admin workflow
+
+1. Save renewal policy.
+2. Run one cycle manually after policy changes.
+3. Watch queue status + overdue counters.
+4. Use **Deduct Now** for manual collection when needed.
+5. Investigate suspended rows (coins, grace value, due cadence).
 
 ---
 

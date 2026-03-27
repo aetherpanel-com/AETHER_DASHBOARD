@@ -10,6 +10,7 @@ const { db, query, get, run, transaction } = require('../config/database');
 const { sanitizeBody } = require('../middleware/validation');
 const { sendBrandedView } = require('../config/brandingHelper');
 const { writeLog } = require('../utils/auditLog');
+const renewalWorker = require('../config/renewalWorker');
 
 // Configure multer for file uploads (configure once, use multiple times)
 const uploadPath = path.join(__dirname, '../public/assets/branding');
@@ -977,6 +978,127 @@ router.post('/api/store/resource-icon-upload', requireAdmin, (req, res, next) =>
     } catch (error) {
         console.error('Error uploading resource icon:', error);
         res.status(500).json({ success: false, message: 'Error uploading resource icon' });
+    }
+});
+
+// Renewal Settings API (MVP)
+router.get('/api/renewals/settings', requireAdmin, async (req, res) => {
+    try {
+        const settings = await get('SELECT * FROM renewal_settings ORDER BY id DESC LIMIT 1');
+        res.json({
+            success: true,
+            settings: {
+                renewal_enabled: Number(settings?.renewal_enabled || 0),
+                renewal_frequency: settings?.renewal_frequency || 'monthly',
+                renewal_coins_per_cycle: Number(settings?.renewal_coins_per_cycle || 0),
+                renewal_deduction_mode: settings?.renewal_deduction_mode || 'manual',
+                renewal_grace_cycles: Number(settings?.renewal_grace_cycles || 0)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching renewal settings:', error);
+        res.status(500).json({ success: false, message: 'Error fetching renewal settings' });
+    }
+});
+
+router.post('/api/renewals/settings', requireAdmin, sanitizeBody, async (req, res) => {
+    try {
+        const renewal_enabled = req.body?.renewal_enabled ? 1 : 0;
+        const renewal_frequency = String(req.body?.renewal_frequency || 'monthly').toLowerCase();
+        const renewal_deduction_mode = String(req.body?.renewal_deduction_mode || 'manual').toLowerCase();
+        const renewal_coins_per_cycle = Math.max(0, parseInt(req.body?.renewal_coins_per_cycle, 10) || 0);
+        const renewal_grace_cycles = Math.max(0, parseInt(req.body?.renewal_grace_cycles, 10) || 0);
+
+        if (!['hourly', 'daily', 'weekly', 'monthly'].includes(renewal_frequency)) {
+            return res.status(400).json({ success: false, message: 'Invalid renewal frequency.' });
+        }
+        if (!['manual', 'auto'].includes(renewal_deduction_mode)) {
+            return res.status(400).json({ success: false, message: 'Invalid renewal deduction mode.' });
+        }
+
+        const existing = await get('SELECT id FROM renewal_settings ORDER BY id DESC LIMIT 1');
+        if (existing) {
+            await run(
+                `UPDATE renewal_settings
+                 SET renewal_enabled = ?, renewal_frequency = ?, renewal_coins_per_cycle = ?,
+                     renewal_deduction_mode = ?, renewal_grace_cycles = ?, updated_at = CURRENT_TIMESTAMP
+                 WHERE id = ?`,
+                [renewal_enabled, renewal_frequency, renewal_coins_per_cycle, renewal_deduction_mode, renewal_grace_cycles, existing.id]
+            );
+        } else {
+            await run(
+                `INSERT INTO renewal_settings
+                 (renewal_enabled, renewal_frequency, renewal_coins_per_cycle, renewal_deduction_mode, renewal_grace_cycles)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [renewal_enabled, renewal_frequency, renewal_coins_per_cycle, renewal_deduction_mode, renewal_grace_cycles]
+            );
+        }
+
+        // Initialize due date for legacy servers that do not yet have renewal schedule.
+        const legacyServers = await query(
+            `SELECT id, created_at FROM servers
+             WHERE renewal_next_due_at IS NULL OR renewal_next_due_at = ''`
+        );
+        for (const srv of legacyServers || []) {
+            const base = srv.created_at ? new Date(srv.created_at) : new Date();
+            const nextDue = renewalWorker.addFrequency(base.toISOString(), renewal_frequency);
+            if (!nextDue) continue;
+            await run(
+                `UPDATE servers
+                 SET renewal_next_due_at = ?, renewal_last_processed_at = NULL, renewal_status = ?, renewal_overdue_count = 0
+                 WHERE id = ?`,
+                [nextDue, renewal_enabled ? 'active' : 'disabled', srv.id]
+            );
+        }
+
+        res.json({ success: true, message: 'Renewal settings saved successfully.' });
+    } catch (error) {
+        console.error('Error saving renewal settings:', error);
+        res.status(500).json({ success: false, message: 'Error saving renewal settings' });
+    }
+});
+
+router.get('/api/renewals/servers', requireAdmin, async (req, res) => {
+    try {
+        const rows = await query(
+            `SELECT s.id, s.name, s.user_id, s.pterodactyl_id,
+                    s.renewal_next_due_at, s.renewal_status, COALESCE(s.renewal_overdue_count, 0) as renewal_overdue_count,
+                    u.username, u.coins
+             FROM servers s
+             INNER JOIN users u ON u.id = s.user_id
+             ORDER BY datetime(s.renewal_next_due_at) ASC, s.id ASC`
+        );
+        res.json({ success: true, servers: rows || [] });
+    } catch (error) {
+        console.error('Error fetching renewal servers:', error);
+        res.status(500).json({ success: false, message: 'Error fetching renewal servers' });
+    }
+});
+
+router.post('/api/renewals/process-manual', requireAdmin, sanitizeBody, async (req, res) => {
+    try {
+        const serverId = parseInt(req.body?.server_id, 10);
+        if (Number.isNaN(serverId) || serverId <= 0) {
+            return res.status(400).json({ success: false, message: 'Valid server_id is required.' });
+        }
+        const result = await renewalWorker.manuallyDeductRenewal(serverId, req.session.user?.id || null);
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+        res.json(result);
+    } catch (error) {
+        console.error('Error processing manual renewal:', error);
+        res.status(500).json({ success: false, message: 'Error processing manual renewal' });
+    }
+});
+
+router.post('/api/renewals/run-now', requireAdmin, async (req, res) => {
+    try {
+        await renewalWorker.processDueRenewalsOnce();
+        res.json({ success: true, message: 'Renewal cycle processed.' });
+    } catch (error) {
+        console.error('Error running renewal cycle:', error);
+        res.status(500).json({ success: false, message: 'Error running renewal cycle' });
     }
 });
 

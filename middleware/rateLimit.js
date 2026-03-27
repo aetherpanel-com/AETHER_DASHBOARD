@@ -68,10 +68,23 @@ const purchaseLimiter = rateLimit({
     legacyHeaders: false
 });
 
+// Renewal action limiter - prevent rapid renew spam/races
+const renewalLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 8, // generous for normal UI retries, strict enough for abuse
+    message: {
+        success: false,
+        message: 'Too many renewal attempts. Please wait a moment.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
 module.exports = {
     apiLimiter,
     authLimiter,
     serverCreationLimiter,
     linkvertiseLimiter,
-    purchaseLimiter
+    purchaseLimiter,
+    renewalLimiter
 };

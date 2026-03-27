@@ -719,6 +719,7 @@
         
         async function loadServers() {
             try {
+                await loadRenewalSettings();
                 const response = await fetch('/servers/api/list');
                 if (response.ok) {
                     const data = await response.json();
@@ -734,6 +735,61 @@
         
         // Cache panel URL
         let cachedPanelUrl = null;
+        let renewalSettings = {
+            renewal_enabled: 0,
+            renewal_frequency: 'monthly',
+            renewal_coins_per_cycle: 0
+        };
+
+        function addRenewalCycle(dateInput, frequency) {
+            const d = new Date(dateInput);
+            if (Number.isNaN(d.getTime())) return null;
+            switch ((frequency || 'monthly').toLowerCase()) {
+                case 'hourly':
+                    d.setHours(d.getHours() + 1);
+                    break;
+                case 'daily':
+                    d.setDate(d.getDate() + 1);
+                    break;
+                case 'weekly':
+                    d.setDate(d.getDate() + 7);
+                    break;
+                case 'monthly':
+                default:
+                    d.setMonth(d.getMonth() + 1);
+                    break;
+            }
+            return d;
+        }
+
+        function canRenewServerNow(server) {
+            if (Number(renewalSettings.renewal_enabled || 0) !== 1) return false;
+            const due = new Date(server.renewal_next_due_at || '');
+            if (Number.isNaN(due.getTime())) return false;
+            const cycleEnd = addRenewalCycle(new Date(), renewalSettings.renewal_frequency || 'monthly');
+            if (!cycleEnd || Number.isNaN(cycleEnd.getTime())) return false;
+            return due.getTime() <= cycleEnd.getTime();
+        }
+
+        function formatRenewalDue(dateValue) {
+            const d = new Date(dateValue || '');
+            if (Number.isNaN(d.getTime())) return 'Not scheduled';
+            return d.toLocaleString();
+        }
+
+        async function loadRenewalSettings() {
+            try {
+                const response = await fetch('/servers/api/renewal/settings');
+                if (!response.ok) return;
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    renewalSettings = data.settings;
+                }
+            } catch (error) {
+                console.error('Error loading renewal settings:', error);
+            }
+        }
+
         async function loadPanelUrl() {
             if (cachedPanelUrl) return cachedPanelUrl;
             try {
@@ -767,6 +823,9 @@
                 // BUGFIX #3: Use pterodactyl_identifier for panel URLs (Client API uses identifier, not internal ID)
                 const hasPterodactylIdentifier = server.pterodactyl_identifier || server.pterodactyl_id;
                 const hasIdentifier = !!server.pterodactyl_identifier;
+                const renewEnabledNow = canRenewServerNow(server);
+                const renewalStatus = server.renewal_status || 'active';
+                const renewalDueLabel = formatRenewalDue(server.renewal_next_due_at);
                 html += `
                     <div class="server-card" data-server-id="${server.id}" style="padding: 20px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; border-left: 4px solid #7c3aed; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
                         <div style="display: flex; justify-content: space-between; align-items: start;">
@@ -794,11 +853,20 @@
                                     <div>RAM: ${Math.round(server.ram / 1024)}GB</div>
                                     <div>CPU: ${server.cpu}%</div>
                                     <div>Storage: ${Math.round(server.storage / 1024)}GB</div>
+                                    <div>Renewal Status: <strong style="color:${renewalStatus === 'active' ? '#22c55e' : (renewalStatus === 'suspended' ? '#ef4444' : '#f59e0b')}; text-transform: capitalize;">${escapeHtml(renewalStatus)}</strong></div>
+                                    <div>Next Due: ${escapeHtml(renewalDueLabel)}</div>
                                 </div>
                                 <div style="margin-bottom: 12px;">
                                     <button class="btn btn-secondary" style="font-size: 11px; padding: 5px 12px;"
                                         onclick="openEditResources(${server.id}, ${server.ram}, ${server.cpu}, ${server.storage})">
                                         ✏️ Edit Resources
+                                    </button>
+                                    <button class="btn ${renewEnabledNow ? 'btn-primary' : 'btn-secondary'}"
+                                        style="font-size: 11px; padding: 5px 12px; margin-left: 8px;"
+                                        onclick="renewServer(${server.id})"
+                                        ${renewEnabledNow ? '' : 'disabled'}
+                                        title="${renewEnabledNow ? 'Extend one additional cycle' : 'Available only within one cycle before due time'}">
+                                        🔁 Renew (${formatNumber(renewalSettings.renewal_coins_per_cycle || 0)} coins)
                                     </button>
                                 </div>
                                 
@@ -1032,6 +1100,26 @@
                 showNotification('An error occurred', 'error');
                 btn.disabled = false;
                 btn.textContent = 'Save & Restart';
+            }
+        }
+
+        async function renewServer(serverId) {
+            if (!serverId) return;
+            try {
+                const response = await fetch(`/servers/api/renew/${serverId}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification(data.message || 'Server renewed', 'success');
+                    await loadServers();
+                    await loadUserData();
+                } else {
+                    showNotification(data.message || 'Failed to renew server', 'error');
+                }
+            } catch (error) {
+                console.error('Error renewing server:', error);
+                showNotification('Error renewing server', 'error');
             }
         }
         

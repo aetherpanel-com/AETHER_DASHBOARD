@@ -1,3 +1,69 @@
+## Aether Dashboard v1.6
+
+### 🔁 Renewal System (MVP)
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.6 introduces a practical first release of server renewals with admin configuration + user self-renew support. The goal is predictable renewal behavior without over-complicated billing logic.
+
+### ✨ New Features
+
+| Area | Description |
+|------|-------------|
+| 🧾 **Renewals tab (Admin Overview)** | New Commerce tab: **Renewals** with configurable `enabled`, `frequency`, `coins per cycle`, `deduction mode` (manual/auto), and `grace cycles`. |
+| 🗂️ **Renewal queue** | Server/user renewal queue with next due, status, overdue count, user coins, and per-server **Deduct Now** action. |
+| 👤 **User self-renew** | New Renew button on user server cards. Users can extend **one additional cycle only** and only when remaining time is within one cycle. |
+| ⚙️ **Background renewal worker** | Runs every minute, processes due renewals, applies auto/manual logic, updates status/overdue values, and attempts suspend/unsuspend in panel. |
+| 🧾 **Renewal events** | Renewal actions are recorded in a dedicated event table for auditing and future reporting. |
+
+### 🌐 Port & Allocation Lifecycle Upgrades
+
+| Area | Description |
+|------|-------------|
+| 🛒 **Port in Resource Store** | Port purchases with admin pricing + limits and custom icon support. |
+| ➕ **Assign extra ports** | Additional allocation assignment to existing servers with API compatibility improvements. |
+| ➖ **Remove extra ports** | Delete extra port from server and return allocation to reusable pool. |
+| 🧭 **Alias addressing** | Additional ports now display with alias-first logic (including node default alias fallback). |
+
+### 🐛 Reliability & Security Fixes
+
+- Fixed false-positive UI errors during additional-port removal (live state now trusted correctly).
+- Strengthened renewal route behavior:
+  - compare-and-swap style guard on due-date update to reduce concurrent renew races.
+  - renewal-specific rate limiting to reduce abuse attempts.
+  - aligned status transitions between admin/manual and user renew paths.
+- Improved server creation + resource flow stability from earlier versions (egg sync, due state consistency, address handling).
+
+### 🗄️ Database Changes
+
+Added/used in v1.6:
+
+- **`renewal_settings`** (global renewal policy)
+- **`server_renewal_events`** (renewal audit trail)
+- New columns in **`servers`**:
+  - `renewal_next_due_at`
+  - `renewal_last_processed_at`
+  - `renewal_status`
+  - `renewal_overdue_count`
+
+Migration is automatic on startup.
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**⚠️ Notes:**
+- Restart is required for renewal worker startup.
+- If deploying by SFTP, upload updated `routes/`, `config/`, and `views/` directories.
+
+---
+
 ## Aether Dashboard v1.5.8
 
 ### 🎨 Admin Panel UI Revamp

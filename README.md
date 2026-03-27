@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.5.8
+**Version:** 1.6
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.5.8):** Admin panel UI revamp — cleaner desktop layout, grouped Overview tabs, full-width Themes/Branding/Integrations pages, and mobile-friendly admin screens. New file: `public/css/admin-panel.css`. No database changes. See [UPDATES.md](UPDATES.md) for details.
+**🔧 Latest Update (v1.6):** Resource/port lifecycle expansion and the new Renewal System (admin + user flow). Includes additional-port assign/remove, node-alias address handling, and configurable renewal frequency/deduction modes. See [UPDATES.md](UPDATES.md) for full details.
 
 ---
 
@@ -37,33 +37,44 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 ---
 
-## ✨ What's New in Version 1.5.3
+## ✨ What's New in Version 1.6
 
-**Platform Enhancement Update** — v1.5 adds a full suite of engagement, monetisation, and operational features to the dashboard, making it the most complete version yet.
+**Renewal + Resource Expansion Update** — v1.6 introduces recurring renewals, stronger allocation/port workflows, and multiple platform reliability fixes across admin and user flows.
 
-### 📋 Audit Logs (Version 1.5.3)
-A dedicated admin page at Admin Panel → Admin Settings → Audit Logs. Logs every key platform event with username, action type, description, and timestamp. Filterable by type, user, and date range. Includes per-session timezone display, configurable log retention, and manual clear.
+### 🔁 Renewal System (Admin + User)
+- New **Commerce → Renewals** section in Admin Overview.
+- Admin-configurable renewal policy:
+  - frequency: hourly / daily / weekly / monthly
+  - coins per cycle
+  - deduction mode: manual or auto-deduct
+  - grace cycles before suspension
+- Renewal queue with per-server status, overdue counter, next due date, and manual deduction action.
+- User-side **Renew** button on Manage Servers:
+  - extends exactly one additional cycle
+  - only available when within one cycle before due time
+  - follows same max-extension rule for both user and admin actions.
 
-### 🎁 Daily Login Rewards
-Streak-based daily reward system. Users earn configurable coin amounts for each consecutive day they log in (Day 1–7). Admins configure coin amounts per day and can enable/disable the feature from the Admin Panel → Daily Rewards tab.
+### 🌐 Port & Allocation Improvements
+- Resource Store now supports **Port purchases** with configurable pricing/limits and custom icon.
+- Additional Ports panel on server details:
+  - assign purchased extra ports
+  - remove extra ports and return them to reusable allocation pool
+  - robust live UI refresh and false-error prevention during delete flow.
+- Address rendering now prefers alias flow and supports **node default alias fallback** for additional allocations.
 
-### 👥 User Referral System
-Users get a unique referral link they can share. When someone signs up using their link, both the referrer and the new user earn configurable coin bonuses. Admins configure rewards from Admin Panel → Referral tab.
+### 🧩 Database/Backup/Port Resource UX Improvements
+- Purchased extras are surfaced consistently in server management resource cards.
+- Improved feature-limit handling around paid extras and server-side checks.
 
-### 🔔 Notification Centre
-A persistent notification bell in the header across all dashboard pages. Supports per-user and global (broadcast) notifications with unread badge counts, a slide-out drawer, and real-time toast popups via Socket.IO.
-
-### 📢 Admin Bulk Broadcast
-Admins can send announcements to all users (or a segment) from Admin Panel → Broadcast tab. Broadcasts are delivered as global notifications in the notification bell and as live toasts via Socket.IO.
-
-### 🔧 Scheduled Maintenance
-Admins can schedule maintenance windows with a start and end time from Admin Panel → Maintenance tab. A sticky banner automatically appears across all pages for users when a window is active or upcoming.
-
-### 📊 Server Health Timeline
-A 24-bar health timeline strip appears on each server card, showing the last 24 polling snapshots (online/offline/starting). The poller runs every 5 minutes in the background and stores history in the database.
-
-### ⚠️ Resource Usage Warnings
-Live RAM, CPU, and disk usage chips on server cards. Yellow chips appear at 80% usage, red at 90%. Data is pulled from Pterodactyl in real time.
+### 🐛 Important Fixes Included
+- Daily reward streak reset logic fixed for missed-day scenarios.
+- Egg sync duplicate prevention improved (ID/name/nest matching flow).
+- Server creation nest/egg mismatch bug fixed.
+- Port assignment compatibility updated for broader Pterodactyl API support.
+- Renewal flow hardened against abuse:
+  - renewal endpoint rate limiting
+  - compare-and-swap style update guard for concurrency
+  - status transition alignment across admin/user renewal actions.
 
 ---
 
@@ -1713,4 +1724,4 @@ MIT License - Feel free to use, modify, and distribute!
 
 **Made with ❤️ for free hosting providers. Start earning revenue today!** 🚀💰
 
-**Version 1.5.8** - Production Ready ✅
+**Version 1.6** - Production Ready ✅

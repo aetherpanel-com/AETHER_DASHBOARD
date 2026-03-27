@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { query, get, run, transaction } = require('../config/database');
-const { serverCreationLimiter, purchaseLimiter } = require('../middleware/rateLimit');
+const { serverCreationLimiter, purchaseLimiter, renewalLimiter } = require('../middleware/rateLimit');
 const pterodactyl = require('../config/pterodactyl');
 const { markStep } = require('./onboarding');
 const { getServerHealthTimeline } = require('../config/healthPoller');
@@ -13,6 +13,7 @@ const { db } = require('../config/database');
 const { sendBrandedView } = require('../config/brandingHelper');
 const { writeLog } = require('../utils/auditLog');
 const { sanitizePterodactylUsername } = require('../utils/helpers');
+const renewalWorker = require('../config/renewalWorker');
 
 async function getPterodactylUserIdForRequest(req) {
     if (req.session?.user?.pterodactyl_user_id) {
@@ -20,6 +21,22 @@ async function getPterodactylUserIdForRequest(req) {
     }
     const row = await get('SELECT pterodactyl_user_id FROM users WHERE id = ?', [req.session.user.id]);
     return row?.pterodactyl_user_id || null;
+}
+
+async function initializeServerRenewal(serverId, createdAt = null) {
+    const settings = await renewalWorker.getRenewalSettings();
+    const enabled = Number(settings?.renewal_enabled || 0) === 1;
+    const frequency = settings?.renewal_frequency || 'monthly';
+    const base = createdAt ? new Date(createdAt) : new Date();
+    const baseIso = Number.isNaN(base.getTime()) ? new Date().toISOString() : base.toISOString();
+    const nextDue = renewalWorker.addFrequency(baseIso, frequency);
+    if (!nextDue) return;
+    await run(
+        `UPDATE servers
+         SET renewal_next_due_at = ?, renewal_last_processed_at = NULL, renewal_status = ?, renewal_overdue_count = 0
+         WHERE id = ?`,
+        [nextDue, enabled ? 'active' : 'disabled', serverId]
+    );
 }
 
 async function getPurchasedDbBackupTotals(userId) {
@@ -152,6 +169,27 @@ function sanitizePublicAddressForDisplay(address) {
         return null;
     }
     return value;
+}
+
+function addRenewalCycle(baseInput, frequency) {
+    const base = new Date(baseInput);
+    if (Number.isNaN(base.getTime())) return null;
+    switch (String(frequency || 'monthly')) {
+        case 'hourly':
+            base.setHours(base.getHours() + 1);
+            break;
+        case 'daily':
+            base.setDate(base.getDate() + 1);
+            break;
+        case 'weekly':
+            base.setDate(base.getDate() + 7);
+            break;
+        case 'monthly':
+        default:
+            base.setMonth(base.getMonth() + 1);
+            break;
+    }
+    return base.toISOString();
 }
 
 function extractHostFromAddress(address) {
@@ -381,6 +419,143 @@ router.get('/api/panel-url', requireAuth, async (req, res) => {
         });
     } catch (error) {
         res.json({ success: false, panel_url: null });
+    }
+});
+
+// Renewal settings for user-side renewal UI/actions
+router.get('/api/renewal/settings', requireAuth, async (req, res) => {
+    try {
+        const settings = await get('SELECT * FROM renewal_settings ORDER BY id DESC LIMIT 1');
+        res.json({
+            success: true,
+            settings: {
+                renewal_enabled: Number(settings?.renewal_enabled || 0),
+                renewal_frequency: settings?.renewal_frequency || 'monthly',
+                renewal_coins_per_cycle: Math.max(0, Number(settings?.renewal_coins_per_cycle || 0)),
+                renewal_deduction_mode: settings?.renewal_deduction_mode || 'manual'
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching renewal settings:', error);
+        res.status(500).json({ success: false, message: 'Error fetching renewal settings' });
+    }
+});
+
+// User-initiated renewal: extend one additional cycle when inside current-cycle window.
+router.post('/api/renew/:id', requireAuth, renewalLimiter, async (req, res) => {
+    try {
+        const server = await get(
+            'SELECT id, user_id, name, renewal_next_due_at, renewal_status, renewal_overdue_count FROM servers WHERE id = ? AND user_id = ?',
+            [req.params.id, req.session.user.id]
+        );
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found.' });
+        }
+
+        const settings = await get('SELECT * FROM renewal_settings ORDER BY id DESC LIMIT 1');
+        const enabled = Number(settings?.renewal_enabled || 0) === 1;
+        const frequency = String(settings?.renewal_frequency || 'monthly').toLowerCase();
+        const coinsPerCycle = Math.max(0, Number(settings?.renewal_coins_per_cycle || 0));
+
+        if (!enabled) {
+            return res.status(400).json({ success: false, message: 'Renewal is currently disabled by admin.' });
+        }
+        if (!['hourly', 'daily', 'weekly', 'monthly'].includes(frequency)) {
+            return res.status(400).json({ success: false, message: 'Renewal frequency is invalid. Contact admin.' });
+        }
+
+        const currentDue = new Date(server.renewal_next_due_at || '');
+        if (Number.isNaN(currentDue.getTime())) {
+            return res.status(400).json({ success: false, message: 'Server renewal due time is not initialized yet.' });
+        }
+
+        const now = new Date();
+        const cycleEndFromNow = addRenewalCycle(now.toISOString(), frequency);
+        const cycleEndDate = cycleEndFromNow ? new Date(cycleEndFromNow) : null;
+        if (!cycleEndDate || Number.isNaN(cycleEndDate.getTime())) {
+            return res.status(400).json({ success: false, message: 'Unable to evaluate renewal window.' });
+        }
+
+        // Renew is allowed only if remaining time is less than or equal to one cycle.
+        // This ensures users can extend only one extra cycle ahead.
+        if (currentDue.getTime() > cycleEndDate.getTime()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Renew button is available only when the remaining time is within one cycle.'
+            });
+        }
+
+        const nextDueIso = addRenewalCycle(currentDue.toISOString(), frequency);
+        if (!nextDueIso) {
+            return res.status(400).json({ success: false, message: 'Unable to compute next renewal due date.' });
+        }
+
+        let postRenewStatus = 'active';
+        await transaction(async () => {
+            if (coinsPerCycle > 0) {
+                const deductResult = await run(
+                    'UPDATE users SET coins = coins - ? WHERE id = ? AND coins >= ?',
+                    [coinsPerCycle, req.session.user.id, coinsPerCycle]
+                );
+                if (!deductResult || deductResult.changes === 0) {
+                    throw new Error('Insufficient coins to renew this server.');
+                }
+            }
+
+            // CAS guard against concurrent renew requests:
+            // only update if due timestamp still matches what we validated.
+            const updateResult = await run(
+                `UPDATE servers
+                 SET renewal_next_due_at = ?,
+                     renewal_overdue_count = CASE
+                         WHEN COALESCE(renewal_overdue_count, 0) > 0 THEN renewal_overdue_count - 1
+                         ELSE 0
+                     END
+                 WHERE id = ? AND user_id = ? AND renewal_next_due_at = ?`,
+                [nextDueIso, server.id, req.session.user.id, server.renewal_next_due_at]
+            );
+            if (!updateResult || updateResult.changes === 0) {
+                throw new Error('Renewal was updated by another request. Please refresh and try again.');
+            }
+
+            const updated = await get(
+                'SELECT COALESCE(renewal_overdue_count, 0) as renewal_overdue_count FROM servers WHERE id = ? AND user_id = ?',
+                [server.id, req.session.user.id]
+            );
+            const remainingOverdue = Number(updated?.renewal_overdue_count || 0);
+            postRenewStatus = remainingOverdue > 0 ? 'overdue' : 'active';
+            await run(
+                'UPDATE servers SET renewal_status = ? WHERE id = ? AND user_id = ?',
+                [postRenewStatus, server.id, req.session.user.id]
+            );
+
+            await run(
+                `INSERT INTO server_renewal_events
+                 (server_id, user_id, due_at, processed_at, amount, mode, result, notes)
+                 VALUES (?, ?, ?, datetime('now'), ?, 'manual', 'paid', ?)`,
+                [server.id, req.session.user.id, server.renewal_next_due_at || null, coinsPerCycle, 'User self-renewed one cycle']
+            );
+        });
+
+        // Best effort unsuspend only when overdue is fully cleared.
+        try {
+            const fresh = await get('SELECT pterodactyl_id, renewal_status FROM servers WHERE id = ?', [server.id]);
+            const appId = parseInt(String(fresh?.pterodactyl_id || ''), 10);
+            if (fresh?.renewal_status === 'active' && !Number.isNaN(appId) && appId > 0 && await pterodactyl.isConfigured()) {
+                await pterodactyl.unsuspendServer(appId);
+            }
+        } catch (_) {}
+
+        const userCoins = await get('SELECT coins FROM users WHERE id = ?', [req.session.user.id]);
+        res.json({
+            success: true,
+            message: 'Server renewed successfully for one additional cycle.',
+            next_due_at: nextDueIso,
+            coins_left: Number(userCoins?.coins || 0)
+        });
+    } catch (error) {
+        console.error('Error renewing server:', error);
+        res.status(400).json({ success: false, message: error.message || 'Error renewing server' });
     }
 });
 
@@ -740,6 +915,7 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
                      WHERE id = ?`,
                     [pterodactyl_id, pterodactyl_identifier, publicAddress, serverRecordId]
                 );
+                await initializeServerRenewal(serverRecordId);
                 
                 // BUGFIX #1: Remove the used allocation from the database
                 // The allocation is now assigned to this server in Pterodactyl, so it's no longer available
@@ -803,6 +979,7 @@ router.post('/api/create', requireAuth, serverCreationLimiter, async (req, res) 
             // Pterodactyl is not configured - server record was already inserted in transaction
             // Just return success response
             if (!res.headersSent) {
+                    await initializeServerRenewal(serverRecordId);
                     // Onboarding checklist: created first server
                     try {
                         await markStep(req.session.user.id, 2);
@@ -3411,6 +3588,7 @@ router.post('/api/create-from-template', requireAuth, async (req, res) => {
             [req.session.user.id, pterodactylId, pterodactylIdentifier, finalServerName, 
              template.ram_mb, template.cpu_percent, template.storage_mb, publicAddress]
         );
+        await initializeServerRenewal(insertResult.lastID);
         
         res.json({ 
             success: true, 

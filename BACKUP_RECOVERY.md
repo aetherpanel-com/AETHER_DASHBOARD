@@ -12,6 +12,11 @@
 **Version 1.5.3 note:** v1.5.3 adds the `activity_logs` table and a `log_retention_days` column to `feature_flags`. Both are created automatically on startup. No additional files need to be backed up — audit logs are stored in your existing `database.db` file.
 
 **Version 1.5.8 note:** UI-only update for the admin panel (new `public/css/admin-panel.css` and updated admin `views`). **No database changes.** Your usual `database.db` and `.env` backup routine is unchanged. If you deploy by SFTP, upload the whole `public/` directory so the new stylesheet is on the server.
+**Version 1.6 note:** v1.6 adds renewal system persistence and tracking. New DB objects are created automatically on startup:
+- `renewal_settings`
+- `server_renewal_events`
+- new columns in `servers`: `renewal_next_due_at`, `renewal_last_processed_at`, `renewal_status`, `renewal_overdue_count`
+Backup process remains the same: protect `database.db` and `.env` before update.
 
 **For GAME SERVER backups**, use the new Backup System feature:
 1. Go to any server → Click "📊 Live Stats"
@@ -421,7 +426,7 @@ crontab -e
 
 ---
 
-**Last Updated:** Version 1.5.8
+**Last Updated:** Version 1.6
 
 **Made with ❤️ for free hosting providers**
 
