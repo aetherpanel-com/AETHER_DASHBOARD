@@ -681,6 +681,52 @@ async function updateServerBuild(serverId, limits) {
     }
 }
 
+/**
+ * Patch feature_limits (and preserve limits/allocation) via Application API.
+ * Used so purchased database/backup entitlements can raise per-server panel limits before Client API create.
+ */
+async function patchServerBuildFeatureLimits(serverApplicationId, overrides) {
+    if (!overrides || typeof overrides !== 'object') {
+        return { success: false, error: 'Invalid overrides' };
+    }
+    const serverDetails = await getServerDetails(serverApplicationId);
+    if (!serverDetails.success) {
+        return { success: false, error: serverDetails.error || 'Failed to fetch server details' };
+    }
+    const serverAttrs = serverDetails.data?.attributes || serverDetails.data;
+    const currentLimits = serverAttrs.limits || {};
+    const currentFeatureLimits = serverAttrs.feature_limits || {};
+    const allocationId = serverAttrs.allocation;
+    if (!allocationId) {
+        return { success: false, error: 'Server allocation missing' };
+    }
+
+    const feature_limits = {
+        databases: overrides.databases !== undefined
+            ? overrides.databases
+            : (currentFeatureLimits.databases !== undefined ? currentFeatureLimits.databases : 0),
+        allocations: currentFeatureLimits.allocations !== undefined ? currentFeatureLimits.allocations : 1,
+        backups: overrides.backups !== undefined
+            ? overrides.backups
+            : (currentFeatureLimits.backups !== undefined ? currentFeatureLimits.backups : 0)
+    };
+
+    const payload = {
+        allocation: parseInt(allocationId, 10),
+        oom_disabled: serverAttrs.oom_disabled ?? false,
+        limits: {
+            memory: currentLimits.memory,
+            swap: currentLimits.swap ?? 0,
+            disk: currentLimits.disk,
+            io: currentLimits.io ?? 500,
+            cpu: currentLimits.cpu
+        },
+        feature_limits
+    };
+
+    return await makeRequest('PATCH', `/application/servers/${serverApplicationId}/build`, payload);
+}
+
 // BUGFIX #5: Send power signal to server (start, stop, restart, kill)
 // Power signals use the CLIENT API (not Application API) and require the server IDENTIFIER (not internal ID)
 // The Application API does not have a /power endpoint - it only has /suspend and /unsuspend
@@ -1278,6 +1324,7 @@ module.exports = {
     createServer,
     updateServerResources,
     updateServerBuild,
+    patchServerBuildFeatureLimits,
     sendServerPowerSignal,
     sendServerCommand,
     restartServer,

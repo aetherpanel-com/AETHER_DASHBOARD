@@ -205,6 +205,18 @@ body {
     background-clip: text;
 }
 
+/*
+ * Buttons/links inside .card-header inherit -webkit-text-fill-color: transparent,
+ * which makes their label paint invisible (empty-looking button).
+ */
+.card-header .btn,
+.card-header button,
+.card-header a.btn {
+    -webkit-text-fill-color: currentColor;
+    background-clip: border-box;
+    -webkit-background-clip: border-box;
+}
+
 /* Utility Classes */
 .text-center {
     text-align: center;

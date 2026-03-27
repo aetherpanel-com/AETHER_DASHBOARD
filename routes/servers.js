@@ -14,6 +14,115 @@ const { sendBrandedView } = require('../config/brandingHelper');
 const { writeLog } = require('../utils/auditLog');
 const { sanitizePterodactylUsername } = require('../utils/helpers');
 
+async function getPterodactylUserIdForRequest(req) {
+    if (req.session?.user?.pterodactyl_user_id) {
+        return req.session.user.pterodactyl_user_id;
+    }
+    const row = await get('SELECT pterodactyl_user_id FROM users WHERE id = ?', [req.session.user.id]);
+    return row?.pterodactyl_user_id || null;
+}
+
+async function getPurchasedDbBackupTotals(userId) {
+    const row = await get(
+        `SELECT
+            COALESCE(SUM(CASE WHEN resource_type = 'database' THEN amount ELSE 0 END), 0) as db,
+            COALESCE(SUM(CASE WHEN resource_type = 'backup' THEN amount ELSE 0 END), 0) as bk
+         FROM resource_purchases WHERE user_id = ?`,
+        [userId]
+    );
+    return { purchasedDb: Number(row?.db || 0), purchasedBk: Number(row?.bk || 0) };
+}
+
+async function countFeatureItemsOnServer(identifier, kind, pterodactylUserId) {
+    const result =
+        kind === 'database'
+            ? await pterodactyl.listDatabases(identifier, pterodactylUserId)
+            : await pterodactyl.listBackups(identifier, pterodactylUserId);
+    if (!result.success) {
+        return null;
+    }
+    return (result.data?.data || []).length;
+}
+
+/**
+ * Ensure panel feature_limits allow creating one more database/backup on this server,
+ * and that global purchased pool (from resource store) is not exceeded.
+ */
+async function ensureFeatureLimitsForCreate(server, userId, pterodactylUserId, kind) {
+    const { purchasedDb, purchasedBk } = await getPurchasedDbBackupTotals(userId);
+    const purchased = kind === 'database' ? purchasedDb : purchasedBk;
+    if (purchased <= 0) {
+        return {
+            ok: false,
+            message:
+                kind === 'database'
+                    ? 'Purchase database slots in the Resource Store before creating a database.'
+                    : 'Purchase backup slots in the Resource Store before creating a backup.'
+        };
+    }
+
+    const cS = await countFeatureItemsOnServer(server.pterodactyl_identifier, kind, pterodactylUserId);
+    if (cS === null) {
+        return { ok: false, message: `Failed to load existing ${kind === 'database' ? 'databases' : 'backups'} from the panel.` };
+    }
+
+    const allRows = await query(
+        'SELECT id, pterodactyl_identifier FROM servers WHERE user_id = ? AND pterodactyl_identifier IS NOT NULL',
+        [userId]
+    );
+    let otherTotal = 0;
+    for (const s of allRows) {
+        if (s.id === server.id) {
+            continue;
+        }
+        const cnt = await countFeatureItemsOnServer(s.pterodactyl_identifier, kind, pterodactylUserId);
+        if (cnt === null) {
+            return { ok: false, message: `Failed to load existing ${kind === 'database' ? 'databases' : 'backups'} from the panel.` };
+        }
+        otherTotal += cnt;
+    }
+
+    if (cS + otherTotal + 1 > purchased) {
+        return {
+            ok: false,
+            message:
+                kind === 'database'
+                    ? 'No database slots left. Purchase more in the Resource Store or delete an existing database on any of your servers.'
+                    : 'No backup slots left. Purchase more in the Resource Store or delete an existing backup on any of your servers.'
+        };
+    }
+
+    const serverDetails = await pterodactyl.getServerDetails(server.pterodactyl_id);
+    if (!serverDetails.success) {
+        return { ok: false, message: 'Failed to fetch server details from the panel.' };
+    }
+    const serverAttrs = serverDetails.data?.attributes || serverDetails.data;
+    const currentFeatureLimits = serverAttrs.feature_limits || {};
+    const current =
+        kind === 'database'
+            ? (currentFeatureLimits.databases !== undefined ? currentFeatureLimits.databases : 0)
+            : (currentFeatureLimits.backups !== undefined ? currentFeatureLimits.backups : 0);
+
+    const capForThisServer = purchased - otherTotal;
+    const needed = Math.min(capForThisServer, Math.max(cS + 1, current));
+
+    if (current >= cS + 1) {
+        return { ok: true };
+    }
+
+    const patch =
+        kind === 'database' ? { databases: needed } : { backups: needed };
+    const result = await pterodactyl.patchServerBuildFeatureLimits(server.pterodactyl_id, patch);
+    if (!result.success) {
+        const errMsg =
+            typeof result.error === 'string'
+                ? result.error
+                : result.error?.detail || result.error?.message || JSON.stringify(result.error);
+        return { ok: false, message: errMsg || 'Failed to update server limits in the panel.' };
+    }
+    return { ok: true };
+}
+
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
     if (!req.session.user) {
@@ -1291,9 +1400,20 @@ router.post('/api/backups/:id/create', requireAuth, async (req, res) => {
         if (!server.pterodactyl_identifier) {
             return res.status(400).json({ success: false, message: 'Server identifier not available' });
         }
+
+        const pteroUid = await getPterodactylUserIdForRequest(req);
+        if (!pteroUid) {
+            return res.status(400).json({ success: false, message: 'Pterodactyl account not linked.' });
+        }
+        if (await pterodactyl.isConfigured() && server.pterodactyl_id) {
+            const ensure = await ensureFeatureLimitsForCreate(server, req.session.user.id, pteroUid, 'backup');
+            if (!ensure.ok) {
+                return res.status(400).json({ success: false, message: ensure.message });
+            }
+        }
         
         const { name, is_locked } = req.body;
-        const result = await pterodactyl.createBackup(server.pterodactyl_identifier, name || null, is_locked || false, req.session.user.pterodactyl_user_id);
+        const result = await pterodactyl.createBackup(server.pterodactyl_identifier, name || null, is_locked || false, pteroUid);
         
         if (!result.success) {
             // Check for backup limit error
@@ -1585,6 +1705,17 @@ router.post('/api/databases/:id/create', requireAuth, async (req, res) => {
         if (!server.pterodactyl_identifier) {
             return res.status(400).json({ success: false, message: 'Server identifier not available' });
         }
+
+        const pteroUid = await getPterodactylUserIdForRequest(req);
+        if (!pteroUid) {
+            return res.status(400).json({ success: false, message: 'Pterodactyl account not linked.' });
+        }
+        if (await pterodactyl.isConfigured() && server.pterodactyl_id) {
+            const ensure = await ensureFeatureLimitsForCreate(server, req.session.user.id, pteroUid, 'database');
+            if (!ensure.ok) {
+                return res.status(400).json({ success: false, message: ensure.message });
+            }
+        }
         
         const { database, remote } = req.body;
         
@@ -1597,7 +1728,7 @@ router.post('/api/databases/:id/create', requireAuth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Database name can only contain letters, numbers, and underscores' });
         }
         
-        const result = await pterodactyl.createDatabase(server.pterodactyl_identifier, database, remote || '%', req.session.user.pterodactyl_user_id);
+        const result = await pterodactyl.createDatabase(server.pterodactyl_identifier, database, remote || '%', pteroUid);
         
         if (!result.success) {
             if (result.error?.errors?.[0]?.code === 'TooManyRequestsHttpException') {
@@ -2750,7 +2881,7 @@ router.post('/api/create-from-template', requireAuth, async (req, res) => {
             },
             feature_limits: {
                 databases: 0,
-                backups: 2,
+                backups: 0,
                 allocations: 1
             },
             allocation: {

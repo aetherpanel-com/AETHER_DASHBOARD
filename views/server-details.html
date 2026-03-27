@@ -513,9 +513,10 @@
                     <div class="card" style="margin-top: 20px;">
                         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
                             <span>Server Resources</span>
-                            <button onclick="toggleEditResources()" id="toggleEditBtn"
-                                class="btn btn-secondary" style="font-size:12px;padding:6px 14px;">
-                                ✏️ Edit Resources
+                            <button type="button" onclick="toggleEditResources()" id="toggleEditBtn"
+                                class="btn btn-secondary" style="font-size:12px;padding:6px 14px;"
+                                aria-expanded="false" aria-controls="editResourcesForm">
+                                Modify Resources
                             </button>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 16px;" id="limitsDisplay">
@@ -621,17 +622,20 @@
         function toggleEditResources() {
             const form = document.getElementById('editResourcesForm');
             const btn  = document.getElementById('toggleEditBtn');
-            const isHidden = form.style.display === 'none';
+            if (!form || !btn) return;
+            const isHidden = window.getComputedStyle(form).display === 'none';
 
             if (isHidden) {
                 document.getElementById('detailRamInput').value     = Math.round((serverData?.ram || 0) / 1024);
                 document.getElementById('detailCpuInput').value     = serverData?.cpu || 100;
                 document.getElementById('detailStorageInput').value = Math.round((serverData?.storage || 0) / 1024);
                 form.style.display = 'block';
-                btn.textContent = '✕ Cancel Edit';
+                btn.textContent = 'Cancel';
+                btn.setAttribute('aria-expanded', 'true');
             } else {
                 form.style.display = 'none';
-                btn.textContent = '✏️ Edit Resources';
+                btn.textContent = 'Modify Resources';
+                btn.setAttribute('aria-expanded', 'false');
             }
         }
 
@@ -670,7 +674,11 @@
                     document.getElementById('maxStorage').textContent = `${storageGB}GB`
 
                     document.getElementById('editResourcesForm').style.display = 'none';
-                    document.getElementById('toggleEditBtn').textContent = '✏️ Edit Resources';
+                    const tbtn = document.getElementById('toggleEditBtn');
+                    if (tbtn) {
+                        tbtn.textContent = 'Modify Resources';
+                        tbtn.setAttribute('aria-expanded', 'false');
+                    }
 
                     showNotification(data.message, 'success');
                     if (data.restarted && typeof updateStatusBadge === 'function') {
