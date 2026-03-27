@@ -227,23 +227,40 @@ one click, without selecting egg, RAM, CPU, and storage manually.
 
 The Renewals tab (Admin Panel → Overview → Commerce → Renewals) is the control center for recurring server renewals.
 
-### Renewal Settings
+### What each setting does
 
-Configure:
+- **Status**
+  - **Enabled**: renewal tracking is active.
+  - **Disabled**: renewal tracking is off.
+- **Frequency**: `hourly`, `daily`, `weekly`, or `monthly`.
+- **Coins Per Cycle**: coins charged for one renewal cycle.
+- **Deduction Mode**
+  - **Auto Deduct**: worker automatically tries to deduct coins when a cycle is due.
+  - **Manual**: no automatic deduction; admin/user renew actions handle payment.
+- **Grace Cycles**: number of missed cycles allowed before suspension.
 
-- **Status**: Enabled / Disabled
-- **Frequency**: Hourly, Daily, Weekly, Monthly
-- **Coins Per Cycle**: Renewal cost charged per cycle
-- **Deduction Mode**:
-  - **Auto Deduct**: worker attempts automatic coin deduction on due cycle
-  - **Manual**: no auto deduction; admin/user actions handle payment
-- **Grace Cycles**: allowed missed cycles before suspension
+Click **Save Renewal Settings** to apply changes.
 
-Use **Save Renewal Settings** to persist policy and **Run Renewal Cycle Now** to execute one immediate processing pass.
+### Important status behavior
 
-### Renewal Server Queue
+#### If Status is set to **Disabled** and saved
 
-Queue columns:
+- Renewal worker stops.
+- Renewal queue is hidden in the admin UI.
+- Servers suspended by renewal logic are auto-unsuspended (best effort call to panel API).
+- Renewal tracking data is cleared for all servers (`renewal_next_due_at`, `renewal_last_processed_at`, `renewal_overdue_count`).
+- Server renewal status is set to `disabled` for all rows.
+- Renewal event history is cleared.
+
+#### If Status is set to **Enabled** and saved (after being disabled)
+
+- Renewal worker starts.
+- All servers are re-enrolled into tracking.
+- Renewal cycle starts from the activation time (**now**) and schedules the next due based on selected frequency.
+
+### Renewal server queue
+
+When enabled, queue rows show:
 
 - Server
 - User
@@ -253,20 +270,42 @@ Queue columns:
 - User coins
 - Action (`Deduct Now`)
 
-#### Deduct Now rules
+### Action rules
 
-- Uses the same max-extension policy as user renew:
-  - no more than one extra cycle ahead.
-- If server is already extended to max window, admin receives:
-  - **"The user has already used maximum renewable cycles."**
+#### Deduct Now
 
-### Practical admin workflow
+Manual deduct is blocked when:
 
-1. Save renewal policy.
-2. Run one cycle manually after policy changes.
-3. Watch queue status + overdue counters.
-4. Use **Deduct Now** for manual collection when needed.
-5. Investigate suspended rows (coins, grace value, due cadence).
+- Renewal system is disabled.
+- Server due time is invalid or not initialized.
+- User has insufficient coins.
+- Server is already extended beyond one allowed extra cycle.
+
+If blocked by extension window, admin sees:
+
+- **"The user has already used maximum renewable cycles."**
+
+#### Run Renewal Cycle Now
+
+Runs one immediate processing pass over eligible renewal rows.
+
+- Use this after major policy changes.
+- In Auto mode, if no rows are eligible, UI warns instead of running blindly.
+
+### Recommended admin workflow
+
+1. Configure Frequency, Coins Per Cycle, Deduction Mode, and Grace Cycles.
+2. Set Status to **Enabled** and click **Save Renewal Settings**.
+3. Verify queue status and overdue counters.
+4. Use **Run Renewal Cycle Now** after major policy edits.
+5. In Manual mode, use **Deduct Now** per server as needed.
+6. Monitor suspended rows and user coin balances.
+
+### Troubleshooting notes
+
+- If a paid server stays suspended, verify panel API connectivity and run a renewal action once to re-sync state.
+- Keep **Grace Cycles > 0** if you want warning time before suspension.
+- Avoid setting Coins Per Cycle too high unless expected; high values quickly increase overdue/suspension rates.
 
 ---
 
@@ -634,6 +673,7 @@ Use this checklist when setting up a fresh installation:
 - [ ] Set dashboard name to your brand (Admin Settings → Branding)
 - [ ] Applied a custom theme (Admin Settings → Themes)
 - [ ] Review Audit Logs after go-live to confirm events are being captured (Admin Settings → Audit Logs)
+- [ ] Configure Renewals policy and validate queue behavior (Overview → Commerce → Renewals)
 - [ ] Configured Discord bot (Integrations → Discord)
 - [ ] Set Default Nest ID and Location ID (Panel tab → Pterodactyl Settings)
 - [ ] Configured Daily Rewards amounts (Daily Rewards tab)
@@ -654,4 +694,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.5.8
+**Last Updated:** Version 1.6
