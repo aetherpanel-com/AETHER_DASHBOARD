@@ -71,6 +71,8 @@ async function processDueRenewalsOnce() {
     }
 
     const nowIso = new Date().toISOString();
+    const maxAllowedDueIso = addFrequency(nowIso, settings.renewal_frequency);
+    const maxAllowedDueDate = maxAllowedDueIso ? new Date(maxAllowedDueIso) : null;
     const dueRows = await query(
         `SELECT s.id, s.user_id, s.pterodactyl_id, s.name,
                 s.renewal_next_due_at, s.renewal_last_processed_at,
@@ -90,6 +92,22 @@ async function processDueRenewalsOnce() {
 
     for (const row of dueRows || []) {
         const dueAt = row.renewal_next_due_at;
+        const dueAtDate = new Date(dueAt || '');
+        if (maxAllowedDueDate && !Number.isNaN(maxAllowedDueDate.getTime()) && !Number.isNaN(dueAtDate.getTime())) {
+            // Safety guard: never process deductions for rows already beyond one allowed extension window.
+            if (dueAtDate.getTime() > maxAllowedDueDate.getTime()) {
+                await writeRenewalEvent({
+                    serverId: row.id,
+                    userId: row.user_id,
+                    dueAt,
+                    amount: settings.renewal_coins_per_cycle,
+                    mode: settings.renewal_deduction_mode || 'manual',
+                    result: 'skipped_max_window',
+                    notes: 'Skipped processing because server is already beyond one-cycle renewal window.'
+                });
+                continue;
+            }
+        }
         const nextDue = addFrequency(dueAt, settings.renewal_frequency);
         if (!nextDue) continue;
 
@@ -177,6 +195,9 @@ async function manuallyDeductRenewal(serverId, adminUserId = null) {
     );
     if (!server) {
         return { success: false, message: 'Server not found.' };
+    }
+    if (String(server.renewal_status || '').toLowerCase() === 'disabled') {
+        return { success: false, message: 'This server is not currently tracked by renewal settings.' };
     }
 
     const currentDue = new Date(server.renewal_next_due_at || '');

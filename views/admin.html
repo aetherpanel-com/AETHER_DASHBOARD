@@ -106,6 +106,10 @@
                                     <span class="nav-icon"><img src="/icons/discord.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
                                     <span class="nav-text">Discord</span>
                                 </a>
+                                <a href="/admin/integrations/adsterra" class="nav-item" data-page="admin-integrations-adsterra">
+                                    <span class="nav-icon"><img src="/icons/adsterra.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                                    <span class="nav-text">Adsterra</span>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -829,14 +833,29 @@
                                 </div>
                                 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
                                     <button type="submit" class="btn btn-primary">Save Renewal Settings</button>
-                                    <button type="button" class="btn btn-secondary" onclick="runRenewalCycleNow()">Run Renewal Cycle Now</button>
+                                    <button type="button" id="renewalRunNowBtn" class="btn btn-secondary" onclick="runRenewalCycleNow()">Run Renewal Cycle Now</button>
                                 </div>
                             </form>
                         </div>
-                        <div class="card" style="margin-bottom: 20px;">
+                        <div class="card" id="renewalQueueCard" style="margin-bottom: 20px;">
                             <div class="card-header">Renewal Server Queue</div>
                             <div id="renewalServersList">
                                 <p style="color:#94a3b8;">Loading renewal server queue...</p>
+                            </div>
+                        </div>
+
+                        <div id="renewalDisableConfirmModal" style="display:none; position:fixed; inset:0; background:rgba(2,6,23,0.6); z-index:12000; align-items:center; justify-content:center; padding:16px;">
+                            <div style="width:min(520px, 100%); background:rgba(15,23,42,0.98); border:1px solid rgba(239,68,68,0.35); border-radius:14px; box-shadow:0 24px 60px rgba(0,0,0,0.45);">
+                                <div style="padding:16px 18px; border-bottom:1px solid rgba(148,163,184,0.15); color:#f8fafc; font-weight:800;">
+                                    Disable Renewal System?
+                                </div>
+                                <div style="padding:14px 18px; color:#cbd5e1; line-height:1.45;">
+                                    Disabling renewal will clear renewal queue data and renewal events, and auto-unsuspend servers that were suspended by renewal policy.
+                                </div>
+                                <div style="padding:0 18px 16px; display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                                    <button type="button" class="btn btn-secondary" id="renewalDisableCancelBtn">Cancel</button>
+                                    <button type="button" class="btn btn-danger" id="renewalDisableConfirmBtn">Disable & Save</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1330,6 +1349,62 @@
         }
 
         // Renewals (Admin) Functions
+        let _lastLoadedRenewalEnabled = false;
+
+        function isRenewalEnabledInUi() {
+            return document.getElementById('renewalEnabled')?.value === '1';
+        }
+
+        function confirmRenewalDisable() {
+            const modal = document.getElementById('renewalDisableConfirmModal');
+            const cancelBtn = document.getElementById('renewalDisableCancelBtn');
+            const confirmBtn = document.getElementById('renewalDisableConfirmBtn');
+            if (!modal || !cancelBtn || !confirmBtn) return Promise.resolve(false);
+
+            return new Promise((resolve) => {
+                const cleanup = () => {
+                    modal.style.display = 'none';
+                    modal.style.alignItems = '';
+                    modal.style.justifyContent = '';
+                    cancelBtn.removeEventListener('click', onCancel);
+                    confirmBtn.removeEventListener('click', onConfirm);
+                };
+                const onCancel = () => {
+                    cleanup();
+                    resolve(false);
+                };
+                const onConfirm = () => {
+                    cleanup();
+                    resolve(true);
+                };
+
+                cancelBtn.addEventListener('click', onCancel);
+                confirmBtn.addEventListener('click', onConfirm);
+                modal.style.display = 'flex';
+                modal.style.alignItems = 'center';
+                modal.style.justifyContent = 'center';
+            });
+        }
+
+        function updateRenewalUiVisibility() {
+            const enabled = isRenewalEnabledInUi();
+            const queueCard = document.getElementById('renewalQueueCard');
+            const runNowBtn = document.getElementById('renewalRunNowBtn');
+            const queueContainer = document.getElementById('renewalServersList');
+
+            if (runNowBtn) {
+                runNowBtn.disabled = !enabled;
+            }
+
+            if (queueCard) {
+                queueCard.style.display = enabled ? '' : 'none';
+            }
+
+            if (!enabled && queueContainer) {
+                queueContainer.innerHTML = '<p style="color:#94a3b8;">Renewal queue is hidden while status is disabled.</p>';
+            }
+        }
+
         async function loadRenewalSettings() {
             try {
                 const response = await apiFetch('/admin/api/renewals/settings');
@@ -1344,6 +1419,8 @@
                 document.getElementById('renewalCoinsPerCycle').value = Number(s.renewal_coins_per_cycle || 0);
                 document.getElementById('renewalDeductionMode').value = s.renewal_deduction_mode || 'manual';
                 document.getElementById('renewalGraceCycles').value = Number(s.renewal_grace_cycles || 0);
+                _lastLoadedRenewalEnabled = Number(s.renewal_enabled || 0) === 1;
+                updateRenewalUiVisibility();
             } catch (error) {
                 console.error('Error loading renewal settings:', error);
                 showNotification('Error loading renewal settings', 'error');
@@ -1352,8 +1429,15 @@
 
         async function saveRenewalSettings() {
             try {
+                const enablingNow = document.getElementById('renewalEnabled').value === '1';
+                const disablingTransition = _lastLoadedRenewalEnabled && !enablingNow;
+                if (disablingTransition) {
+                    const confirmed = await confirmRenewalDisable();
+                    if (!confirmed) return;
+                }
+
                 const payload = {
-                    renewal_enabled: document.getElementById('renewalEnabled').value === '1',
+                    renewal_enabled: enablingNow,
                     renewal_frequency: document.getElementById('renewalFrequency').value,
                     renewal_coins_per_cycle: parseInt(document.getElementById('renewalCoinsPerCycle').value, 10) || 0,
                     renewal_deduction_mode: document.getElementById('renewalDeductionMode').value,
@@ -1369,8 +1453,17 @@
                     showNotification(data.message || 'Failed to save renewal settings', 'error');
                     return;
                 }
+                _lastLoadedRenewalEnabled = enablingNow;
                 showNotification(data.message || 'Renewal settings saved', 'success');
-                await loadRenewalServers();
+                updateRenewalUiVisibility();
+                if (isRenewalEnabledInUi()) {
+                    await loadRenewalServers();
+                } else {
+                    const container = document.getElementById('renewalServersList');
+                    if (container) {
+                        container.innerHTML = '<p style="color:#94a3b8;">Renewal queue is hidden while status is disabled.</p>';
+                    }
+                }
             } catch (error) {
                 console.error('Error saving renewal settings:', error);
                 showNotification('Error saving renewal settings', 'error');
@@ -1379,6 +1472,26 @@
 
         async function runRenewalCycleNow() {
             try {
+                if (!isRenewalEnabledInUi()) {
+                    showNotification('Renewal system is disabled.', 'error');
+                    return;
+                }
+
+                // Same safety gate as manual deduct: in auto mode, run-now should process only eligible rows.
+                if (document.getElementById('renewalDeductionMode')?.value === 'auto') {
+                    const precheckResponse = await apiFetch('/admin/api/renewals/servers');
+                    const precheckData = precheckResponse ? await precheckResponse.json() : {};
+                    if (!precheckData.success) {
+                        showNotification(precheckData.message || 'Unable to validate renewal queue.', 'error');
+                        return;
+                    }
+                    const eligibleRows = (precheckData.servers || []).filter((row) => row.can_deduct_now === true);
+                    if (eligibleRows.length === 0) {
+                        showNotification('No eligible servers for auto deduction right now.', 'error');
+                        return;
+                    }
+                }
+
                 const response = await apiFetch('/admin/api/renewals/run-now', { method: 'POST' });
                 const data = await response.json();
                 if (!data.success) {
@@ -1396,6 +1509,10 @@
         async function loadRenewalServers() {
             const container = document.getElementById('renewalServersList');
             if (!container) return;
+            if (!isRenewalEnabledInUi()) {
+                container.innerHTML = '<p style="color:#94a3b8;">Renewal queue is hidden while status is disabled.</p>';
+                return;
+            }
             container.innerHTML = '<p style="color:#94a3b8;">Loading renewal server queue...</p>';
             try {
                 const response = await apiFetch('/admin/api/renewals/servers');
@@ -1415,6 +1532,9 @@
                     const status = String(row.renewal_status || 'active');
                     const statusColor = status === 'active' ? '#22c55e' : (status === 'suspended' ? '#ef4444' : '#f59e0b');
                     const dueAt = row.renewal_next_due_at ? new Date(row.renewal_next_due_at).toLocaleString() : 'Not scheduled';
+                    const canDeduct = row.can_deduct_now === true;
+                    const blockReason = String(row.deduct_block_reason || '').trim();
+                    const actionTitle = canDeduct ? 'Deduct one renewal cycle now' : (blockReason || 'This server is not eligible for deduct now');
                     return `
                         <tr>
                             <td style="padding:8px 10px;">${escapeHtml(row.name || '')}</td>
@@ -1424,7 +1544,15 @@
                             <td style="padding:8px 10px;">${Number(row.renewal_overdue_count || 0)}</td>
                             <td style="padding:8px 10px;">${formatNumber(row.coins || 0)}</td>
                             <td style="padding:8px 10px;">
-                                <button type="button" class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="processManualRenewal(${Number(row.id)})">Deduct Now</button>
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary"
+                                    style="padding:4px 10px;font-size:11px;${canDeduct ? '' : 'opacity:0.6;cursor:not-allowed;'}"
+                                    ${canDeduct ? '' : 'disabled'}
+                                    title="${escapeHtml(actionTitle)}"
+                                    onclick="processManualRenewal(${Number(row.id)})"
+                                >Deduct Now</button>
+                                ${!canDeduct && blockReason ? `<div style="margin-top:4px;color:#94a3b8;font-size:11px;line-height:1.25;">${escapeHtml(blockReason)}</div>` : ''}
                             </td>
                         </tr>
                     `;
@@ -1456,6 +1584,10 @@
 
         async function processManualRenewal(serverId) {
             if (!serverId) return;
+            if (!isRenewalEnabledInUi()) {
+                showNotification('Renewal system is disabled.', 'error');
+                return;
+            }
             try {
                 const response = await apiFetch('/admin/api/renewals/process-manual', {
                     method: 'POST',
@@ -1474,6 +1606,8 @@
                 showNotification('Error processing manual renewal', 'error');
             }
         }
+
+        document.getElementById('renewalEnabled')?.addEventListener('change', updateRenewalUiVisibility);
 
         // Daily Rewards (Admin) Functions
         let _dailyRewardsListenersAttached = false;

@@ -359,7 +359,18 @@ try {
 // Renewal processor (auto/manual due cycle handling)
 try {
     const renewalWorker = require('./config/renewalWorker');
-    renewalWorker.start();
+    renewalWorker.getRenewalSettings()
+        .then((settings) => {
+            if (Number(settings?.renewal_enabled || 0) === 1) {
+                renewalWorker.start();
+            } else {
+                renewalWorker.stop();
+                console.log('[renewalWorker] Not started because renewal is disabled.');
+            }
+        })
+        .catch((err) => {
+            console.error('[renewalWorker] Failed to read startup settings:', err);
+        });
 } catch (e) {
     console.error('[renewalWorker] Failed to start:', e);
 }

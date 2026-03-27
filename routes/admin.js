@@ -11,6 +11,7 @@ const { sanitizeBody } = require('../middleware/validation');
 const { sendBrandedView } = require('../config/brandingHelper');
 const { writeLog } = require('../utils/auditLog');
 const renewalWorker = require('../config/renewalWorker');
+const pterodactyl = require('../config/pterodactyl');
 
 // Configure multer for file uploads (configure once, use multiple times)
 const uploadPath = path.join(__dirname, '../public/assets/branding');
@@ -136,6 +137,22 @@ function isValidTemplateIcon(iconValue) {
     return icon.length <= 8;
 }
 
+const ADSTERRA_ALLOWED_FORMATS = new Set(['banner', 'native_banner', 'social_bar', 'popunder', 'smartlink']);
+const ADSTERRA_ALLOWED_PLACEMENTS = new Set([
+    'sidebar_admin_panel',
+    'dashboard_quick_actions',
+    'linkvertise_below_history',
+    'global_header',
+    'custom'
+]);
+const ADSTERRA_ALLOWED_DEVICES = new Set(['all', 'desktop', 'mobile']);
+const ADSTERRA_ALLOWED_SCRIPT_PLACEMENTS = new Set(['head_end', 'body_end', 'inline']);
+
+function normalizeAdsterraFormat(value, fallback = 'banner') {
+    const normalized = String(value || '').trim().toLowerCase();
+    return ADSTERRA_ALLOWED_FORMATS.has(normalized) ? normalized : fallback;
+}
+
 // Middleware to check if user is logged in and is admin
 const requireAdmin = (req, res, next) => {
     if (!req.session.user) {
@@ -175,6 +192,11 @@ router.get('/integrations/linkvertise', requireAdmin, (req, res) => {
 // Admin integrations - Discord page
 router.get('/integrations/discord', requireAdmin, (req, res) => {
     sendBrandedView(res, db, path.join(__dirname, '../views/admin-integrations-discord.html'));
+});
+
+// Admin integrations - Adsterra page
+router.get('/integrations/adsterra', requireAdmin, (req, res) => {
+    sendBrandedView(res, db, path.join(__dirname, '../views/admin-integrations-adsterra.html'));
 });
 
 // API endpoint to get system statistics
@@ -551,7 +573,7 @@ router.post('/api/linkvertise/config', requireAdmin, sanitizeBody, async (req, r
         // Check if config exists
         const existing = await get('SELECT id FROM linkvertise_config ORDER BY id DESC LIMIT 1');
         
-        if (existing) {
+        if (previous) {
             // Update existing config
             await run(
                 'UPDATE linkvertise_config SET publisher_link = ?, publisher_id = ?, default_coins = ?, cooldown_seconds = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -819,6 +841,206 @@ router.delete('/api/linkvertise/links/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// Adsterra Configuration API
+router.get('/api/adsterra/config', requireAdmin, async (req, res) => {
+    try {
+        const config = await get('SELECT * FROM adsterra_config ORDER BY id DESC LIMIT 1');
+        res.json({
+            success: true,
+            config: config || {
+                enabled: 0,
+                publisher_id: '',
+                api_token: '',
+                default_ad_format: 'banner'
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching Adsterra config:', error);
+        res.status(500).json({ success: false, message: 'Error fetching Adsterra configuration' });
+    }
+});
+
+router.post('/api/adsterra/config', requireAdmin, async (req, res) => {
+    try {
+        const enabled = req.body?.enabled === true || req.body?.enabled === 'true' || Number(req.body?.enabled) === 1 ? 1 : 0;
+        const publisherId = String(req.body?.publisher_id || '').trim().slice(0, 120);
+        const apiToken = String(req.body?.api_token || '').trim().slice(0, 255);
+        const defaultFormat = normalizeAdsterraFormat(req.body?.default_ad_format, 'banner');
+
+        const existing = await get('SELECT id FROM adsterra_config ORDER BY id DESC LIMIT 1');
+        if (existing) {
+            await run(
+                `UPDATE adsterra_config
+                 SET enabled = ?, publisher_id = ?, api_token = ?, default_ad_format = ?, updated_at = CURRENT_TIMESTAMP
+                 WHERE id = ?`,
+                [enabled, publisherId, apiToken, defaultFormat, existing.id]
+            );
+        } else {
+            await run(
+                `INSERT INTO adsterra_config (enabled, publisher_id, api_token, default_ad_format)
+                 VALUES (?, ?, ?, ?)`,
+                [enabled, publisherId, apiToken, defaultFormat]
+            );
+        }
+
+        res.json({ success: true, message: 'Adsterra configuration saved successfully' });
+    } catch (error) {
+        console.error('Error saving Adsterra config:', error);
+        res.status(500).json({ success: false, message: 'Error saving Adsterra configuration' });
+    }
+});
+
+// Adsterra placement units API
+router.get('/api/adsterra/placements', requireAdmin, async (req, res) => {
+    try {
+        const placements = await query('SELECT * FROM adsterra_placements ORDER BY sort_order ASC, created_at DESC');
+        res.json({ success: true, placements });
+    } catch (error) {
+        console.error('Error fetching Adsterra placements:', error);
+        res.status(500).json({ success: false, message: 'Error fetching Adsterra placements' });
+    }
+});
+
+router.get('/api/adsterra/placements/:id', requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (Number.isNaN(id) || id <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid placement ID' });
+        }
+        const placement = await get('SELECT * FROM adsterra_placements WHERE id = ?', [id]);
+        if (!placement) {
+            return res.status(404).json({ success: false, message: 'Placement not found' });
+        }
+        res.json({ success: true, placement });
+    } catch (error) {
+        console.error('Error fetching Adsterra placement:', error);
+        res.status(500).json({ success: false, message: 'Error fetching Adsterra placement' });
+    }
+});
+
+router.post('/api/adsterra/placements', requireAdmin, async (req, res) => {
+    try {
+        const name = String(req.body?.name || '').trim();
+        const placementKey = String(req.body?.placement_key || '').trim().toLowerCase();
+        const adFormat = normalizeAdsterraFormat(req.body?.ad_format, 'banner');
+        const targetDevices = String(req.body?.target_devices || 'all').trim().toLowerCase();
+        const scriptPlacement = String(req.body?.script_placement || 'body_end').trim().toLowerCase();
+        const adCode = String(req.body?.ad_code || '').trim();
+        const smartlinkUrl = String(req.body?.smartlink_url || '').trim();
+        const isActive = req.body?.is_active === true || req.body?.is_active === 'true' || Number(req.body?.is_active) === 1 ? 1 : 0;
+        const sortOrder = Number.parseInt(req.body?.sort_order, 10) || 0;
+
+        if (!name || name.length > 120) {
+            return res.status(400).json({ success: false, message: 'Placement name is required (max 120 characters)' });
+        }
+        if (!ADSTERRA_ALLOWED_PLACEMENTS.has(placementKey)) {
+            return res.status(400).json({ success: false, message: 'Invalid placement key' });
+        }
+        if (!ADSTERRA_ALLOWED_DEVICES.has(targetDevices)) {
+            return res.status(400).json({ success: false, message: 'Invalid target devices value' });
+        }
+        if (!ADSTERRA_ALLOWED_SCRIPT_PLACEMENTS.has(scriptPlacement)) {
+            return res.status(400).json({ success: false, message: 'Invalid script placement value' });
+        }
+        if (adCode.length > 30000) {
+            return res.status(400).json({ success: false, message: 'Ad code is too long (max 30000 characters)' });
+        }
+        if (adFormat === 'smartlink') {
+            if (!isValidUrl(smartlinkUrl)) {
+                return res.status(400).json({ success: false, message: 'Smartlink format requires a valid URL' });
+            }
+        } else if (!adCode) {
+            return res.status(400).json({ success: false, message: 'Ad code is required for this ad format' });
+        }
+
+        const result = await run(
+            `INSERT INTO adsterra_placements
+             (name, placement_key, ad_format, target_devices, script_placement, ad_code, smartlink_url, is_active, sort_order)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, placementKey, adFormat, targetDevices, scriptPlacement, adCode, smartlinkUrl, isActive, sortOrder]
+        );
+
+        res.json({ success: true, message: 'Adsterra placement created successfully', placement_id: result.lastID });
+    } catch (error) {
+        console.error('Error creating Adsterra placement:', error);
+        res.status(500).json({ success: false, message: 'Error creating Adsterra placement' });
+    }
+});
+
+router.put('/api/adsterra/placements/:id', requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (Number.isNaN(id) || id <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid placement ID' });
+        }
+
+        const name = String(req.body?.name || '').trim();
+        const placementKey = String(req.body?.placement_key || '').trim().toLowerCase();
+        const adFormat = normalizeAdsterraFormat(req.body?.ad_format, 'banner');
+        const targetDevices = String(req.body?.target_devices || 'all').trim().toLowerCase();
+        const scriptPlacement = String(req.body?.script_placement || 'body_end').trim().toLowerCase();
+        const adCode = String(req.body?.ad_code || '').trim();
+        const smartlinkUrl = String(req.body?.smartlink_url || '').trim();
+        const isActive = req.body?.is_active === true || req.body?.is_active === 'true' || Number(req.body?.is_active) === 1 ? 1 : 0;
+        const sortOrder = Number.parseInt(req.body?.sort_order, 10) || 0;
+
+        if (!name || name.length > 120) {
+            return res.status(400).json({ success: false, message: 'Placement name is required (max 120 characters)' });
+        }
+        if (!ADSTERRA_ALLOWED_PLACEMENTS.has(placementKey)) {
+            return res.status(400).json({ success: false, message: 'Invalid placement key' });
+        }
+        if (!ADSTERRA_ALLOWED_DEVICES.has(targetDevices)) {
+            return res.status(400).json({ success: false, message: 'Invalid target devices value' });
+        }
+        if (!ADSTERRA_ALLOWED_SCRIPT_PLACEMENTS.has(scriptPlacement)) {
+            return res.status(400).json({ success: false, message: 'Invalid script placement value' });
+        }
+        if (adCode.length > 30000) {
+            return res.status(400).json({ success: false, message: 'Ad code is too long (max 30000 characters)' });
+        }
+        if (adFormat === 'smartlink') {
+            if (!isValidUrl(smartlinkUrl)) {
+                return res.status(400).json({ success: false, message: 'Smartlink format requires a valid URL' });
+            }
+        } else if (!adCode) {
+            return res.status(400).json({ success: false, message: 'Ad code is required for this ad format' });
+        }
+
+        const existing = await get('SELECT id FROM adsterra_placements WHERE id = ?', [id]);
+        if (!existing) {
+            return res.status(404).json({ success: false, message: 'Placement not found' });
+        }
+
+        await run(
+            `UPDATE adsterra_placements
+             SET name = ?, placement_key = ?, ad_format = ?, target_devices = ?, script_placement = ?, ad_code = ?,
+                 smartlink_url = ?, is_active = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [name, placementKey, adFormat, targetDevices, scriptPlacement, adCode, smartlinkUrl, isActive, sortOrder, id]
+        );
+
+        res.json({ success: true, message: 'Adsterra placement updated successfully' });
+    } catch (error) {
+        console.error('Error updating Adsterra placement:', error);
+        res.status(500).json({ success: false, message: 'Error updating Adsterra placement' });
+    }
+});
+
+router.delete('/api/adsterra/placements/:id', requireAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (Number.isNaN(id) || id <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid placement ID' });
+        }
+        await run('DELETE FROM adsterra_placements WHERE id = ?', [id]);
+        res.json({ success: true, message: 'Adsterra placement deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting Adsterra placement:', error);
+        res.status(500).json({ success: false, message: 'Error deleting Adsterra placement' });
+    }
+});
+
 // Store Management API
 router.get('/api/store/prices', requireAdmin, async (req, res) => {
     try {
@@ -1016,14 +1238,15 @@ router.post('/api/renewals/settings', requireAdmin, sanitizeBody, async (req, re
             return res.status(400).json({ success: false, message: 'Invalid renewal deduction mode.' });
         }
 
-        const existing = await get('SELECT id FROM renewal_settings ORDER BY id DESC LIMIT 1');
+        const previous = await get('SELECT id, renewal_enabled FROM renewal_settings ORDER BY id DESC LIMIT 1');
+        const wasEnabled = Number(previous?.renewal_enabled || 0) === 1;
         if (existing) {
             await run(
                 `UPDATE renewal_settings
                  SET renewal_enabled = ?, renewal_frequency = ?, renewal_coins_per_cycle = ?,
                      renewal_deduction_mode = ?, renewal_grace_cycles = ?, updated_at = CURRENT_TIMESTAMP
                  WHERE id = ?`,
-                [renewal_enabled, renewal_frequency, renewal_coins_per_cycle, renewal_deduction_mode, renewal_grace_cycles, existing.id]
+                [renewal_enabled, renewal_frequency, renewal_coins_per_cycle, renewal_deduction_mode, renewal_grace_cycles, previous.id]
             );
         } else {
             await run(
@@ -1034,21 +1257,64 @@ router.post('/api/renewals/settings', requireAdmin, sanitizeBody, async (req, re
             );
         }
 
-        // Initialize due date for legacy servers that do not yet have renewal schedule.
-        const legacyServers = await query(
-            `SELECT id, created_at FROM servers
-             WHERE renewal_next_due_at IS NULL OR renewal_next_due_at = ''`
-        );
-        for (const srv of legacyServers || []) {
-            const base = srv.created_at ? new Date(srv.created_at) : new Date();
-            const nextDue = renewalWorker.addFrequency(base.toISOString(), renewal_frequency);
-            if (!nextDue) continue;
+        if (renewal_enabled !== 1) {
+            // Renewal feature disabled:
+            // 1) stop worker
+            renewalWorker.stop();
+
+            // 2) best-effort unsuspend servers previously suspended by renewal policy
+            const suspendedServers = await query(
+                `SELECT id, pterodactyl_id FROM servers
+                 WHERE COALESCE(renewal_status, '') = 'suspended'`
+            );
+            if (await pterodactyl.isConfigured()) {
+                for (const srv of suspendedServers || []) {
+                    const appServerId = parseInt(String(srv?.pterodactyl_id || ''), 10);
+                    if (!Number.isNaN(appServerId) && appServerId > 0) {
+                        try {
+                            await pterodactyl.unsuspendServer(appServerId);
+                        } catch (_) {
+                            // Continue cleanup even if unsuspend fails for one server.
+                        }
+                    }
+                }
+            }
+
+            // 3) remove queue data and event history completely
             await run(
                 `UPDATE servers
-                 SET renewal_next_due_at = ?, renewal_last_processed_at = NULL, renewal_status = ?, renewal_overdue_count = 0
-                 WHERE id = ?`,
-                [nextDue, renewal_enabled ? 'active' : 'disabled', srv.id]
+                 SET renewal_next_due_at = NULL,
+                     renewal_last_processed_at = NULL,
+                     renewal_status = 'disabled',
+                     renewal_overdue_count = 0`
             );
+            await run('DELETE FROM server_renewal_events');
+
+            return res.json({
+                success: true,
+                message: 'Renewal settings saved. Renewal is disabled, servers were unsuspended, and queue data was cleared.'
+            });
+        }
+
+        // Renewal feature enabled:
+        // If this is a disabled -> enabled transition, restart tracking from activation time (now) for ALL servers.
+        if (!wasEnabled && renewal_enabled === 1) {
+            const nowIso = new Date().toISOString();
+            const allServers = await query('SELECT id FROM servers');
+            for (const srv of allServers || []) {
+                const nextDue = renewalWorker.addFrequency(nowIso, renewal_frequency);
+                if (!nextDue) continue;
+                await run(
+                    `UPDATE servers
+                     SET renewal_next_due_at = ?, renewal_last_processed_at = NULL, renewal_status = 'active', renewal_overdue_count = 0
+                     WHERE id = ?`,
+                    [nextDue, srv.id]
+                );
+            }
+            renewalWorker.start();
+        } else {
+            // Already enabled: make sure worker remains active.
+            renewalWorker.start();
         }
 
         res.json({ success: true, message: 'Renewal settings saved successfully.' });
@@ -1060,15 +1326,63 @@ router.post('/api/renewals/settings', requireAdmin, sanitizeBody, async (req, re
 
 router.get('/api/renewals/servers', requireAdmin, async (req, res) => {
     try {
+        const settings = await get(
+            `SELECT renewal_enabled, renewal_frequency, renewal_coins_per_cycle
+             FROM renewal_settings ORDER BY id DESC LIMIT 1`
+        );
+        if (Number(settings?.renewal_enabled || 0) !== 1) {
+            return res.json({ success: true, servers: [], renewal_enabled: 0 });
+        }
         const rows = await query(
             `SELECT s.id, s.name, s.user_id, s.pterodactyl_id,
                     s.renewal_next_due_at, s.renewal_status, COALESCE(s.renewal_overdue_count, 0) as renewal_overdue_count,
                     u.username, u.coins
              FROM servers s
              INNER JOIN users u ON u.id = s.user_id
+             WHERE COALESCE(s.renewal_status, '') != 'disabled'
+               AND s.renewal_next_due_at IS NOT NULL
+               AND s.renewal_next_due_at != ''
              ORDER BY datetime(s.renewal_next_due_at) ASC, s.id ASC`
         );
-        res.json({ success: true, servers: rows || [] });
+        const frequency = String(settings?.renewal_frequency || 'monthly').toLowerCase();
+        const coinsPerCycle = Math.max(0, Number(settings?.renewal_coins_per_cycle || 0));
+        const nowIso = new Date().toISOString();
+        const maxAllowedDueIso = renewalWorker.addFrequency(nowIso, frequency);
+        const maxAllowedDueDate = maxAllowedDueIso ? new Date(maxAllowedDueIso) : null;
+
+        const servers = (rows || []).map((row) => {
+            let canDeductNow = true;
+            let deductBlockReason = '';
+            const status = String(row?.renewal_status || '').toLowerCase();
+            const dueDate = new Date(row?.renewal_next_due_at || '');
+
+            if (!row?.renewal_next_due_at || Number.isNaN(dueDate.getTime())) {
+                canDeductNow = false;
+                deductBlockReason = 'Renewal due time is not initialized.';
+            } else if (status === 'disabled') {
+                canDeductNow = false;
+                deductBlockReason = 'Renewal is disabled for this server.';
+            } else if (maxAllowedDueDate && !Number.isNaN(maxAllowedDueDate.getTime()) && dueDate.getTime() > maxAllowedDueDate.getTime()) {
+                canDeductNow = false;
+                deductBlockReason = 'The user has already used maximum renewable cycles.';
+            } else if (coinsPerCycle > 0 && Number(row?.coins || 0) < coinsPerCycle) {
+                canDeductNow = false;
+                deductBlockReason = 'Insufficient user coins for this cycle.';
+            }
+
+            return {
+                ...row,
+                can_deduct_now: canDeductNow,
+                deduct_block_reason: deductBlockReason
+            };
+        });
+
+        res.json({
+            success: true,
+            servers,
+            renewal_enabled: 1,
+            coins_per_cycle: coinsPerCycle
+        });
     } catch (error) {
         console.error('Error fetching renewal servers:', error);
         res.status(500).json({ success: false, message: 'Error fetching renewal servers' });
@@ -1077,6 +1391,10 @@ router.get('/api/renewals/servers', requireAdmin, async (req, res) => {
 
 router.post('/api/renewals/process-manual', requireAdmin, sanitizeBody, async (req, res) => {
     try {
+        const settings = await get('SELECT renewal_enabled FROM renewal_settings ORDER BY id DESC LIMIT 1');
+        if (Number(settings?.renewal_enabled || 0) !== 1) {
+            return res.status(400).json({ success: false, message: 'Renewal system is disabled.' });
+        }
         const serverId = parseInt(req.body?.server_id, 10);
         if (Number.isNaN(serverId) || serverId <= 0) {
             return res.status(400).json({ success: false, message: 'Valid server_id is required.' });
@@ -1094,6 +1412,10 @@ router.post('/api/renewals/process-manual', requireAdmin, sanitizeBody, async (r
 
 router.post('/api/renewals/run-now', requireAdmin, async (req, res) => {
     try {
+        const settings = await get('SELECT renewal_enabled FROM renewal_settings ORDER BY id DESC LIMIT 1');
+        if (Number(settings?.renewal_enabled || 0) !== 1) {
+            return res.status(400).json({ success: false, message: 'Renewal system is disabled.' });
+        }
         await renewalWorker.processDueRenewalsOnce();
         res.json({ success: true, message: 'Renewal cycle processed.' });
     } catch (error) {

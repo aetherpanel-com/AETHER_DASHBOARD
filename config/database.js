@@ -628,6 +628,58 @@ function initializeDatabase() {
                 });
             });
 
+            // Create Adsterra_Config table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS adsterra_config (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    enabled INTEGER DEFAULT 0,
+                    publisher_id TEXT DEFAULT '',
+                    api_token TEXT DEFAULT '',
+                    default_ad_format TEXT DEFAULT 'banner',
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating adsterra_config table:', err);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ adsterra_config table created/verified');
+                db.get('SELECT id FROM adsterra_config LIMIT 1', (rowErr, row) => {
+                    if (!rowErr && !row) {
+                        db.run(
+                            `INSERT INTO adsterra_config (enabled, publisher_id, api_token, default_ad_format)
+                             VALUES (0, '', '', 'banner')`
+                        );
+                    }
+                });
+            });
+
+            // Create Adsterra_Placements table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS adsterra_placements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    placement_key TEXT NOT NULL,
+                    ad_format TEXT NOT NULL DEFAULT 'banner',
+                    target_devices TEXT NOT NULL DEFAULT 'all',
+                    script_placement TEXT NOT NULL DEFAULT 'body_end',
+                    ad_code TEXT NOT NULL DEFAULT '',
+                    smartlink_url TEXT DEFAULT '',
+                    is_active INTEGER DEFAULT 1,
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            `, (err) => {
+                if (err) {
+                    console.error('Error creating adsterra_placements table:', err);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ adsterra_placements table created/verified');
+            });
+
             // Create Discord_Invites table
             db.run(`
                 CREATE TABLE IF NOT EXISTS discord_invites (

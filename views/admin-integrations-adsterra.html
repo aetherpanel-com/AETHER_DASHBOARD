@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/assets/defaults/aether-dashboard-favicon.ico">
+    <title>Adsterra Integration - Admin Panel - Aether Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+    <link rel="stylesheet" href="/css/admin-panel.css">
+</head>
+<body>
+    <div class="dashboard-container admin-panel">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="/assets/defaults/aether-dashboard-logo.png" alt="Dashboard Logo" class="dashboard-logo" id="sidebar-logo">
+                <h2 id="sidebar-name">Aether Dashboard</h2>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item" data-page="dashboard">
+                    <span class="nav-icon"><img src="/icons/nav-dashboard.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                <a href="/servers" class="nav-item" data-page="servers">
+                    <span class="nav-icon"><img src="/icons/manage-server.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                    <span class="nav-text">Manage Servers</span>
+                </a>
+                <a href="/servers/create" class="nav-item" data-page="create-server">
+                    <span class="nav-icon"><img src="/icons/create-server.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                    <span class="nav-text">Create Server</span>
+                </a>
+                <a href="/linkvertise" class="nav-item" data-page="linkvertise">
+                    <span class="nav-icon"><img src="/icons/coin.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                    <span class="nav-text">Earn Coins</span>
+                </a>
+                <a href="/servers/store" class="nav-item" data-page="store">
+                    <span class="nav-icon">🛒</span>
+                    <span class="nav-text">Resource Store</span>
+                </a>
+                <a href="/community" class="nav-item" data-page="community">
+                    <span class="nav-icon"><img src="/icons/discord.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                    <span class="nav-text">Community</span>
+                </a>
+                <a href="/dashboard/profile" class="nav-item" data-page="profile">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Profile</span>
+                </a>
+                <a href="/dashboard/settings" class="nav-item" data-page="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Settings</span>
+                </a>
+                <div class="sidebar-dropdown admin-only" style="display: none;">
+                    <div class="sidebar-dropdown-toggle active">
+                        <div class="nav-dropdown-left">
+                            <span class="nav-icon"><img src="/icons/admin-panel.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                            <span class="nav-text">Admin Panel</span>
+                        </div>
+                        <span class="dropdown-arrow">▼</span>
+                    </div>
+                    <div class="sidebar-submenu">
+                        <a href="/admin" class="nav-item" data-page="admin">
+                            <span class="nav-icon"><img src="/icons/overview.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                            <span class="nav-text">Overview</span>
+                        </a>
+
+                        <div class="sidebar-dropdown nested">
+                            <div class="sidebar-dropdown-toggle">
+                                <div class="nav-dropdown-left">
+                                    <span class="nav-icon"><img src="/icons/admin-setting.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                                    <span class="nav-text">Admin Settings</span>
+                                </div>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sidebar-submenu">
+                                <a href="/admin/settings/themes" class="nav-item" data-page="admin-themes">
+                                    <span class="nav-icon"><img src="/icons/themes.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                                    <span class="nav-text">Themes</span>
+                                </a>
+                                <a href="/admin/settings/branding" class="nav-item" data-page="admin-branding">
+                                    <span class="nav-icon"><img src="/icons/branding.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                                    <span class="nav-text">Branding</span>
+                                </a>
+                                <a href="/admin/logs" class="nav-item" data-page="admin-logs"><span class="nav-icon"><img src="/icons/audit.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span><span class="nav-text">Audit Logs</span></a>
+                            </div>
+                        </div>
+
+                        <div class="sidebar-dropdown nested">
+                            <div class="sidebar-dropdown-toggle active">
+                                <div class="nav-dropdown-left">
+                                    <span class="nav-icon"><img src="/icons/integration.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                                    <span class="nav-text">Integrations</span>
+                                </div>
+                                <span class="dropdown-arrow">▼</span>
+                            </div>
+                            <div class="sidebar-submenu">
+                                <a href="/admin/integrations/linkvertise" class="nav-item" data-page="admin-integrations-linkvertise">
+                                    <span class="nav-icon"><img src="/icons/linkvertise.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                                    <span class="nav-text">Linkvertise</span>
+                                </a>
+                                <a href="/admin/integrations/discord" class="nav-item" data-page="admin-integrations-discord">
+                                    <span class="nav-icon"><img src="/icons/discord.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                                    <span class="nav-text">Discord</span>
+                                </a>
+                                <a href="/admin/integrations/adsterra" class="nav-item active" data-page="admin-integrations-adsterra">
+                                    <span class="nav-icon"><img src="/icons/adsterra.svg" alt="" width="22" height="22" class="nav-icon-img--color" decoding="async"></span>
+                                    <span class="nav-text">Adsterra</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="/auth/logout" class="btn btn-secondary" style="width: 100%;">Logout</a>
+            </div>
+        </aside>
+
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <main class="main-content">
+            <header class="dashboard-header">
+                <div class="header-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
+                    <h1 style="display:flex;align-items:center;gap:10px;"><img src="/icons/adsterra.svg" alt="" width="22" height="22" style="object-fit:contain;display:block;filter:none;opacity:1;" decoding="async"> Adsterra Integration</h1>
+                </div>
+                <div class="header-right">
+                    <div class="coin-balance">
+                        <span class="coin-icon"><img src="/icons/coin.svg" alt="" width="24" height="24" class="nav-icon-img--color" decoding="async"></span>
+                        <span id="coinAmount">0</span> Coins
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header admin-section-title">Adsterra Configuration</div>
+                    <p class="admin-card-lead">Configure your publisher settings and defaults. Ad unit snippets are managed in the placements section below.</p>
+                    <form id="adsterraConfigForm">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="adsterraEnabled" style="margin-right: 8px;">
+                                Enable Adsterra ads on dashboard placements
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="adsterraPublisherId">Publisher ID</label>
+                            <input type="text" id="adsterraPublisherId" placeholder="Optional publisher ID from Adsterra account">
+                            <small style="color: #cbd5e1;">Used for internal tracking and reference.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="adsterraApiToken">Publisher API Token (Optional)</label>
+                            <input type="text" id="adsterraApiToken" placeholder="Optional X-API-Key token (for future stats sync)">
+                            <small style="color: #cbd5e1;">Not required for rendering ad snippets. Keep this private.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="adsterraDefaultFormat">Default Ad Format</label>
+                            <select id="adsterraDefaultFormat">
+                                <option value="banner">Banner</option>
+                                <option value="native_banner">Native Banner</option>
+                                <option value="social_bar">Social Bar</option>
+                                <option value="popunder">Popunder</option>
+                                <option value="smartlink">Smartlink</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Configuration</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+                        <div class="card-header admin-section-title" style="margin: 0;">Ad Unit Placements</div>
+                        <button class="btn btn-primary" type="button" onclick="showAdsterraPlacementForm()">Add Placement</button>
+                    </div>
+                    <p class="admin-card-lead">Define where each Adsterra unit appears in your dashboard and paste the corresponding code snippet.</p>
+
+                    <div id="adsterraPlacementFormWrap" style="display:none;margin: 12px 0 20px; padding: 16px; border:1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; background: rgba(30, 30, 50, 0.45);">
+                        <h3 id="adsterraPlacementFormTitle" style="margin: 0 0 12px; color:#f8fafc;">Add Placement</h3>
+                        <form id="adsterraPlacementForm">
+                            <input type="hidden" id="adsterraPlacementId">
+                            <div class="form-group">
+                                <label for="adsterraPlacementName">Placement Name</label>
+                                <input type="text" id="adsterraPlacementName" maxlength="120" placeholder="e.g., Quick Actions Banner">
+                            </div>
+                            <div class="form-group">
+                                <label for="adsterraPlacementKey">Placement Location</label>
+                                <select id="adsterraPlacementKey">
+                                    <option value="sidebar_admin_panel">Sidebar - Under Admin Panel</option>
+                                    <option value="dashboard_quick_actions">Dashboard - Quick Actions Section</option>
+                                    <option value="linkvertise_below_history">Earn Coins - Below Completion History</option>
+                                    <option value="global_header">Global Header Strip</option>
+                                    <option value="custom">Custom (manual placement key)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="adsterraPlacementFormat">Ad Format</label>
+                                <select id="adsterraPlacementFormat">
+                                    <option value="banner">Banner</option>
+                                    <option value="native_banner">Native Banner</option>
+                                    <option value="social_bar">Social Bar</option>
+                                    <option value="popunder">Popunder</option>
+                                    <option value="smartlink">Smartlink</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="adsterraPlacementDevices">Target Devices</label>
+                                <select id="adsterraPlacementDevices">
+                                    <option value="all">All Devices</option>
+                                    <option value="desktop">Desktop Only</option>
+                                    <option value="mobile">Mobile Only</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="adsterraScriptPlacement">Script Injection Hint</label>
+                                <select id="adsterraScriptPlacement">
+                                    <option value="body_end">Body End (recommended for Social Bar/Banner)</option>
+                                    <option value="head_end">Head End (common for Popunder)</option>
+                                    <option value="inline">Inline Container</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="adsterraAdCode">Ad Code Snippet</label>
+                                <textarea id="adsterraAdCode" rows="6" placeholder="Paste Adsterra code snippet here"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="adsterraSmartlinkUrl">Smartlink URL (only when format = Smartlink)</label>
+                                <input type="url" id="adsterraSmartlinkUrl" placeholder="https://...">
+                            </div>
+                            <div class="form-group">
+                                <label for="adsterraSortOrder">Sort Order</label>
+                                <input type="number" id="adsterraSortOrder" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="adsterraPlacementActive" checked style="margin-right: 8px;">
+                                    Active placement
+                                </label>
+                            </div>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                <button class="btn btn-primary" type="submit">Save Placement</button>
+                                <button class="btn btn-secondary" type="button" onclick="hideAdsterraPlacementForm()">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="adsterraPlacementsList">
+                        <p style="color:#cbd5e1;">Loading placements...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/maintenanceBanner.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            initMobileMenu();
+            await loadUserData();
+            checkAdminAccess();
+            loadBrandingSettings();
+            await loadAdsterraConfig();
+            await loadAdsterraPlacements();
+        });
+
+        function placementLabel(key) {
+            const map = {
+                sidebar_admin_panel: 'Sidebar - Under Admin Panel',
+                dashboard_quick_actions: 'Dashboard - Quick Actions Section',
+                linkvertise_below_history: 'Earn Coins - Below Completion History',
+                global_header: 'Global Header Strip',
+                custom: 'Custom'
+            };
+            return map[key] || key;
+        }
+
+        async function loadAdsterraConfig() {
+            try {
+                const response = await apiFetch('/admin/api/adsterra/config');
+                if (!response || !response.ok) return;
+                const data = await response.json();
+                const config = data.config || {};
+                document.getElementById('adsterraEnabled').checked = Number(config.enabled) === 1;
+                document.getElementById('adsterraPublisherId').value = config.publisher_id || '';
+                document.getElementById('adsterraApiToken').value = config.api_token || '';
+                document.getElementById('adsterraDefaultFormat').value = config.default_ad_format || 'banner';
+            } catch (error) {
+                console.error('Error loading Adsterra config:', error);
+            }
+        }
+
+        document.getElementById('adsterraConfigForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                enabled: document.getElementById('adsterraEnabled').checked,
+                publisher_id: document.getElementById('adsterraPublisherId').value.trim(),
+                api_token: document.getElementById('adsterraApiToken').value.trim(),
+                default_ad_format: document.getElementById('adsterraDefaultFormat').value
+            };
+            try {
+                const response = await apiFetch('/admin/api/adsterra/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = response ? await response.json().catch(() => ({})) : {};
+                if (response && response.ok && data.success) {
+                    showNotification('Adsterra configuration saved successfully', 'success');
+                } else {
+                    showNotification(data.message || 'Failed to save Adsterra configuration', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving Adsterra config:', error);
+                showNotification('Error saving Adsterra configuration', 'error');
+            }
+        });
+
+        function showAdsterraPlacementForm() {
+            document.getElementById('adsterraPlacementFormWrap').style.display = 'block';
+            document.getElementById('adsterraPlacementFormTitle').textContent = 'Add Placement';
+            document.getElementById('adsterraPlacementForm').reset();
+            document.getElementById('adsterraPlacementId').value = '';
+            document.getElementById('adsterraPlacementActive').checked = true;
+            document.getElementById('adsterraSortOrder').value = 0;
+        }
+
+        function hideAdsterraPlacementForm() {
+            document.getElementById('adsterraPlacementFormWrap').style.display = 'none';
+        }
+
+        async function loadAdsterraPlacements() {
+            try {
+                const response = await apiFetch('/admin/api/adsterra/placements');
+                if (!response || !response.ok) {
+                    document.getElementById('adsterraPlacementsList').innerHTML = '<p style="color:#cbd5e1;">Failed to load placements.</p>';
+                    return;
+                }
+                const data = await response.json();
+                const placements = data.placements || [];
+                if (placements.length === 0) {
+                    document.getElementById('adsterraPlacementsList').innerHTML = '<p style="color:#cbd5e1;">No placements configured yet.</p>';
+                    return;
+                }
+
+                let html = '<div style="display:grid;gap:12px;">';
+                placements.forEach((p) => {
+                    const codePreview = (p.ad_code || '').replace(/\s+/g, ' ').trim();
+                    const shortenedCode = codePreview.length > 120 ? `${codePreview.slice(0, 120)}...` : codePreview;
+                    html += `
+                        <div style="padding: 14px; border-radius: 12px; border:1px solid rgba(124,58,237,0.3); background: rgba(30,30,50,0.5);">
+                            <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start;">
+                                <div style="flex:1;min-width:220px;">
+                                    <div style="font-size:16px;font-weight:700;color:#f8fafc;">${escapeHtml(p.name)}</div>
+                                    <div style="margin-top:6px;color:#cbd5e1;font-size:13px;">
+                                        <strong>Location:</strong> ${escapeHtml(placementLabel(p.placement_key))} |
+                                        <strong>Format:</strong> ${escapeHtml(p.ad_format)} |
+                                        <strong>Devices:</strong> ${escapeHtml(p.target_devices)} |
+                                        <strong>Status:</strong> ${Number(p.is_active) === 1 ? 'Active' : 'Inactive'}
+                                    </div>
+                                    ${p.smartlink_url ? `<div style="margin-top:6px;color:#94a3b8;font-size:12px;"><strong>Smartlink:</strong> ${escapeHtml(p.smartlink_url)}</div>` : ''}
+                                    ${shortenedCode ? `<div style="margin-top:6px;color:#94a3b8;font-size:12px;"><strong>Code:</strong> ${escapeHtml(shortenedCode)}</div>` : ''}
+                                </div>
+                                <div style="display:flex;gap:8px;">
+                                    <button type="button" class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" onclick="editAdsterraPlacement(${p.id})">Edit</button>
+                                    <button type="button" class="btn btn-danger" style="font-size:12px;padding:6px 12px;" onclick="deleteAdsterraPlacement(${p.id})">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                document.getElementById('adsterraPlacementsList').innerHTML = html;
+            } catch (error) {
+                console.error('Error loading Adsterra placements:', error);
+                document.getElementById('adsterraPlacementsList').innerHTML = '<p style="color:#cbd5e1;">Error loading placements.</p>';
+            }
+        }
+
+        async function editAdsterraPlacement(id) {
+            try {
+                const response = await apiFetch(`/admin/api/adsterra/placements/${id}`);
+                if (!response || !response.ok) {
+                    showNotification('Unable to load placement details', 'error');
+                    return;
+                }
+                const data = await response.json();
+                if (!data.success || !data.placement) {
+                    showNotification(data.message || 'Placement not found', 'error');
+                    return;
+                }
+                const p = data.placement;
+                showAdsterraPlacementForm();
+                document.getElementById('adsterraPlacementFormTitle').textContent = 'Edit Placement';
+                document.getElementById('adsterraPlacementId').value = p.id;
+                document.getElementById('adsterraPlacementName').value = p.name || '';
+                document.getElementById('adsterraPlacementKey').value = p.placement_key || 'dashboard_quick_actions';
+                document.getElementById('adsterraPlacementFormat').value = p.ad_format || 'banner';
+                document.getElementById('adsterraPlacementDevices').value = p.target_devices || 'all';
+                document.getElementById('adsterraScriptPlacement').value = p.script_placement || 'body_end';
+                document.getElementById('adsterraAdCode').value = p.ad_code || '';
+                document.getElementById('adsterraSmartlinkUrl').value = p.smartlink_url || '';
+                document.getElementById('adsterraSortOrder').value = Number.parseInt(p.sort_order, 10) || 0;
+                document.getElementById('adsterraPlacementActive').checked = Number(p.is_active) === 1;
+            } catch (error) {
+                console.error('Error editing Adsterra placement:', error);
+                showNotification('Failed to load placement details', 'error');
+            }
+        }
+
+        async function deleteAdsterraPlacement(id) {
+            if (!confirm('Delete this Adsterra placement?')) return;
+            try {
+                const response = await apiFetch(`/admin/api/adsterra/placements/${id}`, { method: 'DELETE' });
+                const data = response ? await response.json().catch(() => ({})) : {};
+                if (response && response.ok && data.success) {
+                    showNotification('Placement deleted successfully', 'success');
+                    await loadAdsterraPlacements();
+                } else {
+                    showNotification(data.message || 'Failed to delete placement', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting Adsterra placement:', error);
+                showNotification('Failed to delete placement', 'error');
+            }
+        }
+
+        document.getElementById('adsterraPlacementForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const placementId = document.getElementById('adsterraPlacementId').value;
+            const payload = {
+                name: document.getElementById('adsterraPlacementName').value.trim(),
+                placement_key: document.getElementById('adsterraPlacementKey').value,
+                ad_format: document.getElementById('adsterraPlacementFormat').value,
+                target_devices: document.getElementById('adsterraPlacementDevices').value,
+                script_placement: document.getElementById('adsterraScriptPlacement').value,
+                ad_code: document.getElementById('adsterraAdCode').value,
+                smartlink_url: document.getElementById('adsterraSmartlinkUrl').value.trim(),
+                sort_order: Number.parseInt(document.getElementById('adsterraSortOrder').value, 10) || 0,
+                is_active: document.getElementById('adsterraPlacementActive').checked
+            };
+
+            const url = placementId ? `/admin/api/adsterra/placements/${placementId}` : '/admin/api/adsterra/placements';
+            const method = placementId ? 'PUT' : 'POST';
+
+            try {
+                const response = await apiFetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = response ? await response.json().catch(() => ({})) : {};
+                if (response && response.ok && data.success) {
+                    showNotification(placementId ? 'Placement updated successfully' : 'Placement created successfully', 'success');
+                    hideAdsterraPlacementForm();
+                    await loadAdsterraPlacements();
+                } else {
+                    showNotification(data.message || 'Failed to save placement', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving Adsterra placement:', error);
+                showNotification('Failed to save placement', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
