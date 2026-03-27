@@ -139,7 +139,7 @@
                 <div class="card resource-store-card">
                     <div class="card-header">Purchase Resources</div>
                     <p style="margin-bottom: 20px; color: #cbd5e1;">
-                        Pick what you want to buy using the icons below. RAM/CPU/Storage add to your resource pool, and Server Slots let you create more servers.
+                        Pick what you want to buy using the icons below. RAM/CPU/Storage add to your resource pool, Server Slots let you create more servers, and Ports let you assign additional IP:Port allocations.
                     </p>
                     
                     <div class="resource-store-choice-grid" role="tablist" aria-label="Resource Store Choices">
@@ -208,6 +208,17 @@
                                 <div class="resource-store-choice-limit" id="choice-limit-backup">Max: Loading...</div>
                             </div>
                         </button>
+
+                        <button type="button" class="resource-store-choice" data-choice="port" aria-controls="resourcePurchasePanel">
+                            <div class="resource-store-choice-icon-wrap">
+                                <img id="storeChoiceIconPort" src="/icons/ip.svg" alt="" width="44" height="44" class="resource-store-choice-icon" decoding="async">
+                            </div>
+                            <div class="resource-store-choice-info">
+                                <div class="resource-store-choice-title">Port</div>
+                                <div class="resource-store-choice-sub" id="choice-sub-port">Loading...</div>
+                                <div class="resource-store-choice-limit" id="choice-limit-port">Max: Loading...</div>
+                            </div>
+                        </button>
                     </div>
                     
                     <div class="resource-store-panels">
@@ -222,6 +233,7 @@
                                         <option value="storage">Storage</option>
                                         <option value="database">Databases</option>
                                         <option value="backup">Backups</option>
+                                        <option value="port">Ports</option>
                                     </select>
                                 </div>
                                 
@@ -291,7 +303,9 @@
             database_coins_per_set: 10,
             database_count_per_set: 1,
             backup_coins_per_set: 10,
-            backup_count_per_set: 1
+            backup_count_per_set: 1,
+            port_coins_per_set: 100,
+            port_count_per_set: 1
         };
         
         document.addEventListener('DOMContentLoaded', async () => {
@@ -358,6 +372,8 @@
             const databaseCount = resourcePrices.database_count_per_set || 1;
             const backupCoins = resourcePrices.backup_coins_per_set || 10;
             const backupCount = resourcePrices.backup_count_per_set || 1;
+            const portCoins = resourcePrices.port_coins_per_set || 100;
+            const portCount = resourcePrices.port_count_per_set || 1;
             
             // Calculate per-coin values
             const ramPerCoin = (ramGB / ramCoins).toFixed(2);
@@ -392,6 +408,10 @@
                             <strong style="color: #f8fafc; font-weight: 600;">Backups:</strong> <span style="color: #cbd5e1;">${backupCoins} coin${backupCoins !== 1 ? 's' : ''} = ${backupCount} backup${backupCount !== 1 ? 's' : ''}</span>
                             <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${(backupCount / backupCoins).toFixed(2)} backup(s)</div>
                         </div>
+                        <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                            <strong style="color: #f8fafc; font-weight: 600;">Ports:</strong> <span style="color: #cbd5e1;">${portCoins} coin${portCoins !== 1 ? 's' : ''} = ${portCount} port${portCount !== 1 ? 's' : ''}</span>
+                            <div style="color: #94a3b8; font-size: 12px; margin-top: 4px;">1 coin = ${(portCount / portCoins).toFixed(2)} port(s)</div>
+                        </div>
                     </div>
                 `;
             }
@@ -404,6 +424,7 @@
             const slotIcon = (prices && prices.server_slot_icon_path) || '/icons/server-slot.svg';
             const databaseIcon = (prices && prices.database_icon_path) || '/icons/database.svg';
             const backupIcon = (prices && prices.backup_icon_path) || '/icons/backup.svg';
+            const portIcon = (prices && prices.port_icon_path) || '/icons/ip.svg';
 
             const ramEl = document.getElementById('storeChoiceIconRam');
             const cpuEl = document.getElementById('storeChoiceIconCpu');
@@ -411,6 +432,7 @@
             const slotEl = document.getElementById('storeChoiceIconServerSlot');
             const databaseEl = document.getElementById('storeChoiceIconDatabase');
             const backupEl = document.getElementById('storeChoiceIconBackup');
+            const portEl = document.getElementById('storeChoiceIconPort');
 
             if (ramEl) ramEl.src = ramIcon;
             if (cpuEl) cpuEl.src = cpuIcon;
@@ -418,6 +440,7 @@
             if (slotEl) slotEl.src = slotIcon;
             if (databaseEl) databaseEl.src = databaseIcon;
             if (backupEl) backupEl.src = backupIcon;
+            if (portEl) portEl.src = portIcon;
         }
         
         function renderChoicePriceTiles() {
@@ -432,6 +455,8 @@
             const databaseCount = resourcePrices.database_count_per_set || 1;
             const backupCoins = resourcePrices.backup_coins_per_set || 10;
             const backupCount = resourcePrices.backup_count_per_set || 1;
+            const portCoins = resourcePrices.port_coins_per_set || 100;
+            const portCount = resourcePrices.port_count_per_set || 1;
             
             const ramSub = document.getElementById('choice-sub-ram');
             const cpuSub = document.getElementById('choice-sub-cpu');
@@ -439,12 +464,14 @@
             const slotSub = document.getElementById('choice-sub-server-slot');
             const databaseSub = document.getElementById('choice-sub-database');
             const backupSub = document.getElementById('choice-sub-backup');
+            const portSub = document.getElementById('choice-sub-port');
             const ramLimit = document.getElementById('choice-limit-ram');
             const cpuLimit = document.getElementById('choice-limit-cpu');
             const storageLimit = document.getElementById('choice-limit-storage');
             const slotLimit = document.getElementById('choice-limit-server-slot');
             const databaseLimit = document.getElementById('choice-limit-database');
             const backupLimit = document.getElementById('choice-limit-backup');
+            const portLimit = document.getElementById('choice-limit-port');
             
             if (ramSub) ramSub.textContent = `${ramCoins} coin${ramCoins !== 1 ? 's' : ''} per ${ramGB}GB set`;
             if (cpuSub) cpuSub.textContent = `${cpuCoins} coin${cpuCoins !== 1 ? 's' : ''} per ${cpuPercent}% set`;
@@ -452,6 +479,7 @@
             if (slotSub) slotSub.textContent = `${formatNumber(slotPrice)} coins per slot`;
             if (databaseSub) databaseSub.textContent = `${databaseCoins} coin${databaseCoins !== 1 ? 's' : ''} per ${databaseCount} DB`;
             if (backupSub) backupSub.textContent = `${backupCoins} coin${backupCoins !== 1 ? 's' : ''} per ${backupCount} backup`;
+            if (portSub) portSub.textContent = `${portCoins} coin${portCoins !== 1 ? 's' : ''} per ${portCount} port`;
             
             // Row 3: configured max limits from admin settings
             if (ramLimit) {
@@ -477,6 +505,10 @@
             if (backupLimit) {
                 const maxBackups = resourcePrices.max_backups;
                 backupLimit.textContent = !maxBackups || maxBackups <= 0 ? 'Maximum limit: Unlimited' : `Maximum limit: ${Number(maxBackups)} backup${Number(maxBackups) !== 1 ? 's' : ''}`;
+            }
+            if (portLimit) {
+                const maxPorts = resourcePrices.max_ports;
+                portLimit.textContent = !maxPorts || maxPorts <= 0 ? 'Maximum limit: Unlimited' : `Maximum limit: ${Number(maxPorts)} port${Number(maxPorts) !== 1 ? 's' : ''}`;
             }
         }
         
@@ -519,6 +551,9 @@
                     break;
                 case 'backup':
                     defaultAmount = resourcePrices.backup_count_per_set || 1;
+                    break;
+                case 'port':
+                    defaultAmount = resourcePrices.port_count_per_set || 1;
                     break;
             }
             
@@ -579,6 +614,12 @@
                     cost = Math.ceil((amount / backupCountPerSet) * backupCoinsPerSet);
                     unit = 'backup';
                     break;
+                case 'port':
+                    const portCoinsPerSet = resourcePrices.port_coins_per_set || 100;
+                    const portCountPerSet = resourcePrices.port_count_per_set || 1;
+                    cost = Math.ceil((amount / portCountPerSet) * portCoinsPerSet);
+                    unit = 'port';
+                    break;
             }
             
             unitSpan.textContent = unit;
@@ -596,6 +637,8 @@
                     limitMsg = `Max allowed: ${resourcePrices.max_databases} DB`;
                 } else if (resourceType === 'backup' && resourcePrices.max_backups > 0) {
                     limitMsg = `Max allowed: ${resourcePrices.max_backups} backup`;
+                } else if (resourceType === 'port' && resourcePrices.max_ports > 0) {
+                    limitMsg = `Max allowed: ${resourcePrices.max_ports} port`;
                 }
                 limitWarning.textContent = limitMsg;
                 limitWarning.style.display = limitMsg ? 'block' : 'none';
@@ -688,6 +731,7 @@
                 case 'server_slot': return 'Server Slot';
                 case 'database': return 'Database';
                 case 'backup': return 'Backup';
+                case 'port': return 'Port';
                 default: return (type || '').toString().toUpperCase();
             }
         }
@@ -700,6 +744,7 @@
                 case 'server_slot': return 'slot';
                 case 'database': return 'DB';
                 case 'backup': return 'backup';
+                case 'port': return 'port';
                 default: return '';
             }
         }

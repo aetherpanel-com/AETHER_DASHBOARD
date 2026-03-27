@@ -956,18 +956,22 @@ function initializeDatabase() {
                     database_count_per_set INTEGER DEFAULT 1,
                     backup_coins_per_set INTEGER DEFAULT 10,
                     backup_count_per_set INTEGER DEFAULT 1,
+                    port_coins_per_set INTEGER DEFAULT 100,
+                    port_count_per_set INTEGER DEFAULT 1,
                     max_ram_gb INTEGER DEFAULT 0,
                     max_cpu_percent INTEGER DEFAULT 0,
                     max_storage_gb INTEGER DEFAULT 0,
                     max_server_slots INTEGER DEFAULT 0,
                     max_databases INTEGER DEFAULT 0,
                     max_backups INTEGER DEFAULT 0,
+                    max_ports INTEGER DEFAULT 0,
                     ram_icon_path TEXT DEFAULT '/icons/ram.svg',
                     cpu_icon_path TEXT DEFAULT '/icons/cpu.svg',
                     storage_icon_path TEXT DEFAULT '/icons/storage.svg',
                     server_slot_icon_path TEXT DEFAULT '/icons/server-slot.svg',
                     database_icon_path TEXT DEFAULT '/icons/database.svg',
                     backup_icon_path TEXT DEFAULT '/icons/backup.svg',
+                    port_icon_path TEXT DEFAULT '/icons/ip.svg',
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             `, (err) => {
@@ -982,8 +986,8 @@ function initializeDatabase() {
                 const createDefaultPricesAndAdmin = () => {
                     db.get('SELECT id FROM resource_prices', (err, row) => {
                         if (!err && !row) {
-                            db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, database_coins_per_set, database_count_per_set, backup_coins_per_set, backup_count_per_set, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots, max_databases, max_backups, ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path, database_icon_path, backup_icon_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-                                [1, 1, 1, 1, 1, 1, 100, 10, 1, 10, 1, 0, 0, 0, 0, 0, 0, '/icons/ram.svg', '/icons/cpu.svg', '/icons/storage.svg', '/icons/server-slot.svg', '/icons/database.svg', '/icons/backup.svg'], (err) => {
+                            db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, database_coins_per_set, database_count_per_set, backup_coins_per_set, backup_count_per_set, port_coins_per_set, port_count_per_set, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots, max_databases, max_backups, max_ports, ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path, database_icon_path, backup_icon_path, port_icon_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+                                [1, 1, 1, 1, 1, 1, 100, 10, 1, 10, 1, 100, 1, 0, 0, 0, 0, 0, 0, 0, '/icons/ram.svg', '/icons/cpu.svg', '/icons/storage.svg', '/icons/server-slot.svg', '/icons/database.svg', '/icons/backup.svg', '/icons/ip.svg'], (err) => {
                                     if (!err) {
                                         console.log('✅ Default resource prices created');
                                     }
@@ -1057,6 +1061,18 @@ function initializeDatabase() {
                                             else console.log('✅ backup_count_per_set column added to resource_prices');
                                         });
                                     }
+                                    if (!columnNames.includes('port_coins_per_set')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN port_coins_per_set INTEGER DEFAULT 100', (err) => {
+                                            if (err) console.error('Error adding port_coins_per_set column:', err);
+                                            else console.log('✅ port_coins_per_set column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('port_count_per_set')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN port_count_per_set INTEGER DEFAULT 1', (err) => {
+                                            if (err) console.error('Error adding port_count_per_set column:', err);
+                                            else console.log('✅ port_count_per_set column added to resource_prices');
+                                        });
+                                    }
                                     if (!columnNames.includes('max_databases')) {
                                         db.run('ALTER TABLE resource_prices ADD COLUMN max_databases INTEGER DEFAULT 0', (err) => {
                                             if (err) console.error('Error adding max_databases column:', err);
@@ -1067,6 +1083,12 @@ function initializeDatabase() {
                                         db.run('ALTER TABLE resource_prices ADD COLUMN max_backups INTEGER DEFAULT 0', (err) => {
                                             if (err) console.error('Error adding max_backups column:', err);
                                             else console.log('✅ max_backups column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('max_ports')) {
+                                        db.run('ALTER TABLE resource_prices ADD COLUMN max_ports INTEGER DEFAULT 0', (err) => {
+                                            if (err) console.error('Error adding max_ports column:', err);
+                                            else console.log('✅ max_ports column added to resource_prices');
                                         });
                                     }
                                     if (!columnNames.includes('ram_icon_path')) {
@@ -1103,6 +1125,12 @@ function initializeDatabase() {
                                         db.run("ALTER TABLE resource_prices ADD COLUMN backup_icon_path TEXT DEFAULT '/icons/backup.svg'", (err) => {
                                             if (err) console.error('Error adding backup_icon_path column:', err);
                                             else console.log('✅ backup_icon_path column added to resource_prices');
+                                        });
+                                    }
+                                    if (!columnNames.includes('port_icon_path')) {
+                                        db.run("ALTER TABLE resource_prices ADD COLUMN port_icon_path TEXT DEFAULT '/icons/ip.svg'", (err) => {
+                                            if (err) console.error('Error adding port_icon_path column:', err);
+                                            else console.log('✅ port_icon_path column added to resource_prices');
                                         });
                                     }
                                 }
@@ -1154,18 +1182,22 @@ function initializeDatabase() {
                                     database_count_per_set INTEGER DEFAULT 1,
                                     backup_coins_per_set INTEGER DEFAULT 10,
                                     backup_count_per_set INTEGER DEFAULT 1,
+                                    port_coins_per_set INTEGER DEFAULT 100,
+                                    port_count_per_set INTEGER DEFAULT 1,
                                     max_ram_gb INTEGER DEFAULT 0,
                                     max_cpu_percent INTEGER DEFAULT 0,
                                     max_storage_gb INTEGER DEFAULT 0,
                                     max_server_slots INTEGER DEFAULT 0,
                                     max_databases INTEGER DEFAULT 0,
                                     max_backups INTEGER DEFAULT 0,
+                                    max_ports INTEGER DEFAULT 0,
                                     ram_icon_path TEXT DEFAULT '/icons/ram.svg',
                                     cpu_icon_path TEXT DEFAULT '/icons/cpu.svg',
                                     storage_icon_path TEXT DEFAULT '/icons/storage.svg',
                                     server_slot_icon_path TEXT DEFAULT '/icons/server-slot.svg',
                                     database_icon_path TEXT DEFAULT '/icons/database.svg',
                                     backup_icon_path TEXT DEFAULT '/icons/backup.svg',
+                                    port_icon_path TEXT DEFAULT '/icons/ip.svg',
                                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                                 )
                             `, (err) => {
@@ -1177,8 +1209,8 @@ function initializeDatabase() {
                                 console.log('✅ Table migrated successfully');
                                 
                                 // Create default prices
-                                db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, database_coins_per_set, database_count_per_set, backup_coins_per_set, backup_count_per_set, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots, max_databases, max_backups, ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path, database_icon_path, backup_icon_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-                                    [1, 1, 1, 1, 1, 1, 100, 10, 1, 10, 1, 0, 0, 0, 0, 0, 0, '/icons/ram.svg', '/icons/cpu.svg', '/icons/storage.svg', '/icons/server-slot.svg', '/icons/database.svg', '/icons/backup.svg'], (err) => {
+                                db.run('INSERT INTO resource_prices (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, database_coins_per_set, database_count_per_set, backup_coins_per_set, backup_count_per_set, port_coins_per_set, port_count_per_set, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots, max_databases, max_backups, max_ports, ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path, database_icon_path, backup_icon_path, port_icon_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+                                    [1, 1, 1, 1, 1, 1, 100, 10, 1, 10, 1, 100, 1, 0, 0, 0, 0, 0, 0, 0, '/icons/ram.svg', '/icons/cpu.svg', '/icons/storage.svg', '/icons/server-slot.svg', '/icons/database.svg', '/icons/backup.svg', '/icons/ip.svg'], (err) => {
                                         if (!err) {
                                             console.log('✅ Default resource prices created');
                                         }

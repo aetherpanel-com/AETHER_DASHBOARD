@@ -1000,6 +1000,44 @@ async function deleteDatabase(serverIdentifier, databaseId, pterodactylUserId) {
     return await makeClientRequest('DELETE', `/client/servers/${serverIdentifier}/databases/${databaseId}`, null, pterodactylUserId);
 }
 
+// Assign an additional allocation to a server (Application API).
+// Some panel versions do not support POST /servers/:id/allocations.
+// PATCH /servers/:id/build with add_allocations is broadly compatible.
+async function addServerAllocation(serverId, allocationId) {
+    const serverDetails = await getServerDetails(serverId);
+    if (!serverDetails.success) {
+        return serverDetails;
+    }
+
+    const serverAttrs = serverDetails.data?.attributes || serverDetails.data;
+    const currentLimits = serverAttrs.limits || {};
+    const currentFeatureLimits = serverAttrs.feature_limits || {};
+    const primaryAllocationId = parseInt(serverAttrs.allocation, 10);
+    const addAllocationId = parseInt(allocationId, 10);
+
+    if (!primaryAllocationId || Number.isNaN(primaryAllocationId) || Number.isNaN(addAllocationId)) {
+        return { success: false, error: 'Invalid allocation information' };
+    }
+
+    return await makeRequest('PATCH', `/application/servers/${serverId}/build`, {
+        allocation: primaryAllocationId,
+        oom_disabled: serverAttrs.oom_disabled ?? false,
+        limits: {
+            memory: currentLimits.memory,
+            swap: currentLimits.swap ?? 0,
+            disk: currentLimits.disk,
+            io: currentLimits.io ?? 500,
+            cpu: currentLimits.cpu
+        },
+        feature_limits: {
+            databases: currentFeatureLimits.databases !== undefined ? currentFeatureLimits.databases : 0,
+            allocations: currentFeatureLimits.allocations !== undefined ? currentFeatureLimits.allocations : 1,
+            backups: currentFeatureLimits.backups !== undefined ? currentFeatureLimits.backups : 0
+        },
+        add_allocations: [addAllocationId]
+    });
+}
+
 // Suspend server
 async function suspendServer(serverId) {
     return await makeRequest('POST', `/application/servers/${serverId}/suspend`);
@@ -1384,5 +1422,6 @@ module.exports = {
     listDatabases,
     createDatabase,
     rotateDatabasePassword,
-    deleteDatabase
+    deleteDatabase,
+    addServerAllocation
 };

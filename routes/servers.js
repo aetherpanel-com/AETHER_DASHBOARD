@@ -123,6 +123,116 @@ async function ensureFeatureLimitsForCreate(server, userId, pterodactylUserId, k
     return { ok: true };
 }
 
+function formatAllocationAddress(allocation) {
+    if (!allocation) return null;
+    const host = allocation.ip_alias && String(allocation.ip_alias).trim() !== ''
+        ? String(allocation.ip_alias).trim()
+        : allocation.ip;
+    if (!host || !allocation.port) return null;
+    return `${host}:${allocation.port}`;
+}
+
+async function getPurchasedPortTotal(userId) {
+    const row = await get(
+        `SELECT COALESCE(SUM(amount), 0) as total
+         FROM resource_purchases
+         WHERE user_id = ? AND resource_type = 'port'`,
+        [userId]
+    );
+    return Number(row?.total || 0);
+}
+
+async function countAllocatedPortsForServer(server) {
+    if (!server?.pterodactyl_id) return 0;
+    const details = await pterodactyl.getServerDetails(server.pterodactyl_id);
+    if (!details.success) {
+        throw new Error('Failed to fetch server allocation details from panel');
+    }
+    const allocationRows = extractAllocationsFromServerDetails(details.data);
+    return Math.max(0, allocationRows.length - 1);
+}
+
+async function resolveApplicationServerId(server) {
+    const rawId = server?.pterodactyl_id;
+    if (rawId !== undefined && rawId !== null && String(rawId).trim() !== '') {
+        const parsed = parseInt(String(rawId), 10);
+        if (!Number.isNaN(parsed)) return parsed;
+    }
+
+    // Fallback for legacy rows where pterodactyl_id may hold identifier-like values.
+    if (server?.pterodactyl_identifier) {
+        const all = await pterodactyl.getAllServers();
+        if (all.success && Array.isArray(all.data?.data)) {
+            const match = all.data.data.find((row) => {
+                const attrs = row?.attributes || row;
+                return attrs?.identifier === server.pterodactyl_identifier;
+            });
+            const resolved = parseInt(String((match?.attributes || match)?.id || ''), 10);
+            if (!Number.isNaN(resolved)) return resolved;
+        }
+    }
+
+    return null;
+}
+
+function extractAllocationsFromServerDetails(serverDetailsData) {
+    const root = serverDetailsData || {};
+    const attrs = root.attributes || {};
+
+    const relationshipRows =
+        root.relationships?.allocations?.data ||
+        attrs.relationships?.allocations?.data ||
+        [];
+
+    const includedRows = [
+        ...(Array.isArray(root.included) ? root.included : []),
+        ...(Array.isArray(attrs.included) ? attrs.included : [])
+    ].filter((item) => item && (item.type === 'allocation' || item.object === 'allocation' || item.attributes?.ip !== undefined));
+
+    const includedById = new Map();
+    includedRows.forEach((item) => {
+        const allocAttrs = item.attributes || item;
+        const allocId = Number(allocAttrs.id || item.id || 0);
+        if (!Number.isNaN(allocId) && allocId > 0) {
+            includedById.set(allocId, allocAttrs);
+        }
+    });
+
+    const primaryAllocationId = Number(attrs.allocation || root.allocation || 0);
+    const out = [];
+
+    if (Array.isArray(relationshipRows) && relationshipRows.length > 0) {
+        relationshipRows.forEach((row) => {
+            const rowAttrs = row?.attributes || row || {};
+            const allocId = Number(row?.id || rowAttrs.id || 0);
+            const merged = includedById.get(allocId) || rowAttrs;
+            if (Number.isNaN(allocId) || allocId <= 0) return;
+            out.push({
+                allocation_id: allocId,
+                ip: merged.ip || null,
+                ip_alias: merged.ip_alias || null,
+                port: merged.port || null,
+                is_default: allocId === primaryAllocationId
+            });
+        });
+    } else if (includedById.size > 0) {
+        for (const [allocId, merged] of includedById.entries()) {
+            out.push({
+                allocation_id: allocId,
+                ip: merged.ip || null,
+                ip_alias: merged.ip_alias || null,
+                port: merged.port || null,
+                is_default: allocId === primaryAllocationId
+            });
+        }
+    }
+
+    // Deduplicate by allocation_id
+    const dedup = new Map();
+    out.forEach((a) => dedup.set(a.allocation_id, a));
+    return Array.from(dedup.values());
+}
+
 // Middleware to check if user is logged in
 const requireAuth = (req, res, next) => {
     if (!req.session.user) {
@@ -1085,6 +1195,169 @@ async function verifyServerOwnership(req, serverId) {
         [serverId, req.session.user.id]);
     return server;
 }
+
+// List allocations for a server (default + additional)
+router.get('/api/allocations/:id/list', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        if (!server.pterodactyl_id) {
+            return res.status(400).json({ success: false, message: 'Server is not linked to panel yet' });
+        }
+
+        const applicationServerId = await resolveApplicationServerId(server);
+        if (!applicationServerId) {
+            return res.status(500).json({ success: false, message: 'Unable to resolve panel server ID for allocation list.' });
+        }
+
+        const details = await pterodactyl.getServerDetails(applicationServerId);
+        if (!details.success) {
+            return res.status(500).json({ success: false, message: details.error || 'Failed to fetch allocations from panel' });
+        }
+
+        const allocations = extractAllocationsFromServerDetails(details.data).map((row) => ({
+            ...row,
+            address: formatAllocationAddress(row)
+        }));
+
+        res.json({ success: true, allocations });
+    } catch (error) {
+        console.error('Error listing server allocations:', error);
+        res.status(500).json({ success: false, message: 'Error listing server allocations' });
+    }
+});
+
+// Assign one additional purchased port (allocation) to a specific server
+router.post('/api/allocations/:id/add', requireAuth, async (req, res) => {
+    try {
+        const server = await verifyServerOwnership(req, req.params.id);
+        if (!server) {
+            return res.status(404).json({ success: false, message: 'Server not found' });
+        }
+        if (!server.pterodactyl_id || !server.pterodactyl_identifier) {
+            return res.status(400).json({ success: false, message: 'Server is not linked to panel yet' });
+        }
+        if (!await pterodactyl.isConfigured()) {
+            return res.status(500).json({ success: false, message: 'Pterodactyl is not configured' });
+        }
+
+        const purchasedPorts = await getPurchasedPortTotal(req.session.user.id);
+        if (purchasedPorts <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Purchase ports in the Resource Store before assigning extra ports.'
+            });
+        }
+
+        const userServers = await query(
+            'SELECT id, pterodactyl_id FROM servers WHERE user_id = ? AND pterodactyl_id IS NOT NULL',
+            [req.session.user.id]
+        );
+
+        let usedPorts = 0;
+        for (const s of userServers) {
+            try {
+                usedPorts += await countAllocatedPortsForServer(s);
+            } catch (err) {
+                return res.status(500).json({
+                    success: false,
+                    message: err.message || 'Failed to validate current port usage'
+                });
+            }
+        }
+
+        if (usedPorts >= purchasedPorts) {
+            return res.status(400).json({
+                success: false,
+                message: 'No purchased ports left. Purchase more in Resource Store or remove existing extra ports.'
+            });
+        }
+
+        // Claim one free allocation from local pool
+        const allocation = await get(`
+            SELECT * FROM pterodactyl_allocations
+            WHERE is_active = 1
+            ORDER BY priority DESC, id ASC
+            LIMIT 1
+        `);
+        if (!allocation) {
+            return res.status(400).json({
+                success: false,
+                message: 'No free allocations available. Ask admin to sync more ports.'
+            });
+        }
+
+        const claim = await run(
+            'UPDATE pterodactyl_allocations SET is_active = 0 WHERE id = ? AND is_active = 1',
+            [allocation.id]
+        );
+        if (!claim || claim.changes === 0) {
+            return res.status(409).json({
+                success: false,
+                message: 'Allocation was claimed by another request. Please retry.'
+            });
+        }
+
+        const applicationServerId = await resolveApplicationServerId(server);
+        if (!applicationServerId) {
+            await run('UPDATE pterodactyl_allocations SET is_active = 1 WHERE id = ?', [allocation.id]);
+            return res.status(500).json({
+                success: false,
+                message: 'Unable to resolve panel server ID for allocation assignment.'
+            });
+        }
+
+        const assignResult = await pterodactyl.addServerAllocation(applicationServerId, allocation.allocation_id);
+        if (!assignResult.success) {
+            await run('UPDATE pterodactyl_allocations SET is_active = 1 WHERE id = ?', [allocation.id]);
+            return res.status(500).json({
+                success: false,
+                message: assignResult.error || 'Failed to assign allocation in panel'
+            });
+        }
+
+        // Verify panel actually attached the selected allocation before reporting success.
+        const verifyDetails = await pterodactyl.getServerDetails(applicationServerId);
+        if (!verifyDetails.success) {
+            await run('UPDATE pterodactyl_allocations SET is_active = 1 WHERE id = ?', [allocation.id]);
+            return res.status(502).json({
+                success: false,
+                message: verifyDetails.error || 'Allocation assignment could not be verified.'
+            });
+        }
+
+        const attachedIds = new Set(
+            extractAllocationsFromServerDetails(verifyDetails.data).map((item) => Number(item.allocation_id))
+        );
+        if (!attachedIds.has(Number(allocation.allocation_id))) {
+            await run('UPDATE pterodactyl_allocations SET is_active = 1 WHERE id = ?', [allocation.id]);
+            return res.status(502).json({
+                success: false,
+                message: 'Panel did not attach the selected port. Please retry.'
+            });
+        }
+
+        // Remove from available pool, it's now assigned in panel.
+        await run('DELETE FROM pterodactyl_allocations WHERE id = ?', [allocation.id]);
+
+        res.json({
+            success: true,
+            message: 'Extra port assigned successfully.',
+            allocation: {
+                allocation_id: allocation.allocation_id,
+                ip: allocation.ip,
+                ip_alias: allocation.ip_alias || null,
+                port: allocation.port,
+                address: formatAllocationAddress(allocation)
+            }
+        });
+    } catch (error) {
+        console.error('Error assigning additional port:', error);
+        res.status(500).json({ success: false, message: 'Error assigning additional port' });
+    }
+});
 
 // List files in directory
 router.get('/api/files/:id/list', requireAuth, async (req, res) => {
@@ -2179,7 +2452,7 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
             });
         }
         
-        if (!['ram', 'cpu', 'storage', 'database', 'backup'].includes(resource_type)) {
+        if (!['ram', 'cpu', 'storage', 'database', 'backup', 'port'].includes(resource_type)) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Invalid resource type' 
@@ -2234,6 +2507,11 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                 const backupCountPerSet = prices.backup_count_per_set || 1;
                 coinsSpent = Math.ceil((amount / backupCountPerSet) * backupCoinsPerSet);
                 break;
+            case 'port':
+                const portCoinsPerSet = prices.port_coins_per_set || 100;
+                const portCountPerSet = prices.port_count_per_set || 1;
+                coinsSpent = Math.ceil((amount / portCountPerSet) * portCoinsPerSet);
+                break;
         }
         
         // BUGFIX: Use transaction to atomically check coins, deduct coins, and add resources
@@ -2260,6 +2538,10 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                 // Store plain count for purchase history
                 resourceAmountMB = amount;
                 break;
+            case 'port':
+                // Store plain count for purchase history
+                resourceAmountMB = amount;
+                break;
         }
         
         // Atomically check coins, deduct coins, and add resources in a transaction
@@ -2273,7 +2555,7 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
             }
 
             // Check resource limits (0 = unlimited)
-            const limits = await get('SELECT max_ram_gb, max_cpu_percent, max_storage_gb, max_databases, max_backups FROM resource_prices ORDER BY id DESC LIMIT 1');
+            const limits = await get('SELECT max_ram_gb, max_cpu_percent, max_storage_gb, max_databases, max_backups, max_ports FROM resource_prices ORDER BY id DESC LIMIT 1');
 
             if (limits) {
                 if (resource_type === 'ram' && limits.max_ram_gb > 0) {
@@ -2319,6 +2601,17 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                         throw new Error(`Purchase would exceed the backup limit of ${limits.max_backups}. You can purchase up to ${remaining} more.`);
                     }
                 }
+                if (resource_type === 'port' && limits.max_ports > 0) {
+                    const currentPorts = await get(
+                        `SELECT COALESCE(SUM(amount), 0) as total FROM resource_purchases WHERE user_id = ? AND resource_type = 'port'`,
+                        [req.session.user.id]
+                    );
+                    const portCount = Number(currentPorts?.total || 0);
+                    if (portCount + amount > limits.max_ports) {
+                        const remaining = Math.max(0, limits.max_ports - portCount);
+                        throw new Error(`Purchase would exceed the port limit of ${limits.max_ports}. You can purchase up to ${remaining} more.`);
+                    }
+                }
             }
             
             if (user.coins < coinsSpent) {
@@ -2348,6 +2641,7 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                     break;
                 case 'database':
                 case 'backup':
+                case 'port':
                     // No users table counter for these resources yet; deduct only and track in resource_purchases
                     updateQuery = 'UPDATE users SET coins = coins - ? WHERE id = ? AND coins >= ?';
                     updateParams = [coinsSpent, req.session.user.id, coinsSpent];
@@ -2441,6 +2735,13 @@ router.post('/api/purchase-resource', requireAuth, purchaseLimiter, async (req, 
                 req.session.user.username,
                 'coins_spent_resource',
                 `Purchased ${amount} backup slot(s) for ${coinsSpent} coins`
+            ).catch(() => {});
+        } else if (resource_type === 'port') {
+            writeLog(
+                req.session.user.id,
+                req.session.user.username,
+                'coins_spent_resource',
+                `Purchased ${amount} additional port(s) for ${coinsSpent} coins`
             ).catch(() => {});
         }
     } catch (error) {
@@ -2619,14 +2920,18 @@ router.get('/api/resource-prices', requireAuth, async (req, res) => {
                     database_count_per_set: 1,
                     backup_coins_per_set: 10,
                     backup_count_per_set: 1,
+                    port_coins_per_set: 100,
+                    port_count_per_set: 1,
                     max_databases: 0,
                     max_backups: 0,
+                    max_ports: 0,
                     ram_icon_path: '/icons/ram.svg',
                     cpu_icon_path: '/icons/cpu.svg',
                     storage_icon_path: '/icons/storage.svg',
                     server_slot_icon_path: '/icons/server-slot.svg',
                     database_icon_path: '/icons/database.svg',
-                    backup_icon_path: '/icons/backup.svg'
+                    backup_icon_path: '/icons/backup.svg',
+                    port_icon_path: '/icons/ip.svg'
                 }
             });
         }
@@ -2969,6 +3274,15 @@ router.get('/api/purchased-resources', requireAuth, async (req, res) => {
             FROM servers 
             WHERE user_id = ?
         `, [req.session.user.id]);
+
+        const purchasedExtras = await get(`
+            SELECT
+                COALESCE(SUM(CASE WHEN resource_type = 'database' THEN amount ELSE 0 END), 0) as databases,
+                COALESCE(SUM(CASE WHEN resource_type = 'backup' THEN amount ELSE 0 END), 0) as backups,
+                COALESCE(SUM(CASE WHEN resource_type = 'port' THEN amount ELSE 0 END), 0) as ports
+            FROM resource_purchases
+            WHERE user_id = ?
+        `, [req.session.user.id]);
         
         res.json({
             success: true,
@@ -2986,6 +3300,11 @@ router.get('/api/purchased-resources', requireAuth, async (req, res) => {
                 ram: (user.purchased_ram || 0) - (usedResources.used_ram || 0),
                 cpu: (user.purchased_cpu || 0) - (usedResources.used_cpu || 0),
                 storage: (user.purchased_storage || 0) - (usedResources.used_storage || 0)
+            },
+            purchased_extras: {
+                databases: Number(purchasedExtras?.databases || 0),
+                backups: Number(purchasedExtras?.backups || 0),
+                ports: Number(purchasedExtras?.ports || 0)
             }
         });
     } catch (error) {

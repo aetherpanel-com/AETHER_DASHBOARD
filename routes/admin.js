@@ -838,10 +838,11 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
             server_slot_price,
             database_coins_per_set, database_count_per_set,
             backup_coins_per_set, backup_count_per_set,
+            port_coins_per_set, port_count_per_set,
             max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots,
-            max_databases, max_backups,
+            max_databases, max_backups, max_ports,
             ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path,
-            database_icon_path, backup_icon_path
+            database_icon_path, backup_icon_path, port_icon_path
         } = req.body;
         
         // Validate all fields are present
@@ -850,7 +851,8 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
             storage_coins_per_set === undefined || storage_gb_per_set === undefined ||
             server_slot_price === undefined ||
             database_coins_per_set === undefined || database_count_per_set === undefined ||
-            backup_coins_per_set === undefined || backup_count_per_set === undefined) {
+            backup_coins_per_set === undefined || backup_count_per_set === undefined ||
+            port_coins_per_set === undefined || port_count_per_set === undefined) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'All price fields are required' 
@@ -863,7 +865,8 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
             storage_coins_per_set < 1 || storage_gb_per_set < 1 ||
             server_slot_price < 1 ||
             database_coins_per_set < 1 || database_count_per_set < 1 ||
-            backup_coins_per_set < 1 || backup_count_per_set < 1) {
+            backup_coins_per_set < 1 || backup_count_per_set < 1 ||
+            port_coins_per_set < 1 || port_count_per_set < 1) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Invalid price values. All values must be at least 1, and CPU % must be between 1 and 100.' 
@@ -877,12 +880,14 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
         const parsedMaxSlots = Math.max(0, parseInt(max_server_slots) || 0);
         const parsedMaxDatabases = Math.max(0, parseInt(max_databases) || 0);
         const parsedMaxBackups = Math.max(0, parseInt(max_backups) || 0);
+        const parsedMaxPorts = Math.max(0, parseInt(max_ports) || 0);
         const parsedRamIconPath = (typeof ram_icon_path === 'string' && ram_icon_path.trim()) ? ram_icon_path.trim() : '/icons/ram.svg';
         const parsedCpuIconPath = (typeof cpu_icon_path === 'string' && cpu_icon_path.trim()) ? cpu_icon_path.trim() : '/icons/cpu.svg';
         const parsedStorageIconPath = (typeof storage_icon_path === 'string' && storage_icon_path.trim()) ? storage_icon_path.trim() : '/icons/storage.svg';
         const parsedServerSlotIconPath = (typeof server_slot_icon_path === 'string' && server_slot_icon_path.trim()) ? server_slot_icon_path.trim() : '/icons/server-slot.svg';
         const parsedDatabaseIconPath = (typeof database_icon_path === 'string' && database_icon_path.trim()) ? database_icon_path.trim() : '/icons/database.svg';
         const parsedBackupIconPath = (typeof backup_icon_path === 'string' && backup_icon_path.trim()) ? backup_icon_path.trim() : '/icons/backup.svg';
+        const parsedPortIconPath = (typeof port_icon_path === 'string' && port_icon_path.trim()) ? port_icon_path.trim() : '/icons/ip.svg';
         
         // Check if prices exist
         const existing = await get('SELECT id FROM resource_prices ORDER BY id DESC LIMIT 1');
@@ -897,10 +902,11 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
                      server_slot_price = ?,
                      database_coins_per_set = ?, database_count_per_set = ?,
                      backup_coins_per_set = ?, backup_count_per_set = ?,
+                     port_coins_per_set = ?, port_count_per_set = ?,
                      max_ram_gb = ?, max_cpu_percent = ?,
-                     max_storage_gb = ?, max_server_slots = ?, max_databases = ?, max_backups = ?,
+                     max_storage_gb = ?, max_server_slots = ?, max_databases = ?, max_backups = ?, max_ports = ?,
                      ram_icon_path = ?, cpu_icon_path = ?,
-                     storage_icon_path = ?, server_slot_icon_path = ?, database_icon_path = ?, backup_icon_path = ?,
+                     storage_icon_path = ?, server_slot_icon_path = ?, database_icon_path = ?, backup_icon_path = ?, port_icon_path = ?,
                      updated_at = CURRENT_TIMESTAMP 
                  WHERE id = ?`,
                 [ram_coins_per_set, ram_gb_per_set,
@@ -909,28 +915,30 @@ router.post('/api/store/prices', requireAdmin, async (req, res) => {
                  server_slot_price,
                  database_coins_per_set, database_count_per_set,
                  backup_coins_per_set, backup_count_per_set,
+                 port_coins_per_set, port_count_per_set,
                  parsedMaxRamGb, parsedMaxCpuPercent,
-                 parsedMaxStorageGb, parsedMaxSlots, parsedMaxDatabases, parsedMaxBackups,
+                 parsedMaxStorageGb, parsedMaxSlots, parsedMaxDatabases, parsedMaxBackups, parsedMaxPorts,
                  parsedRamIconPath, parsedCpuIconPath,
-                 parsedStorageIconPath, parsedServerSlotIconPath, parsedDatabaseIconPath, parsedBackupIconPath,
+                 parsedStorageIconPath, parsedServerSlotIconPath, parsedDatabaseIconPath, parsedBackupIconPath, parsedPortIconPath,
                  existing.id]
             );
         } else {
             // Create new prices
             await run(
                 `INSERT INTO resource_prices 
-                 (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, database_coins_per_set, database_count_per_set, backup_coins_per_set, backup_count_per_set, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots, max_databases, max_backups, ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path, database_icon_path, backup_icon_path) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                 (ram_coins_per_set, ram_gb_per_set, cpu_coins_per_set, cpu_percent_per_set, storage_coins_per_set, storage_gb_per_set, server_slot_price, database_coins_per_set, database_count_per_set, backup_coins_per_set, backup_count_per_set, port_coins_per_set, port_count_per_set, max_ram_gb, max_cpu_percent, max_storage_gb, max_server_slots, max_databases, max_backups, max_ports, ram_icon_path, cpu_icon_path, storage_icon_path, server_slot_icon_path, database_icon_path, backup_icon_path, port_icon_path) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [ram_coins_per_set, ram_gb_per_set,
                  cpu_coins_per_set, cpu_percent_per_set,
                  storage_coins_per_set, storage_gb_per_set,
                  server_slot_price,
                  database_coins_per_set, database_count_per_set,
                  backup_coins_per_set, backup_count_per_set,
+                 port_coins_per_set, port_count_per_set,
                  parsedMaxRamGb, parsedMaxCpuPercent,
-                 parsedMaxStorageGb, parsedMaxSlots, parsedMaxDatabases, parsedMaxBackups,
+                 parsedMaxStorageGb, parsedMaxSlots, parsedMaxDatabases, parsedMaxBackups, parsedMaxPorts,
                  parsedRamIconPath, parsedCpuIconPath,
-                 parsedStorageIconPath, parsedServerSlotIconPath, parsedDatabaseIconPath, parsedBackupIconPath]
+                 parsedStorageIconPath, parsedServerSlotIconPath, parsedDatabaseIconPath, parsedBackupIconPath, parsedPortIconPath]
             );
         }
         
@@ -958,7 +966,7 @@ router.post('/api/store/resource-icon-upload', requireAdmin, (req, res, next) =>
 }, async (req, res) => {
     try {
         const resourceType = String(req.body?.resource_type || '').toLowerCase();
-        if (!['ram', 'cpu', 'storage', 'server_slot', 'database', 'backup'].includes(resourceType)) {
+        if (!['ram', 'cpu', 'storage', 'server_slot', 'database', 'backup', 'port'].includes(resourceType)) {
             return res.status(400).json({ success: false, message: 'Invalid resource type' });
         }
         if (!req.file) {

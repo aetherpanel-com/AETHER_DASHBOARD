@@ -510,6 +510,38 @@
                                             <small style="color: #cbd5e1;">Maximum per user (0 = unlimited)</small>
                                         </div>
                                     </div>
+
+                                    <!-- Port Pricing -->
+                                    <div style="padding: 24px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;">
+                                            <h3 style="color: #f8fafc; margin:0; font-size: 18px;">Port Pricing</h3>
+                                            <div style="display:flex;align-items:center;gap:8px;">
+                                                <div id="storeIconPreviewPort" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(124,58,237,0.35);background:rgba(10,14,39,0.55);display:inline-flex;align-items:center;justify-content:center;"><img src="/icons/ip.svg" alt="" width="20" height="20" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async"></div>
+                                                <button type="button" class="btn btn-secondary" onclick="openStoreIconPicker('port')" title="Upload Port icon" aria-label="Upload Port icon" style="width:36px;height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;">
+                                                    <img src="/icons/upload.svg" alt="" width="16" height="16" style="display:block;object-fit:contain;filter:none;opacity:1;" decoding="async">
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" id="portIconPath" value="/icons/ip.svg">
+                                        <input type="file" id="portIconFile" accept=".svg,image/svg+xml" style="display:none;">
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                            <div class="form-group">
+                                                <label for="portCoins">Coins</label>
+                                                <input type="number" id="portCoins" min="1" required>
+                                                <small style="color: #cbd5e1;">Price per purchase</small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="portCount">Ports</label>
+                                                <input type="number" id="portCount" min="1" required>
+                                                <small style="color: #cbd5e1;">Additional ports per purchase</small>
+                                            </div>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label for="maxPorts">Max Ports</label>
+                                            <input type="number" id="maxPorts" min="0" value="0">
+                                            <small style="color: #cbd5e1;">Maximum purchased ports per user (0 = unlimited)</small>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <button type="submit" class="btn btn-primary" style="margin-top: 20px;">Save Prices</button>
@@ -1912,7 +1944,8 @@
             storage: { fileInputId: 'storageIconFile', hiddenInputId: 'storageIconPath', previewId: 'storeIconPreviewStorage', defaultPath: '/icons/storage.svg' },
             server_slot: { fileInputId: 'serverSlotIconFile', hiddenInputId: 'serverSlotIconPath', previewId: 'storeIconPreviewServerSlot', defaultPath: '/icons/server-slot.svg' },
             database: { fileInputId: 'databaseIconFile', hiddenInputId: 'databaseIconPath', previewId: 'storeIconPreviewDatabase', defaultPath: '/icons/database.svg' },
-            backup: { fileInputId: 'backupIconFile', hiddenInputId: 'backupIconPath', previewId: 'storeIconPreviewBackup', defaultPath: '/icons/backup.svg' }
+            backup: { fileInputId: 'backupIconFile', hiddenInputId: 'backupIconPath', previewId: 'storeIconPreviewBackup', defaultPath: '/icons/backup.svg' },
+            port: { fileInputId: 'portIconFile', hiddenInputId: 'portIconPath', previewId: 'storeIconPreviewPort', defaultPath: '/icons/ip.svg' }
         };
 
         function updateStoreIconPreview(resourceType, iconPath) {
@@ -1999,24 +2032,29 @@
                         document.getElementById('databaseCount').value = prices.database_count_per_set || 1;
                         document.getElementById('backupCoins').value = prices.backup_coins_per_set || 10;
                         document.getElementById('backupCount').value = prices.backup_count_per_set || 1;
+                        document.getElementById('portCoins').value = prices.port_coins_per_set || 100;
+                        document.getElementById('portCount').value = prices.port_count_per_set || 1;
                         document.getElementById('maxRamGb').value = prices.max_ram_gb || 0;
                         document.getElementById('maxCpuPercent').value = prices.max_cpu_percent || 0;
                         document.getElementById('maxStorageGb').value = prices.max_storage_gb || 0;
                         document.getElementById('maxServerSlots').value = prices.max_server_slots || 0;
                         document.getElementById('maxDatabases').value = prices.max_databases || 0;
                         document.getElementById('maxBackups').value = prices.max_backups || 0;
+                        document.getElementById('maxPorts').value = prices.max_ports || 0;
                         document.getElementById('ramIconPath').value = prices.ram_icon_path || '/icons/ram.svg';
                         document.getElementById('cpuIconPath').value = prices.cpu_icon_path || '/icons/cpu.svg';
                         document.getElementById('storageIconPath').value = prices.storage_icon_path || '/icons/storage.svg';
                         document.getElementById('serverSlotIconPath').value = prices.server_slot_icon_path || '/icons/server-slot.svg';
                         document.getElementById('databaseIconPath').value = prices.database_icon_path || '/icons/database.svg';
                         document.getElementById('backupIconPath').value = prices.backup_icon_path || '/icons/backup.svg';
+                        document.getElementById('portIconPath').value = prices.port_icon_path || '/icons/ip.svg';
                         updateStoreIconPreview('ram', document.getElementById('ramIconPath').value);
                         updateStoreIconPreview('cpu', document.getElementById('cpuIconPath').value);
                         updateStoreIconPreview('storage', document.getElementById('storageIconPath').value);
                         updateStoreIconPreview('server_slot', document.getElementById('serverSlotIconPath').value);
                         updateStoreIconPreview('database', document.getElementById('databaseIconPath').value);
                         updateStoreIconPreview('backup', document.getElementById('backupIconPath').value);
+                        updateStoreIconPreview('port', document.getElementById('portIconPath').value);
                         
                         // Display current pricing
                         displayCurrentPricing(prices);
@@ -2040,6 +2078,8 @@
             const databaseCount = prices.database_count_per_set || 1;
             const backupCoins = prices.backup_coins_per_set || 10;
             const backupCount = prices.backup_count_per_set || 1;
+            const portCoins = prices.port_coins_per_set || 100;
+            const portCount = prices.port_count_per_set || 1;
             
             container.innerHTML = `
                 <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
@@ -2084,7 +2124,14 @@
                     </div>
                     <div style="color: #94a3b8; font-size: 14px;">1 coin = ${(backupCount / backupCoins).toFixed(2)} backup${(backupCount / backupCoins) === 1 ? '' : 's'}</div>
                 </div>
-                ${(prices.max_ram_gb || prices.max_cpu_percent || prices.max_storage_gb || prices.max_server_slots || prices.max_databases || prices.max_backups) ? `
+                <div style="padding: 16px; background: rgba(30, 30, 50, 0.6); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <strong style="color: #f8fafc; font-weight: 600;">Ports:</strong>
+                        <span style="color: #cbd5e1;">${portCoins} coin${portCoins !== 1 ? 's' : ''} = ${portCount} port${portCount !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div style="color: #94a3b8; font-size: 14px;">1 coin = ${(portCount / portCoins).toFixed(2)} port${(portCount / portCoins) === 1 ? '' : 's'}</div>
+                </div>
+                ${(prices.max_ram_gb || prices.max_cpu_percent || prices.max_storage_gb || prices.max_server_slots || prices.max_databases || prices.max_backups || prices.max_ports) ? `
                 <div style="margin-top: 16px; padding: 12px; background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px;">
                     <strong style="color: #a855f7; font-size: 13px;">Active Limits Per User</strong>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; font-size: 13px; color: #cbd5e1;">
@@ -2094,6 +2141,7 @@
                         <span>Slots: ${prices.max_server_slots > 0 ? prices.max_server_slots + ' max' : 'Unlimited'}</span>
                         <span>Databases: ${prices.max_databases > 0 ? prices.max_databases + ' max' : 'Unlimited'}</span>
                         <span>Backups: ${prices.max_backups > 0 ? prices.max_backups + ' max' : 'Unlimited'}</span>
+                        <span>Ports: ${prices.max_ports > 0 ? prices.max_ports + ' max' : 'Unlimited'}</span>
                     </div>
                 </div>` : ''}
             `;
@@ -2115,18 +2163,22 @@
                 database_count_per_set: parseInt(document.getElementById('databaseCount').value),
                 backup_coins_per_set: parseInt(document.getElementById('backupCoins').value),
                 backup_count_per_set: parseInt(document.getElementById('backupCount').value),
+                port_coins_per_set: parseInt(document.getElementById('portCoins').value),
+                port_count_per_set: parseInt(document.getElementById('portCount').value),
                 max_ram_gb: parseInt(document.getElementById('maxRamGb').value) || 0,
                 max_cpu_percent: parseInt(document.getElementById('maxCpuPercent').value) || 0,
                 max_storage_gb: parseInt(document.getElementById('maxStorageGb').value) || 0,
                 max_server_slots: parseInt(document.getElementById('maxServerSlots').value) || 0,
                 max_databases: parseInt(document.getElementById('maxDatabases').value) || 0,
                 max_backups: parseInt(document.getElementById('maxBackups').value) || 0,
+                max_ports: parseInt(document.getElementById('maxPorts').value) || 0,
                 ram_icon_path: document.getElementById('ramIconPath').value.trim() || '/icons/ram.svg',
                 cpu_icon_path: document.getElementById('cpuIconPath').value.trim() || '/icons/cpu.svg',
                 storage_icon_path: document.getElementById('storageIconPath').value.trim() || '/icons/storage.svg',
                 server_slot_icon_path: document.getElementById('serverSlotIconPath').value.trim() || '/icons/server-slot.svg',
                 database_icon_path: document.getElementById('databaseIconPath').value.trim() || '/icons/database.svg',
                 backup_icon_path: document.getElementById('backupIconPath').value.trim() || '/icons/backup.svg',
+                port_icon_path: document.getElementById('portIconPath').value.trim() || '/icons/ip.svg',
             };
             
             // Validate prices
@@ -2134,7 +2186,8 @@
                 prices.cpu_coins_per_set < 1 || prices.cpu_percent_per_set < 1 || 
                 prices.storage_coins_per_set < 1 || prices.storage_gb_per_set < 1 ||
                 prices.database_coins_per_set < 1 || prices.database_count_per_set < 1 ||
-                prices.backup_coins_per_set < 1 || prices.backup_count_per_set < 1) {
+                prices.backup_coins_per_set < 1 || prices.backup_count_per_set < 1 ||
+                prices.port_coins_per_set < 1 || prices.port_count_per_set < 1) {
                 showNotification('All values must be at least 1', 'error');
                 return;
             }

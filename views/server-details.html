@@ -8,6 +8,20 @@
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/dashboard.css">
     <style>
+        /* JetBrains Mono: live stats, charts, console/file UI (Inter elsewhere via style.css) */
+        .dashboard-container--server-details .stats-grid .stat-value,
+        .dashboard-container--server-details .stats-grid .stat-label,
+        .dashboard-container--server-details .stats-grid .progress-bar,
+        .dashboard-container--server-details .chart-container,
+        .dashboard-container--server-details .chart-container h3 {
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+        .dashboard-container--server-details .console-mono {
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+
         /* Stats Cards Grid */
         .stats-grid {
             display: grid;
@@ -152,7 +166,7 @@
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="dashboard-container dashboard-container--server-details">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -456,6 +470,30 @@
                             <p style="color: #94a3b8; padding: 20px; text-align: center;">Loading backups...</p>
                         </div>
                     </div>
+
+                    <!-- Additional Ports -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header" style="display:flex;align-items:center;gap:8px;">
+                            <img src="/icons/ip.svg" alt="" width="20" height="20" decoding="async" style="display:block;object-fit:contain;filter:none;opacity:1;">
+                            Additional Ports
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                            <p style="color: #94a3b8; margin: 0; font-size: 13px;">
+                                Assign purchased extra ports to this server from your allocation pool.
+                            </p>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="assignAdditionalPort()" id="assignPortBtn" class="btn btn-primary" style="padding: 8px 16px; font-size: 12px;">
+                                    ➕ Assign Port
+                                </button>
+                                <button onclick="loadAllocations()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div id="allocationList" style="background: rgba(10, 14, 39, 0.5); border-radius: 8px; border: 1px solid rgba(124, 58, 237, 0.2);">
+                            <p style="color: #94a3b8; padding: 20px; text-align: center;">Loading allocations...</p>
+                        </div>
+                    </div>
                     
                     <!-- File Manager -->
                     <div class="card" style="margin-top: 20px;">
@@ -468,7 +506,7 @@
                                 <button onclick="navigateUp()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" id="btnUp">
                                     ⬆️ Up
                                 </button>
-                                <span style="color: #94a3b8; font-family: 'Fira Code', monospace; font-size: 12px;" id="currentPath">/</span>
+                                <span class="console-mono" style="color: #94a3b8; font-size: 12px;" id="currentPath">/</span>
                             </div>
                             <div style="display: flex; gap: 8px;">
                                 <button onclick="showNewFolderDialog()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
@@ -495,13 +533,14 @@
                         </p>
                         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                             <input type="text" id="commandInput" placeholder="Enter command (e.g., help, list, say Hello)" 
-                                   style="flex: 1; padding: 12px; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px; color: #f8fafc; font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px;"
+                                   class="console-mono"
+                                   style="flex: 1; padding: 12px; background: rgba(10, 14, 39, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px; color: #f8fafc; font-size: 14px;"
                                    onkeypress="if(event.key === 'Enter') sendCommand()">
                             <button onclick="sendCommand()" class="btn btn-primary" style="padding: 12px 24px;">
                                 Send
                             </button>
                         </div>
-                        <div id="commandHistory" style="max-height: 150px; overflow-y: auto; font-family: 'Fira Code', 'Consolas', monospace; font-size: 12px;">
+                        <div id="commandHistory" class="console-mono" style="max-height: 150px; overflow-y: auto; font-size: 12px;">
                             <!-- Command history will appear here -->
                         </div>
                         <p style="color: #6b7280; font-size: 11px; margin-top: 8px;">
@@ -740,6 +779,9 @@
                     
                     // Load databases
                     loadDatabases();
+
+                    // Load allocations (default + extra ports)
+                    loadAllocations();
                 } else {
                     showError();
                 }
@@ -1090,12 +1132,20 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: { duration: 500 },
+                font: {
+                    family: "'JetBrains Mono', monospace",
+                    size: 11
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
                         max: 100,
                         grid: { color: 'rgba(124, 58, 237, 0.1)' },
-                        ticks: { color: '#94a3b8', callback: v => v + '%' }
+                        ticks: {
+                            color: '#94a3b8',
+                            callback: v => v + '%',
+                            font: { family: "'JetBrains Mono', monospace", size: 10 }
+                        }
                     },
                     x: {
                         grid: { display: false },
@@ -1426,6 +1476,75 @@
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('errorState').style.display = 'block';
         }
+
+        async function loadAllocations() {
+            const container = document.getElementById('allocationList');
+            if (!container) return;
+            container.innerHTML = '<p style="color: #94a3b8; padding: 20px; text-align: center;"><span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px;"></span> Loading...</p>';
+
+            try {
+                const response = await fetch(`/servers/api/allocations/${serverId}/list`);
+                const data = await response.json();
+                if (!data.success) {
+                    container.innerHTML = `<p style="color: #ef4444; padding: 20px; text-align: center;">${escapeHtml(data.message || 'Failed to load allocations')}</p>`;
+                    return;
+                }
+
+                const allocations = data.allocations || [];
+                if (allocations.length === 0) {
+                    container.innerHTML = '<p style="color: #94a3b8; padding: 20px; text-align: center;">No allocations are currently attached to this server.</p>';
+                    return;
+                }
+
+                const rows = allocations.map((a) => {
+                    const address = a.address || ((a.ip || 'Unknown') + ':' + (a.port || '?'));
+                    return `
+                        <div style="padding: 10px 12px; border-bottom: 1px solid rgba(124, 58, 237, 0.12); display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <img src="/icons/ip.svg" alt="" width="16" height="16" decoding="async" style="display:block;object-fit:contain;filter:none;opacity:1;">
+                                <span class="console-mono" style="color:#f8fafc;">${escapeHtml(address)}</span>
+                            </div>
+                            <span style="font-size:11px; padding: 2px 8px; border-radius: 999px; border: 1px solid ${a.is_default ? 'rgba(34,197,94,0.45)' : 'rgba(148,163,184,0.35)'}; color: ${a.is_default ? '#22c55e' : '#94a3b8'};">
+                                ${a.is_default ? 'Default' : 'Extra'}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = `<div>${rows}</div>`;
+            } catch (error) {
+                console.error('Error loading allocations:', error);
+                container.innerHTML = '<p style="color: #ef4444; padding: 20px; text-align: center;">Error loading allocations</p>';
+            }
+        }
+
+        async function assignAdditionalPort() {
+            const btn = document.getElementById('assignPortBtn');
+            if (!btn) return;
+
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = 'Assigning...';
+
+            try {
+                const response = await fetch(`/servers/api/allocations/${serverId}/add`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification(data.message || 'Port assigned', 'success');
+                    await loadAllocations();
+                } else {
+                    showNotification(data.message || 'Failed to assign port', 'error');
+                }
+            } catch (error) {
+                console.error('Error assigning additional port:', error);
+                showNotification('Error assigning additional port', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
         
         // ============================================
         // FEATURE 8: Database Management
@@ -1476,7 +1595,7 @@
                             <div style="flex: 1; min-width: 200px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <img src="/icons/database.svg" alt="" width="18" height="18" decoding="async" style="display:block;object-fit:contain;filter:none;opacity:1;">
-                                    <span style="color: #f8fafc; font-weight: 500; font-family: 'Fira Code', monospace;">${escapeHtml(attrs.name)}</span>
+                                    <span class="console-mono" style="color: #f8fafc; font-weight: 500;">${escapeHtml(attrs.name)}</span>
                                 </div>
                                 <div style="color: #94a3b8; font-size: 12px; margin-top: 8px; display: grid; gap: 4px;">
                                     <div><strong>Host:</strong> <code style="background: rgba(124, 58, 237, 0.1); padding: 1px 4px; border-radius: 3px;">${escapeHtml(host)}:${port}</code></div>
@@ -2152,7 +2271,7 @@
                             <button onclick="closeFileEditor()" class="btn btn-secondary" style="padding: 6px 16px;">Close</button>
                         </div>
                     </div>
-                    <textarea id="fileEditorContent" style="flex: 1; min-height: 400px; padding: 16px; background: rgba(10, 14, 39, 0.8); border: none; color: #f8fafc; font-family: 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.5; resize: none;">${escapeHtml(content || '')}</textarea>
+                    <textarea id="fileEditorContent" class="console-mono" style="flex: 1; min-height: 400px; padding: 16px; background: rgba(10, 14, 39, 0.8); border: none; color: #f8fafc; font-size: 13px; line-height: 1.5; resize: none;">${escapeHtml(content || '')}</textarea>
                 </div>
             `;
             document.body.appendChild(modal);

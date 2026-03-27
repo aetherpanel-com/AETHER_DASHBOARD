@@ -637,6 +637,7 @@
             const purchased = data.purchased;
             const used = data.used;
             const available = data.available;
+            const extras = data.purchased_extras || { databases: 0, backups: 0, ports: 0 };
             
             // Convert MB to GB for RAM and Storage
             const purchasedRamGB = Math.round(purchased.ram / 1024);
@@ -671,6 +672,14 @@
                             <div>Purchased: <strong style="color: #7c3aed;">${purchasedStorageGB}GB</strong></div>
                             <div>Used: <strong style="color: #ff9800;">${usedStorageGB}GB</strong></div>
                             <div>Available: <strong style="color: ${availableStorageGB > 0 ? '#4caf50' : '#ff5722'};">${availableStorageGB}GB</strong></div>
+                        </div>
+                    </div>
+                    <div style="padding: 16px; background: rgba(30, 30, 50, 0.4); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px;">
+                        <h4 style="color: #f8fafc; margin: 0 0 12px 0;">Purchased Extras</h4>
+                        <div style="color: #cbd5e1; font-size: 14px; display: grid; gap: 6px;">
+                            <div>Databases: <strong style="color: #7c3aed;">${formatNumber(extras.databases || 0)}</strong></div>
+                            <div>Backups: <strong style="color: #7c3aed;">${formatNumber(extras.backups || 0)}</strong></div>
+                            <div>Ports: <strong style="color: #7c3aed;">${formatNumber(extras.ports || 0)}</strong></div>
                         </div>
                     </div>
                 </div>

@@ -646,6 +646,13 @@
     font-weight: 500;
 }
 
+/* Numeric stats — tabular monospace for alignment (main dashboard cards) */
+.stats-grid .stat-info h3,
+.stats-grid .stat-info p {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
 /* Quick Actions */
 .quick-actions {
     background: var(--card-bg);
