@@ -16,8 +16,9 @@ If ads do not show after updating to **v1.7**:
    ```
 2. In **Admin Panel → Integrations → Adsterra**, ensure **Enable Adsterra ads** is on and at least one placement is **Active**.
 3. For **Global Header — All Pages**, set **Script Injection Hint** to **Inline Container** unless Adsterra’s tag instructions say otherwise; paste the full snippet from Adsterra.
-4. Confirm **Target Devices** matches how you test (e.g. **All Devices**).
-5. Hard-refresh the browser (Ctrl+F5 / Cmd+Shift+R). Check the browser console for network errors on `/linkvertise/api/adsterra/embed`.
+4. For **popunder** ads, use placement **Earn Coins — On Complete link click** (Ad Format **Popunder**). Popunders run only after **Complete link** succeeds on the Earn Coins page—not on every page load.
+5. Confirm **Target Devices** matches how you test (e.g. **All Devices**).
+6. Hard-refresh the browser (Ctrl+F5 / Cmd+Shift+R). Check the browser console for network errors on `/linkvertise/api/adsterra/embed`.
 
 ### Renewals + ports (v1.6+)
 

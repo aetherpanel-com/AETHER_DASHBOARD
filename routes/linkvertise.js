@@ -301,8 +301,13 @@ router.get('/api/history', requireAuth, async (req, res) => {
 });
 
 // Public (authenticated) Adsterra embeds — no admin secrets returned.
-// Query: placement_key = linkvertise_below_history | global_header (default: linkvertise_below_history)
-const ADSTERRA_EMBED_KEYS = new Set(['linkvertise_below_history', 'global_header']);
+// Query: placement_key = ... | popunder_global | popunder_earn_coins_click (default: linkvertise_below_history)
+const ADSTERRA_EMBED_KEYS = new Set([
+    'linkvertise_below_history',
+    'global_header',
+    'popunder_global',
+    'popunder_earn_coins_click'
+]);
 
 router.get('/api/adsterra/embed', requireAuth, apiLimiter, async (req, res) => {
     try {
@@ -314,13 +319,20 @@ router.get('/api/adsterra/embed', requireAuth, apiLimiter, async (req, res) => {
             return res.json({ success: true, enabled: false, placements: [], placement_key: placementKey });
         }
 
+        const isPopunderPlacement =
+            placementKey === 'popunder_global' || placementKey === 'popunder_earn_coins_click';
+        const formatFilter = isPopunderPlacement
+            ? `AND LOWER(TRIM(COALESCE(ad_format, ''))) = 'popunder'`
+            : `AND LOWER(TRIM(COALESCE(ad_format, 'banner'))) != 'popunder'`;
+
         const rows = await query(
-            `SELECT id, ad_code, script_placement, target_devices, sort_order
+            `SELECT id, ad_code, script_placement, target_devices, sort_order, ad_format
              FROM adsterra_placements
              WHERE placement_key = ?
                AND is_active = 1
                AND ad_code IS NOT NULL
                AND TRIM(ad_code) != ''
+               ${formatFilter}
              ORDER BY sort_order ASC, id ASC`,
             [placementKey]
         );
@@ -330,7 +342,8 @@ router.get('/api/adsterra/embed', requireAuth, apiLimiter, async (req, res) => {
             ad_code: String(r.ad_code || ''),
             script_placement: String(r.script_placement || 'inline').toLowerCase(),
             target_devices: String(r.target_devices || 'all').toLowerCase(),
-            sort_order: Number(r.sort_order) || 0
+            sort_order: Number(r.sort_order) || 0,
+            ad_format: String(r.ad_format || '').toLowerCase()
         }));
 
         res.json({ success: true, enabled: true, placement_key: placementKey, placements });

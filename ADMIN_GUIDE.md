@@ -557,7 +557,7 @@ At the top of the page:
 1. **Enable Adsterra ads on dashboard placements** — master switch. When off, no placement renders (empty slots stay hidden so the header layout does not break).
 2. **Publisher ID** — optional reference value from your Adsterra account.
 3. **Publisher API Token** — optional; reserved for future features (not required for snippet rendering). Keep it secret.
-4. **Default Ad Format** — default for new placements (`Banner` or `Native Banner`).
+4. **Default Ad Format** — default for new placements (`Banner`, `Native Banner`, or `Popunder`).
 
 Click **Save Configuration** after changes.
 
@@ -572,11 +572,14 @@ Each placement is one named slot with its own snippet and rules.
 3. **Placement Location** — where the snippet runs:
    - **Earn Coins — Below Completion History** — only on the **Earn Coins** page, under “Your Link Completion History.”
    - **Global Header — All Pages** — center of the sticky top bar on **every** page that uses the dashboard layout (between the page title and the coin balance / actions).
-4. **Ad Format** — `Banner` or `Native Banner` (must match what you created in Adsterra for that unit).
+   - **Earn Coins — On Complete link click** — **Popunder** format only. Loads when the user clicks **Complete link** on the Earn Coins page, **after** the server accepts the verification session (`/linkvertise/api/start` succeeds). This ties the popunder to a **user click** (better for browsers than loading on every page). Recommended for popunders.
+   - **Global Popunder — Manual / advanced** — **Popunder** format only. **Not** loaded automatically on page load. Use only if you integrate `loadAdsterraPopunderKey('popunder_global')` yourself (e.g. custom theme).
+4. **Ad Format** — `Banner`, `Native Banner`, or `Popunder` (must match what you created in Adsterra for that unit). **Popunder** is only allowed with **Earn Coins — On Complete link click** or **Global Popunder — Manual / advanced**.
 5. **Target Devices** — `All`, `Desktop Only`, or `Mobile Only` (the dashboard skips loading the placement when the viewer’s device does not match).
 6. **Script Injection Hint** — metadata for admins; the dashboard injects snippets into DOM containers, not necessarily at `</body>`:
    - For **Global header**, choose **Inline Container (recommended for Global Header slot)** unless Adsterra’s documentation for that tag requires otherwise.
    - For **Earn Coins page** slots, **Body End** is often fine for banner-style units.
+   - For **Earn Coins — On Complete link click** (popunder), use **Body End** unless Adsterra requires **Head End** for that tag.
 7. **Ad Code Snippet** — paste the full code Adsterra gives you (HTML/JS).
 8. **Sort Order** — lower numbers run first when multiple placements share the same location.
 9. **Active placement** — uncheck to disable without deleting.
@@ -587,7 +590,9 @@ Click **Save Placement**. Use **Edit** / **Delete** from the placements list as 
 
 - Create **separate ad units** in Adsterra for each placement (e.g. one leaderboard-style **Banner** for the header, another format for under history if you use both).
 - For the **global header**, horizontal sizes such as **728×90** (leaderboard) or **468×60** typically fit the center column; the UI caps width and scales on small screens.
+- **Popunders:** The recommended placement is **Earn Coins — On Complete link click** so the snippet runs in the same flow as **Complete link** (after start succeeds). Many browsers still enforce popup policies; ad blockers may interfere.
 - If **Global header** ads do not appear: confirm the integration is **enabled**, the placement is **active**, **Placement Location** is **Global Header — All Pages**, and the snippet is valid. Hard-refresh the browser (Ctrl+F5) after saving.
+- If **Earn Coins — On Complete link click** popunder does not run: confirm **Placement Location**, **Ad Format: Popunder**, integration **enabled**, and try **Complete link** again after a hard refresh.
 
 ---
 
@@ -723,7 +728,7 @@ Use this checklist when setting up a fresh installation:
 - [ ] Applied a custom theme (Admin Settings → Themes)
 - [ ] Review Audit Logs after go-live to confirm events are being captured (Admin Settings → Audit Logs)
 - [ ] Configure Renewals policy and validate queue behavior (Overview → Commerce → Renewals)
-- [ ] (Optional) Enabled Adsterra and added placements (Integrations → Adsterra) — e.g. global header and/or Earn Coins below history
+- [ ] (Optional) Enabled Adsterra and added placements (Integrations → Adsterra) — e.g. global header, Earn Coins below history, and/or global popunder
 - [ ] Configured Discord bot (Integrations → Discord)
 - [ ] Set Default Nest ID and Location ID (Panel tab → Pterodactyl Settings)
 - [ ] Configured Daily Rewards amounts (Daily Rewards tab)

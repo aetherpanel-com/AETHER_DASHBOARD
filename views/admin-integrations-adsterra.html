@@ -160,6 +160,7 @@
                             <select id="adsterraDefaultFormat">
                                 <option value="banner">Banner</option>
                                 <option value="native_banner">Native Banner</option>
+                                <option value="popunder">Popunder</option>
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary">Save Configuration</button>
@@ -186,14 +187,17 @@
                                 <select id="adsterraPlacementKey">
                                     <option value="linkvertise_below_history" title="Earn Coins page only, below link completion history">Earn Coins — Below Completion History</option>
                                     <option value="global_header" title="Top bar on all dashboard pages (between title and actions)">Global Header — All Pages</option>
+                                    <option value="popunder_global" title="Popunder script; load manually via API only (not auto on page load)">Global Popunder — Manual / advanced</option>
+                                    <option value="popunder_earn_coins_click" title="When user clicks Complete link on Earn Coins (after start succeeds)">Earn Coins — On Complete link click</option>
                                 </select>
-                                <small style="display:block;margin-top:6px;color:#94a3b8;font-size:12px;">Earn Coins: slot under history. Global header: center of the top bar on every page that uses the dashboard layout.</small>
+                                <small style="display:block;margin-top:6px;color:#94a3b8;font-size:12px;">Earn Coins: slot under history. Global header: center top bar. <strong>Popunder (recommended):</strong> choose <strong>Earn Coins — On Complete link click</strong> so the popunder runs in the same gesture as “Complete link.” Global Popunder is for advanced use (not loaded automatically).</small>
                             </div>
                             <div class="form-group">
                                 <label for="adsterraPlacementFormat">Ad Format</label>
                                 <select id="adsterraPlacementFormat">
                                     <option value="banner">Banner</option>
                                     <option value="native_banner">Native Banner</option>
+                                    <option value="popunder">Popunder</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -207,11 +211,11 @@
                             <div class="form-group">
                                 <label for="adsterraScriptPlacement">Script Injection Hint</label>
                                 <select id="adsterraScriptPlacement">
-                                    <option value="body_end">Body End (recommended for Banner / Native Banner)</option>
+                                    <option value="body_end">Body End (Banner / Native Banner / Popunder)</option>
                                     <option value="head_end">Head End (if your script requires it)</option>
                                     <option value="inline">Inline Container (recommended for Global Header slot)</option>
                                 </select>
-                                <small style="display:block;margin-top:6px;color:#94a3b8;font-size:12px;">Global header placements are injected into the header container; use <strong>Inline</strong> unless Adsterra’s guide says otherwise.</small>
+                                <small style="display:block;margin-top:6px;color:#94a3b8;font-size:12px;">Global header: use <strong>Inline</strong> unless Adsterra’s guide says otherwise. <strong>Global popunder:</strong> use <strong>Body End</strong> unless the tag must load in <strong>Head End</strong>.</small>
                             </div>
                             <div class="form-group">
                                 <label for="adsterraAdCode">Ad Code Snippet</label>
@@ -262,8 +266,29 @@
             const k = String(key || '').toLowerCase();
             if (k === 'linkvertise_below_history') return 'Earn Coins — Below Completion History';
             if (k === 'global_header') return 'Global Header — All Pages';
+            if (k === 'popunder_global') return 'Global Popunder — Manual / advanced';
+            if (k === 'popunder_earn_coins_click') return 'Earn Coins — On Complete link click';
             return key || '—';
         }
+
+        (function wireAdsterraPlacementHints() {
+            const keyEl = document.getElementById('adsterraPlacementKey');
+            const fmtEl = document.getElementById('adsterraPlacementFormat');
+            const scriptEl = document.getElementById('adsterraScriptPlacement');
+            if (!keyEl || !fmtEl) return;
+            keyEl.addEventListener('change', function () {
+                if (this.value === 'popunder_global' || this.value === 'popunder_earn_coins_click') {
+                    fmtEl.value = 'popunder';
+                    if (scriptEl) scriptEl.value = 'body_end';
+                }
+            });
+            fmtEl.addEventListener('change', function () {
+                if (this.value === 'popunder') {
+                    keyEl.value = 'popunder_earn_coins_click';
+                    if (scriptEl) scriptEl.value = 'body_end';
+                }
+            });
+        })();
 
         async function loadAdsterraConfig() {
             try {
@@ -387,10 +412,18 @@
                 document.getElementById('adsterraPlacementId').value = p.id;
                 document.getElementById('adsterraPlacementName').value = p.name || '';
                 const pk = String(p.placement_key || '').toLowerCase();
-                document.getElementById('adsterraPlacementKey').value =
-                    pk === 'global_header' ? 'global_header' : 'linkvertise_below_history';
+                const allowedKeys = [
+                    'linkvertise_below_history',
+                    'global_header',
+                    'popunder_global',
+                    'popunder_earn_coins_click'
+                ];
+                document.getElementById('adsterraPlacementKey').value = allowedKeys.includes(pk)
+                    ? pk
+                    : 'linkvertise_below_history';
+                const fmt = String(p.ad_format || 'banner').toLowerCase();
                 document.getElementById('adsterraPlacementFormat').value =
-                    p.ad_format === 'native_banner' ? 'native_banner' : 'banner';
+                    ['banner', 'native_banner', 'popunder'].includes(fmt) ? fmt : 'banner';
                 document.getElementById('adsterraPlacementDevices').value = p.target_devices || 'all';
                 document.getElementById('adsterraScriptPlacement').value = p.script_placement || 'body_end';
                 document.getElementById('adsterraAdCode').value = p.ad_code || '';
