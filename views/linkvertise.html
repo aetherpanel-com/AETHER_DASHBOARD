@@ -131,6 +131,7 @@
                     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
                     <h1>Earn Coins</h1>
                 </div>
+                <div class="dashboard-header-ad adsterra-slot" id="adsterraPlacement-global_header" data-placement-key="global_header" aria-hidden="true"></div>
                 <div class="header-right">
                     <div class="coin-balance">
                         <span class="coin-icon"><img src="/icons/coin.svg" alt="" width="24" height="24" class="nav-icon-img--color" decoding="async"></span>
@@ -166,6 +167,7 @@
     
     <script src="/js/main.js"></script>
     <script src="/js/dashboard.js"></script>
+    <script src="/js/adsterraEmbed.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/notifications.js"></script>
     <script src="/js/maintenanceBanner.js"></script>
@@ -176,7 +178,6 @@
             await loadUserData();
             await loadLinks();
             await loadCompletionHistory();
-            await loadAdsterraEmbeds();
             checkAdminAccess();
             loadBrandingSettings();
             
@@ -401,71 +402,6 @@
             }
         }
 
-        function adsterraDeviceMatches(target) {
-            const t = String(target || 'all').toLowerCase();
-            if (t === 'all') return true;
-            const mobile = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches;
-            if (t === 'mobile') return mobile;
-            if (t === 'desktop') return !mobile;
-            return true;
-        }
-
-        /**
-         * Inject HTML that may contain external scripts (innerHTML alone does not run <script src>).
-         */
-        function injectAdHtml(container, html) {
-            const trimmed = String(html || '').trim();
-            if (!trimmed || !container) return;
-            const tpl = document.createElement('template');
-            tpl.innerHTML = trimmed;
-            const nodes = Array.from(tpl.content.childNodes);
-            nodes.forEach((node) => {
-                if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'SCRIPT') {
-                    const s = document.createElement('script');
-                    for (let i = 0; i < node.attributes.length; i++) {
-                        const a = node.attributes[i];
-                        s.setAttribute(a.name, a.value);
-                    }
-                    s.textContent = node.textContent;
-                    container.appendChild(s);
-                } else {
-                    container.appendChild(node);
-                }
-            });
-        }
-
-        async function loadAdsterraEmbeds() {
-            const slot = document.getElementById('adsterraPlacement-linkvertise_below_history');
-            if (!slot) return;
-            try {
-                const response = await fetch('/linkvertise/api/adsterra/embed');
-                const data = response.ok ? await response.json().catch(() => ({})) : {};
-                if (!data.success || !data.enabled || !Array.isArray(data.placements) || data.placements.length === 0) {
-                    return;
-                }
-                slot.innerHTML = '';
-                slot.setAttribute('role', 'complementary');
-                slot.setAttribute('aria-label', 'Advertisement');
-                let shown = 0;
-                data.placements.forEach((p) => {
-                    if (!adsterraDeviceMatches(p.target_devices)) return;
-                    const wrap = document.createElement('div');
-                    wrap.className = 'adsterra-embed-block';
-                    if (shown > 0) wrap.style.marginTop = '12px';
-                    slot.appendChild(wrap);
-                    injectAdHtml(wrap, p.ad_code);
-                    shown += 1;
-                });
-                if (shown === 0) {
-                    slot.innerHTML = '';
-                    slot.removeAttribute('role');
-                    slot.removeAttribute('aria-label');
-                }
-            } catch (error) {
-                console.error('Error loading Adsterra embed:', error);
-            }
-        }
-        
         function displayHistory(completions) {
             const container = document.getElementById('completionHistory');
             const recent = (completions || []).slice(0, 2);

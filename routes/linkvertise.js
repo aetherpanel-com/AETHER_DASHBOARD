@@ -300,12 +300,18 @@ router.get('/api/history', requireAuth, async (req, res) => {
     }
 });
 
-// Public (authenticated) Adsterra embeds for Earn Coins page — no admin secrets returned.
+// Public (authenticated) Adsterra embeds — no admin secrets returned.
+// Query: placement_key = linkvertise_below_history | global_header (default: linkvertise_below_history)
+const ADSTERRA_EMBED_KEYS = new Set(['linkvertise_below_history', 'global_header']);
+
 router.get('/api/adsterra/embed', requireAuth, apiLimiter, async (req, res) => {
     try {
+        const rawKey = String(req.query?.placement_key || 'linkvertise_below_history').trim().toLowerCase();
+        const placementKey = ADSTERRA_EMBED_KEYS.has(rawKey) ? rawKey : 'linkvertise_below_history';
+
         const config = await get('SELECT enabled FROM adsterra_config ORDER BY id DESC LIMIT 1');
         if (!config || Number(config.enabled) !== 1) {
-            return res.json({ success: true, enabled: false, placements: [] });
+            return res.json({ success: true, enabled: false, placements: [], placement_key: placementKey });
         }
 
         const rows = await query(
@@ -316,7 +322,7 @@ router.get('/api/adsterra/embed', requireAuth, apiLimiter, async (req, res) => {
                AND ad_code IS NOT NULL
                AND TRIM(ad_code) != ''
              ORDER BY sort_order ASC, id ASC`,
-            ['linkvertise_below_history']
+            [placementKey]
         );
 
         const placements = (rows || []).map((r) => ({
@@ -327,7 +333,7 @@ router.get('/api/adsterra/embed', requireAuth, apiLimiter, async (req, res) => {
             sort_order: Number(r.sort_order) || 0
         }));
 
-        res.json({ success: true, enabled: true, placements });
+        res.json({ success: true, enabled: true, placement_key: placementKey, placements });
     } catch (error) {
         console.error('Error loading Adsterra embed config:', error);
         res.status(500).json({ success: false, message: 'Error loading ad configuration' });

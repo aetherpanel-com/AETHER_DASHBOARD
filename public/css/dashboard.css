@@ -493,10 +493,44 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
     border-bottom: 1px solid var(--card-border);
     position: sticky;
     top: 0;
     z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.dashboard-header-ad {
+    flex: 1 1 200px;
+    min-width: 0;
+    max-width: min(100%, 728px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.dashboard-header-ad:empty {
+    display: none;
+}
+
+.dashboard-header-ad .adsterra-embed-block {
+    max-width: 100%;
+}
+
+.dashboard-header-ad iframe,
+.dashboard-header-ad img {
+    max-width: 100% !important;
+    height: auto !important;
 }
 
 .dashboard-header h1 {
@@ -516,6 +550,7 @@
     justify-content: flex-end;
     flex-wrap: wrap;
     gap: 10px;
+    flex: 0 0 auto;
 }
 
 .coin-balance {
@@ -776,6 +811,15 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
+    }
+
+    .dashboard-header-ad {
+        width: 100%;
+        max-width: 100%;
+        align-self: stretch;
+        justify-content: center;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .header-right {

@@ -125,6 +125,7 @@
                     <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">☰</button>
                     <h1 style="display:flex;align-items:center;gap:10px;"><img src="/icons/adsterra.svg" alt="" width="22" height="22" style="object-fit:contain;display:block;filter:none;opacity:1;" decoding="async"> Adsterra Integration</h1>
                 </div>
+                <div class="dashboard-header-ad adsterra-slot" id="adsterraPlacement-global_header" data-placement-key="global_header" aria-hidden="true"></div>
                 <div class="header-right">
                     <div class="coin-balance">
                         <span class="coin-icon"><img src="/icons/coin.svg" alt="" width="24" height="24" class="nav-icon-img--color" decoding="async"></span>
@@ -181,12 +182,12 @@
                                 <input type="text" id="adsterraPlacementName" maxlength="120" placeholder="e.g., Quick Actions Banner">
                             </div>
                             <div class="form-group">
-                                <label>Placement Location</label>
-                                <p style="margin: 6px 0 0; color: #cbd5e1; font-size: 14px;">
-                                    <strong style="color: #f8fafc;">Earn Coins — Below Completion History</strong>
-                                    <span style="color: #94a3b8;"> (Earn Coins page, under link completion history)</span>
-                                </p>
-                                <input type="hidden" id="adsterraPlacementKey" value="linkvertise_below_history">
+                                <label for="adsterraPlacementKey">Placement Location</label>
+                                <select id="adsterraPlacementKey">
+                                    <option value="linkvertise_below_history" title="Earn Coins page only, below link completion history">Earn Coins — Below Completion History</option>
+                                    <option value="global_header" title="Top bar on all dashboard pages (between title and actions)">Global Header — All Pages</option>
+                                </select>
+                                <small style="display:block;margin-top:6px;color:#94a3b8;font-size:12px;">Earn Coins: slot under history. Global header: center of the top bar on every page that uses the dashboard layout.</small>
                             </div>
                             <div class="form-group">
                                 <label for="adsterraPlacementFormat">Ad Format</label>
@@ -208,8 +209,9 @@
                                 <select id="adsterraScriptPlacement">
                                     <option value="body_end">Body End (recommended for Banner / Native Banner)</option>
                                     <option value="head_end">Head End (if your script requires it)</option>
-                                    <option value="inline">Inline Container</option>
+                                    <option value="inline">Inline Container (recommended for Global Header slot)</option>
                                 </select>
+                                <small style="display:block;margin-top:6px;color:#94a3b8;font-size:12px;">Global header placements are injected into the header container; use <strong>Inline</strong> unless Adsterra’s guide says otherwise.</small>
                             </div>
                             <div class="form-group">
                                 <label for="adsterraAdCode">Ad Code Snippet</label>
@@ -242,6 +244,7 @@
 
     <script src="/js/main.js"></script>
     <script src="/js/dashboard.js"></script>
+    <script src="/js/adsterraEmbed.js"></script>
     <script src="/js/maintenanceBanner.js"></script>
     <script src="/js/theme.js"></script>
     <script src="/js/notifications.js"></script>
@@ -256,9 +259,9 @@
         });
 
         function placementLabel(key) {
-            if (key === 'linkvertise_below_history') {
-                return 'Earn Coins - Below Completion History';
-            }
+            const k = String(key || '').toLowerCase();
+            if (k === 'linkvertise_below_history') return 'Earn Coins — Below Completion History';
+            if (k === 'global_header') return 'Global Header — All Pages';
             return key || '—';
         }
 
@@ -309,6 +312,7 @@
             document.getElementById('adsterraPlacementFormTitle').textContent = 'Add Placement';
             document.getElementById('adsterraPlacementForm').reset();
             document.getElementById('adsterraPlacementId').value = '';
+            document.getElementById('adsterraPlacementKey').value = 'linkvertise_below_history';
             document.getElementById('adsterraPlacementActive').checked = true;
             document.getElementById('adsterraSortOrder').value = 0;
         }
@@ -382,6 +386,9 @@
                 document.getElementById('adsterraPlacementFormTitle').textContent = 'Edit Placement';
                 document.getElementById('adsterraPlacementId').value = p.id;
                 document.getElementById('adsterraPlacementName').value = p.name || '';
+                const pk = String(p.placement_key || '').toLowerCase();
+                document.getElementById('adsterraPlacementKey').value =
+                    pk === 'global_header' ? 'global_header' : 'linkvertise_below_history';
                 document.getElementById('adsterraPlacementFormat').value =
                     p.ad_format === 'native_banner' ? 'native_banner' : 'banner';
                 document.getElementById('adsterraPlacementDevices').value = p.target_devices || 'all';

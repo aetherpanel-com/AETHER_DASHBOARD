@@ -138,7 +138,7 @@ function isValidTemplateIcon(iconValue) {
 }
 
 const ADSTERRA_ALLOWED_FORMATS = new Set(['banner', 'native_banner']);
-const ADSTERRA_ALLOWED_PLACEMENTS = new Set(['linkvertise_below_history']);
+const ADSTERRA_ALLOWED_PLACEMENTS = new Set(['linkvertise_below_history', 'global_header']);
 const ADSTERRA_ALLOWED_DEVICES = new Set(['all', 'desktop', 'mobile']);
 const ADSTERRA_ALLOWED_SCRIPT_PLACEMENTS = new Set(['head_end', 'body_end', 'inline']);
 
