@@ -153,9 +153,12 @@
                 
                 <div class="card">
                     <div class="card-header">Your Link Completion History</div>
+                    <p style="margin: 0 0 12px; color: #94a3b8; font-size: 13px;">Showing your 2 most recent completions.</p>
                     <div id="completionHistory">
                         <p>Loading history...</p>
                     </div>
+                    <!-- Reserved for Adsterra (placement key: linkvertise_below_history) -->
+                    <div id="adsterraPlacement-linkvertise_below_history" class="adsterra-slot" data-placement-key="linkvertise_below_history" style="margin-top: 16px; min-height: 0;" aria-hidden="true"></div>
                 </div>
             </div>
         </main>
@@ -399,14 +402,15 @@
         
         function displayHistory(completions) {
             const container = document.getElementById('completionHistory');
+            const recent = (completions || []).slice(0, 2);
             
-            if (completions.length === 0) {
+            if (recent.length === 0) {
                 container.innerHTML = '<p>You haven\'t completed any links yet.</p>';
                 return;
             }
             
             let html = '<div style="display: grid; gap: 12px;">';
-            completions.forEach(completion => {
+            recent.forEach(completion => {
                 html += `
                     <div style="padding: 12px; background: rgba(30, 30, 50, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                         <div>

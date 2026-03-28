@@ -289,7 +289,7 @@ router.get('/api/history', requireAuth, async (req, res) => {
              LEFT JOIN linkvertise_links ll ON lc.link_id = ll.id
              WHERE lc.user_id = ? 
              ORDER BY lc.completed_at DESC 
-             LIMIT 50`,
+             LIMIT 2`,
             [req.session.user.id]
         );
         
