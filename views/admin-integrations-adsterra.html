@@ -159,9 +159,6 @@
                             <select id="adsterraDefaultFormat">
                                 <option value="banner">Banner</option>
                                 <option value="native_banner">Native Banner</option>
-                                <option value="social_bar">Social Bar</option>
-                                <option value="popunder">Popunder</option>
-                                <option value="smartlink">Smartlink</option>
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary">Save Configuration</button>
@@ -184,23 +181,18 @@
                                 <input type="text" id="adsterraPlacementName" maxlength="120" placeholder="e.g., Quick Actions Banner">
                             </div>
                             <div class="form-group">
-                                <label for="adsterraPlacementKey">Placement Location</label>
-                                <select id="adsterraPlacementKey">
-                                    <option value="sidebar_admin_panel">Sidebar - Under Admin Panel</option>
-                                    <option value="dashboard_quick_actions">Dashboard - Quick Actions Section</option>
-                                    <option value="linkvertise_below_history">Earn Coins - Below Completion History</option>
-                                    <option value="global_header">Global Header Strip</option>
-                                    <option value="custom">Custom (manual placement key)</option>
-                                </select>
+                                <label>Placement Location</label>
+                                <p style="margin: 6px 0 0; color: #cbd5e1; font-size: 14px;">
+                                    <strong style="color: #f8fafc;">Earn Coins — Below Completion History</strong>
+                                    <span style="color: #94a3b8;"> (Earn Coins page, under link completion history)</span>
+                                </p>
+                                <input type="hidden" id="adsterraPlacementKey" value="linkvertise_below_history">
                             </div>
                             <div class="form-group">
                                 <label for="adsterraPlacementFormat">Ad Format</label>
                                 <select id="adsterraPlacementFormat">
                                     <option value="banner">Banner</option>
                                     <option value="native_banner">Native Banner</option>
-                                    <option value="social_bar">Social Bar</option>
-                                    <option value="popunder">Popunder</option>
-                                    <option value="smartlink">Smartlink</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -214,18 +206,14 @@
                             <div class="form-group">
                                 <label for="adsterraScriptPlacement">Script Injection Hint</label>
                                 <select id="adsterraScriptPlacement">
-                                    <option value="body_end">Body End (recommended for Social Bar/Banner)</option>
-                                    <option value="head_end">Head End (common for Popunder)</option>
+                                    <option value="body_end">Body End (recommended for Banner / Native Banner)</option>
+                                    <option value="head_end">Head End (if your script requires it)</option>
                                     <option value="inline">Inline Container</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label for="adsterraAdCode">Ad Code Snippet</label>
                                 <textarea id="adsterraAdCode" rows="6" placeholder="Paste Adsterra code snippet here"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="adsterraSmartlinkUrl">Smartlink URL (only when format = Smartlink)</label>
-                                <input type="url" id="adsterraSmartlinkUrl" placeholder="https://...">
                             </div>
                             <div class="form-group">
                                 <label for="adsterraSortOrder">Sort Order</label>
@@ -268,14 +256,10 @@
         });
 
         function placementLabel(key) {
-            const map = {
-                sidebar_admin_panel: 'Sidebar - Under Admin Panel',
-                dashboard_quick_actions: 'Dashboard - Quick Actions Section',
-                linkvertise_below_history: 'Earn Coins - Below Completion History',
-                global_header: 'Global Header Strip',
-                custom: 'Custom'
-            };
-            return map[key] || key;
+            if (key === 'linkvertise_below_history') {
+                return 'Earn Coins - Below Completion History';
+            }
+            return key || '—';
         }
 
         async function loadAdsterraConfig() {
@@ -287,7 +271,8 @@
                 document.getElementById('adsterraEnabled').checked = Number(config.enabled) === 1;
                 document.getElementById('adsterraPublisherId').value = config.publisher_id || '';
                 document.getElementById('adsterraApiToken').value = config.api_token || '';
-                document.getElementById('adsterraDefaultFormat').value = config.default_ad_format || 'banner';
+                document.getElementById('adsterraDefaultFormat').value =
+                    config.default_ad_format === 'native_banner' ? 'native_banner' : 'banner';
             } catch (error) {
                 console.error('Error loading Adsterra config:', error);
             }
@@ -397,12 +382,11 @@
                 document.getElementById('adsterraPlacementFormTitle').textContent = 'Edit Placement';
                 document.getElementById('adsterraPlacementId').value = p.id;
                 document.getElementById('adsterraPlacementName').value = p.name || '';
-                document.getElementById('adsterraPlacementKey').value = p.placement_key || 'dashboard_quick_actions';
-                document.getElementById('adsterraPlacementFormat').value = p.ad_format || 'banner';
+                document.getElementById('adsterraPlacementFormat').value =
+                    p.ad_format === 'native_banner' ? 'native_banner' : 'banner';
                 document.getElementById('adsterraPlacementDevices').value = p.target_devices || 'all';
                 document.getElementById('adsterraScriptPlacement').value = p.script_placement || 'body_end';
                 document.getElementById('adsterraAdCode').value = p.ad_code || '';
-                document.getElementById('adsterraSmartlinkUrl').value = p.smartlink_url || '';
                 document.getElementById('adsterraSortOrder').value = Number.parseInt(p.sort_order, 10) || 0;
                 document.getElementById('adsterraPlacementActive').checked = Number(p.is_active) === 1;
             } catch (error) {
@@ -438,7 +422,7 @@
                 target_devices: document.getElementById('adsterraPlacementDevices').value,
                 script_placement: document.getElementById('adsterraScriptPlacement').value,
                 ad_code: document.getElementById('adsterraAdCode').value,
-                smartlink_url: document.getElementById('adsterraSmartlinkUrl').value.trim(),
+                smartlink_url: '',
                 sort_order: Number.parseInt(document.getElementById('adsterraSortOrder').value, 10) || 0,
                 is_active: document.getElementById('adsterraPlacementActive').checked
             };

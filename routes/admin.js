@@ -137,14 +137,8 @@ function isValidTemplateIcon(iconValue) {
     return icon.length <= 8;
 }
 
-const ADSTERRA_ALLOWED_FORMATS = new Set(['banner', 'native_banner', 'social_bar', 'popunder', 'smartlink']);
-const ADSTERRA_ALLOWED_PLACEMENTS = new Set([
-    'sidebar_admin_panel',
-    'dashboard_quick_actions',
-    'linkvertise_below_history',
-    'global_header',
-    'custom'
-]);
+const ADSTERRA_ALLOWED_FORMATS = new Set(['banner', 'native_banner']);
+const ADSTERRA_ALLOWED_PLACEMENTS = new Set(['linkvertise_below_history']);
 const ADSTERRA_ALLOWED_DEVICES = new Set(['all', 'desktop', 'mobile']);
 const ADSTERRA_ALLOWED_SCRIPT_PLACEMENTS = new Set(['head_end', 'body_end', 'inline']);
 
@@ -924,7 +918,6 @@ router.post('/api/adsterra/placements', requireAdmin, async (req, res) => {
         const targetDevices = String(req.body?.target_devices || 'all').trim().toLowerCase();
         const scriptPlacement = String(req.body?.script_placement || 'body_end').trim().toLowerCase();
         const adCode = String(req.body?.ad_code || '').trim();
-        const smartlinkUrl = String(req.body?.smartlink_url || '').trim();
         const isActive = req.body?.is_active === true || req.body?.is_active === 'true' || Number(req.body?.is_active) === 1 ? 1 : 0;
         const sortOrder = Number.parseInt(req.body?.sort_order, 10) || 0;
 
@@ -943,11 +936,7 @@ router.post('/api/adsterra/placements', requireAdmin, async (req, res) => {
         if (adCode.length > 30000) {
             return res.status(400).json({ success: false, message: 'Ad code is too long (max 30000 characters)' });
         }
-        if (adFormat === 'smartlink') {
-            if (!isValidUrl(smartlinkUrl)) {
-                return res.status(400).json({ success: false, message: 'Smartlink format requires a valid URL' });
-            }
-        } else if (!adCode) {
+        if (!adCode) {
             return res.status(400).json({ success: false, message: 'Ad code is required for this ad format' });
         }
 
@@ -955,7 +944,7 @@ router.post('/api/adsterra/placements', requireAdmin, async (req, res) => {
             `INSERT INTO adsterra_placements
              (name, placement_key, ad_format, target_devices, script_placement, ad_code, smartlink_url, is_active, sort_order)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [name, placementKey, adFormat, targetDevices, scriptPlacement, adCode, smartlinkUrl, isActive, sortOrder]
+            [name, placementKey, adFormat, targetDevices, scriptPlacement, adCode, '', isActive, sortOrder]
         );
 
         res.json({ success: true, message: 'Adsterra placement created successfully', placement_id: result.lastID });
@@ -978,7 +967,6 @@ router.put('/api/adsterra/placements/:id', requireAdmin, async (req, res) => {
         const targetDevices = String(req.body?.target_devices || 'all').trim().toLowerCase();
         const scriptPlacement = String(req.body?.script_placement || 'body_end').trim().toLowerCase();
         const adCode = String(req.body?.ad_code || '').trim();
-        const smartlinkUrl = String(req.body?.smartlink_url || '').trim();
         const isActive = req.body?.is_active === true || req.body?.is_active === 'true' || Number(req.body?.is_active) === 1 ? 1 : 0;
         const sortOrder = Number.parseInt(req.body?.sort_order, 10) || 0;
 
@@ -997,11 +985,7 @@ router.put('/api/adsterra/placements/:id', requireAdmin, async (req, res) => {
         if (adCode.length > 30000) {
             return res.status(400).json({ success: false, message: 'Ad code is too long (max 30000 characters)' });
         }
-        if (adFormat === 'smartlink') {
-            if (!isValidUrl(smartlinkUrl)) {
-                return res.status(400).json({ success: false, message: 'Smartlink format requires a valid URL' });
-            }
-        } else if (!adCode) {
+        if (!adCode) {
             return res.status(400).json({ success: false, message: 'Ad code is required for this ad format' });
         }
 
@@ -1015,7 +999,7 @@ router.put('/api/adsterra/placements/:id', requireAdmin, async (req, res) => {
              SET name = ?, placement_key = ?, ad_format = ?, target_devices = ?, script_placement = ?, ad_code = ?,
                  smartlink_url = ?, is_active = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
-            [name, placementKey, adFormat, targetDevices, scriptPlacement, adCode, smartlinkUrl, isActive, sortOrder, id]
+            [name, placementKey, adFormat, targetDevices, scriptPlacement, adCode, '', isActive, sortOrder, id]
         );
 
         res.json({ success: true, message: 'Adsterra placement updated successfully' });
