@@ -4,11 +4,26 @@
 
 ---
 
-## 🆕 Version 1.6 Quick Checks (Renewals + Ports)
+## 🆕 Version 1.7 Quick Checks (Adsterra + prior releases)
 
-If you updated to v1.6 and features seem missing:
+### Adsterra / header placements
 
-1. Restart dashboard service (required for renewal worker):
+If ads do not show after updating to **v1.7**:
+
+1. **Restart** the dashboard after deploying new `public/` and `views/` files:
+   ```bash
+   pm2 restart aether-dashboard
+   ```
+2. In **Admin Panel → Integrations → Adsterra**, ensure **Enable Adsterra ads** is on and at least one placement is **Active**.
+3. For **Global Header — All Pages**, set **Script Injection Hint** to **Inline Container** unless Adsterra’s tag instructions say otherwise; paste the full snippet from Adsterra.
+4. Confirm **Target Devices** matches how you test (e.g. **All Devices**).
+5. Hard-refresh the browser (Ctrl+F5 / Cmd+Shift+R). Check the browser console for network errors on `/linkvertise/api/adsterra/embed`.
+
+### Renewals + ports (v1.6+)
+
+If renewal or port features from **v1.6** seem missing:
+
+1. Restart dashboard (renewal worker starts with the app):
    ```bash
    pm2 restart aether-dashboard
    ```
@@ -1036,7 +1051,7 @@ If you've tried everything above and still have issues:
 
 ---
 
-**Last Updated:** Version 1.5.8
+**Last Updated:** Version 1.7
 
 **Made with ❤️ for free hosting providers**
 

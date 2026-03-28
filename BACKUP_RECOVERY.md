@@ -18,6 +18,8 @@
 - new columns in `servers`: `renewal_next_due_at`, `renewal_last_processed_at`, `renewal_status`, `renewal_overdue_count`
 Backup process remains the same: protect `database.db` and `.env` before update.
 
+**Version 1.7 note:** v1.7 completes the Adsterra UI (global header placement, shared embed loader, admin placement management). **`adsterra_config` / `adsterra_placements` are unchanged** at the schema level (tables already created on earlier versions). Deploy the full `public/` and `views/` trees when updating by SFTP so `adsterraEmbed.js`, `dashboard.css`, and HTML views stay in sync.
+
 **For GAME SERVER backups**, use the new Backup System feature:
 1. Go to any server → Click "📊 Live Stats"
 2. Scroll down to "Backup System" section
@@ -426,7 +428,7 @@ crontab -e
 
 ---
 
-**Last Updated:** Version 1.6
+**Last Updated:** Version 1.7
 
 **Made with ❤️ for free hosting providers**
 

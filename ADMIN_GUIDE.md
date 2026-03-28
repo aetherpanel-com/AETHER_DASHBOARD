@@ -2,7 +2,7 @@
 
 Complete guide for setting up and managing your Aether Dashboard after installation.
 
-**Version:** 1.6 | **Status:** Production Ready ✅
+**Version:** 1.7 | **Status:** Production Ready ✅
 
 > **New to Aether Dashboard?** Complete the installation steps in [README.md](README.md) first, then return here to set up your admin panel.
 
@@ -24,9 +24,10 @@ Complete guide for setting up and managing your Aether Dashboard after installat
 12. [Admin Settings — Branding](#-admin-settings--branding)
 13. [Integrations — Linkvertise](#-integrations--linkvertise)
     - [Target URL on Linkvertise (Post & earn)](#setting-the-target-url-in-linkvertise-post--earn)
-13. [Integrations — Discord](#integrations--discord)
-14. [Audit Logs](#-audit-logs)
-15. [Admin Setup Checklist](#-admin-setup-checklist)
+14. [Integrations — Adsterra](#-integrations--adsterra)
+15. [Integrations — Discord](#integrations--discord)
+16. [Audit Logs](#-audit-logs)
+17. [Admin Setup Checklist](#-admin-setup-checklist)
 - [Daily Rewards Tab](#-daily-rewards-tab)
 - [Referral Tab](#-referral-tab)
 - [Maintenance Tab](#-maintenance-tab)
@@ -50,12 +51,13 @@ sequence (e.g. creating templates before syncing eggs) will cause errors.
 8. Configure Daily Rewards            → Admin Panel → Daily Rewards tab
 9. Configure Referral System          → Admin Panel → Referral tab
 10. Configure Linkvertise             → Admin Panel → Integrations → Linkvertise
-11. (Optional) Set up Discord bot     → Admin Panel → Integrations → Discord
-12. (Optional) Schedule Maintenance   → Admin Panel → Maintenance tab
-13. (Optional) Send Broadcasts        → Admin Panel → Broadcast tab
-14. (Optional) Customise theme        → Admin Panel → Admin Settings → Themes
-15. (Optional) Customise branding     → Admin Panel → Admin Settings → Branding
-16. (Optional) Review Audit Logs      → Admin Panel → Admin Settings → Audit Logs
+11. (Optional) Configure Adsterra      → Admin Panel → Integrations → Adsterra
+12. (Optional) Set up Discord bot     → Admin Panel → Integrations → Discord
+13. (Optional) Schedule Maintenance   → Admin Panel → Maintenance tab
+14. (Optional) Send Broadcasts        → Admin Panel → Broadcast tab
+15. (Optional) Customise theme        → Admin Panel → Admin Settings → Themes
+16. (Optional) Customise branding     → Admin Panel → Admin Settings → Branding
+17. (Optional) Review Audit Logs      → Admin Panel → Admin Settings → Audit Logs
 ```
 
 ---
@@ -542,6 +544,53 @@ Replace `dashboard.yourdomain.com` with your real dashboard hostname, and
 
 ---
 
+## 📢 Integrations — Adsterra
+
+**Adsterra** adds optional **display advertising** on top of Linkvertise link monetization. You paste ad unit code from your [Adsterra](https://adsterra.com) publisher account; the dashboard injects it only into the slots you configure, when the integration is enabled.
+
+**Where to configure:** Admin Panel → **Integrations** → **Adsterra**.
+
+### Global configuration
+
+At the top of the page:
+
+1. **Enable Adsterra ads on dashboard placements** — master switch. When off, no placement renders (empty slots stay hidden so the header layout does not break).
+2. **Publisher ID** — optional reference value from your Adsterra account.
+3. **Publisher API Token** — optional; reserved for future features (not required for snippet rendering). Keep it secret.
+4. **Default Ad Format** — default for new placements (`Banner` or `Native Banner`).
+
+Click **Save Configuration** after changes.
+
+### Ad Unit Placements
+
+Each placement is one named slot with its own snippet and rules.
+
+**Adding a placement**
+
+1. Under **Ad Unit Placements**, click **Add Placement**.
+2. **Placement Name** — label for your own reference (e.g. `Header leaderboard`).
+3. **Placement Location** — where the snippet runs:
+   - **Earn Coins — Below Completion History** — only on the **Earn Coins** page, under “Your Link Completion History.”
+   - **Global Header — All Pages** — center of the sticky top bar on **every** page that uses the dashboard layout (between the page title and the coin balance / actions).
+4. **Ad Format** — `Banner` or `Native Banner` (must match what you created in Adsterra for that unit).
+5. **Target Devices** — `All`, `Desktop Only`, or `Mobile Only` (the dashboard skips loading the placement when the viewer’s device does not match).
+6. **Script Injection Hint** — metadata for admins; the dashboard injects snippets into DOM containers, not necessarily at `</body>`:
+   - For **Global header**, choose **Inline Container (recommended for Global Header slot)** unless Adsterra’s documentation for that tag requires otherwise.
+   - For **Earn Coins page** slots, **Body End** is often fine for banner-style units.
+7. **Ad Code Snippet** — paste the full code Adsterra gives you (HTML/JS).
+8. **Sort Order** — lower numbers run first when multiple placements share the same location.
+9. **Active placement** — uncheck to disable without deleting.
+
+Click **Save Placement**. Use **Edit** / **Delete** from the placements list as needed.
+
+### Tips for publishers
+
+- Create **separate ad units** in Adsterra for each placement (e.g. one leaderboard-style **Banner** for the header, another format for under history if you use both).
+- For the **global header**, horizontal sizes such as **728×90** (leaderboard) or **468×60** typically fit the center column; the UI caps width and scales on small screens.
+- If **Global header** ads do not appear: confirm the integration is **enabled**, the placement is **active**, **Placement Location** is **Global Header — All Pages**, and the snippet is valid. Hard-refresh the browser (Ctrl+F5) after saving.
+
+---
+
 ## Integrations — Discord
 
 Connect a Discord bot to enable invite rewards and real-time chat sync
@@ -674,6 +723,7 @@ Use this checklist when setting up a fresh installation:
 - [ ] Applied a custom theme (Admin Settings → Themes)
 - [ ] Review Audit Logs after go-live to confirm events are being captured (Admin Settings → Audit Logs)
 - [ ] Configure Renewals policy and validate queue behavior (Overview → Commerce → Renewals)
+- [ ] (Optional) Enabled Adsterra and added placements (Integrations → Adsterra) — e.g. global header and/or Earn Coins below history
 - [ ] Configured Discord bot (Integrations → Discord)
 - [ ] Set Default Nest ID and Location ID (Panel tab → Pterodactyl Settings)
 - [ ] Configured Daily Rewards amounts (Daily Rewards tab)
@@ -694,4 +744,4 @@ Use this checklist when setting up a fresh installation:
 
 **Made with ❤️ for free hosting providers**
 
-**Last Updated:** Version 1.6
+**Last Updated:** Version 1.7

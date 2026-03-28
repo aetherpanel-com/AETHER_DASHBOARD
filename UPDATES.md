@@ -1,3 +1,40 @@
+## Aether Dashboard v1.7
+
+### 📢 Adsterra placements & global header (stable)
+
+**Release Date:** March 2026
+
+**Status:** Production Ready ✅
+
+Version 1.7 finalizes **Adsterra** as an optional second monetization channel: admins manage publisher settings and **Ad Unit Placements** from **Admin Panel → Integrations → Adsterra**, with two placement locations—**global header (all dashboard pages)** and **Earn Coins — below completion history**—plus device targeting, format metadata, and paste-in snippets. The user interface uses a shared loader (`public/js/adsterraEmbed.js`) and responsive header CSS so wide banners do not break narrow layouts.
+
+### ✨ New / completed in v1.7
+
+| Area | Description |
+|------|-------------|
+| 🎯 **Placement locations** | `global_header` (center top bar on all dashboard-layout pages) and `linkvertise_below_history` (Earn Coins page only). |
+| 🛠️ **Admin UI** | Placement picker, labels, script injection hints (including **Inline** for header slots), sort order, active toggle. |
+| 🖥️ **User UI** | Header ad column between title and actions; Earn Coins slot unchanged in purpose; empty slots collapse. |
+| 📡 **API** | Authenticated embed endpoint supports `placement_key` for each slot. |
+
+### 🗄️ Database
+
+**No new tables in v1.7** beyond what prior releases already create: `adsterra_config` and `adsterra_placements` are created/verified on startup (see `config/database.js`). Updating from v1.6 does not require manual SQL.
+
+### 🚀 How to Update
+```bash
+cd AETHER_DASHBOARD
+git pull origin main
+npm install
+pm2 restart aether-dashboard
+```
+
+**⚠️ Notes:**
+- If you deploy by **SFTP**, upload `public/` (includes `js/adsterraEmbed.js` and `css/dashboard.css`) and `views/` so all pages include the header slot and scripts.
+- See [ADMIN_GUIDE.md](ADMIN_GUIDE.md) — **Integrations — Adsterra** for operator instructions.
+
+---
+
 ## Aether Dashboard v1.6
 
 ### 🔁 Renewal System (MVP)
@@ -1734,7 +1771,7 @@ If you encounter issues during updates:
 
 ---
 
-**Last Updated:** Version 1.5.8
+**Last Updated:** Version 1.7
 
 **Made with ❤️ for free hosting providers**
 

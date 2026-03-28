@@ -4,13 +4,13 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 **Perfect for hosting owners who want to earn revenue from their free hosting services!**
 
-**Version:** 1.6
+**Version:** 1.7
 
 **Status:** Production Ready ✅
 
 **📦 Want to update?** See the [Update Guide](UPDATES.md) for instructions on how to update to the latest version!
 
-**🔧 Latest Update (v1.6):** Resource/port lifecycle expansion and the new Renewal System (admin + user flow). Includes additional-port assign/remove, node-alias address handling, and configurable renewal frequency/deduction modes. See [UPDATES.md](UPDATES.md) for full details.
+**🔧 Latest Update (v1.7):** Adsterra display monetization is production-ready—global header ads on every dashboard page, Earn Coins page placements, admin placement management, and a shared client loader. See [UPDATES.md](UPDATES.md) and [ADMIN_GUIDE.md](ADMIN_GUIDE.md) (Integrations — Adsterra) for setup.
 
 ---
 
@@ -37,44 +37,25 @@ A powerful **overlay dashboard** for **free hosting providers** to monetize thei
 
 ---
 
-## ✨ What's New in Version 1.6
+## ✨ What's New in Version 1.7
 
-**Renewal + Resource Expansion Update** — v1.6 introduces recurring renewals, stronger allocation/port workflows, and multiple platform reliability fixes across admin and user flows.
+**Adsterra & Header Placements (Stable)** — v1.7 completes optional monetization through Adsterra with two placement types, a shared embed loader, and responsive layout in the dashboard top bar.
 
-### 🔁 Renewal System (Admin + User)
-- New **Commerce → Renewals** section in Admin Overview.
-- Admin-configurable renewal policy:
-  - frequency: hourly / daily / weekly / monthly
-  - coins per cycle
-  - deduction mode: manual or auto-deduct
-  - grace cycles before suspension
-- Renewal queue with per-server status, overdue counter, next due date, and manual deduction action.
-- User-side **Renew** button on Manage Servers:
-  - extends exactly one additional cycle
-  - only available when within one cycle before due time
-  - follows same max-extension rule for both user and admin actions.
+### 📢 Adsterra Integration (Admin + User Experience)
+- **Admin → Integrations → Adsterra:** Enable ads globally, configure publisher metadata (optional), and manage **Ad Unit Placements** with name, location, format, device targeting, and paste-in ad code snippets.
+- **Placement locations:**
+  - **Global header — all pages:** Center column of the sticky top bar (between page title and coin/actions) on every page that uses the dashboard layout.
+  - **Earn Coins — below completion history:** Slot under “Your Link Completion History” on the Earn Coins page only.
+- **Script injection hint** documents how snippets are used; **Inline container** is recommended for global header slots (snippets are injected into the header DOM by the dashboard).
+- **Client loader:** `public/js/adsterraEmbed.js` loads enabled placements via the authenticated embed API; empty slots collapse so the header layout stays clean when ads are off or not configured.
 
-### 🌐 Port & Allocation Improvements
-- Resource Store now supports **Port purchases** with configurable pricing/limits and custom icon.
-- Additional Ports panel on server details:
-  - assign purchased extra ports
-  - remove extra ports and return them to reusable allocation pool
-  - robust live UI refresh and false-error prevention during delete flow.
-- Address rendering now prefers alias flow and supports **node default alias fallback** for additional allocations.
+### 🎨 Layout & Responsiveness
+- Header uses a three-part flex row (title | ad | actions) on desktop; narrow screens stack the ad region with overflow-safe rules so wide banners (e.g. leaderboard-style units) do not break the layout.
 
-### 🧩 Database/Backup/Port Resource UX Improvements
-- Purchased extras are surfaced consistently in server management resource cards.
-- Improved feature-limit handling around paid extras and server-side checks.
+### 📚 Documentation
+- [ADMIN_GUIDE.md](ADMIN_GUIDE.md) includes a full **Integrations — Adsterra** section (configuration, placements, and best practices).
 
-### 🐛 Important Fixes Included
-- Daily reward streak reset logic fixed for missed-day scenarios.
-- Egg sync duplicate prevention improved (ID/name/nest matching flow).
-- Server creation nest/egg mismatch bug fixed.
-- Port assignment compatibility updated for broader Pterodactyl API support.
-- Renewal flow hardened against abuse:
-  - renewal endpoint rate limiting
-  - compare-and-swap style update guard for concurrency
-  - status transition alignment across admin/user renewal actions.
+> **Earlier in v1.6:** Renewals, port lifecycle, and resource expansion — see [UPDATES.md](UPDATES.md) (section **Aether Dashboard v1.6**) for that changelog.
 
 ---
 
@@ -1724,4 +1705,4 @@ MIT License - Feel free to use, modify, and distribute!
 
 **Made with ❤️ for free hosting providers. Start earning revenue today!** 🚀💰
 
-**Version 1.6** - Production Ready ✅
+**Version 1.7** - Production Ready ✅
