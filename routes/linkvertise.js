@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { db, query, get, run, transaction } = require('../config/database');
-const { linkvertiseLimiter } = require('../middleware/rateLimit');
+const { linkvertiseLimiter, apiLimiter } = require('../middleware/rateLimit');
 const { markStep } = require('./onboarding');
 const { sendBrandedView } = require('../config/brandingHelper');
 const { writeLog } = require('../utils/auditLog');
@@ -297,6 +297,40 @@ router.get('/api/history', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error fetching completion history:', error);
         res.status(500).json({ success: false, message: 'Error fetching history' });
+    }
+});
+
+// Public (authenticated) Adsterra embeds for Earn Coins page — no admin secrets returned.
+router.get('/api/adsterra/embed', requireAuth, apiLimiter, async (req, res) => {
+    try {
+        const config = await get('SELECT enabled FROM adsterra_config ORDER BY id DESC LIMIT 1');
+        if (!config || Number(config.enabled) !== 1) {
+            return res.json({ success: true, enabled: false, placements: [] });
+        }
+
+        const rows = await query(
+            `SELECT id, ad_code, script_placement, target_devices, sort_order
+             FROM adsterra_placements
+             WHERE placement_key = ?
+               AND is_active = 1
+               AND ad_code IS NOT NULL
+               AND TRIM(ad_code) != ''
+             ORDER BY sort_order ASC, id ASC`,
+            ['linkvertise_below_history']
+        );
+
+        const placements = (rows || []).map((r) => ({
+            id: r.id,
+            ad_code: String(r.ad_code || ''),
+            script_placement: String(r.script_placement || 'inline').toLowerCase(),
+            target_devices: String(r.target_devices || 'all').toLowerCase(),
+            sort_order: Number(r.sort_order) || 0
+        }));
+
+        res.json({ success: true, enabled: true, placements });
+    } catch (error) {
+        console.error('Error loading Adsterra embed config:', error);
+        res.status(500).json({ success: false, message: 'Error loading ad configuration' });
     }
 });
 
