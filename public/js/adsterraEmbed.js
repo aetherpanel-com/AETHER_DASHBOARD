@@ -1,7 +1,5 @@
 /**
- * Shared Adsterra embed loader: DOM slots (ids: adsterraPlacement-<placement_key>).
- * Popunder placements (popunder_global, popunder_earn_coins_click) inject into head/body
- * only when loadAdsterraPopunderKey() is called — not on page load (except earn-coins page triggers click placement from completeLink).
+ * Shared Adsterra embed loader for dashboard slots (ids: adsterraPlacement-<placement_key>).
  */
 (function () {
     function adsterraDeviceMatches(target) {
@@ -32,48 +30,6 @@
                 container.appendChild(node);
             }
         });
-    }
-
-    function injectPlacementIntoDocument(scriptPlacement, html) {
-        var sp = String(scriptPlacement || 'body_end').toLowerCase();
-        var target = document.body;
-        if (sp === 'head_end' && document.head) {
-            target = document.head;
-        }
-        injectAdHtml(target, html);
-    }
-
-    var POPUNDER_KEYS = { popunder_global: 1, popunder_earn_coins_click: 1 };
-
-    /**
-     * Load and inject a popunder placement by key (popunder_global or popunder_earn_coins_click).
-     * Does not run automatically on page load — call from user gestures (e.g. Earn Coins complete link).
-     */
-    async function loadAdsterraPopunderKey(placementKey) {
-        var key = String(placementKey || '').trim().toLowerCase();
-        if (!POPUNDER_KEYS[key]) {
-            console.warn('loadAdsterraPopunderKey: unsupported key', placementKey);
-            return;
-        }
-        try {
-            var response = await fetch(
-                '/linkvertise/api/adsterra/embed?placement_key=' + encodeURIComponent(key)
-            );
-            var data = response.ok ? await response.json().catch(function () { return {}; }) : {};
-            if (!data.success || !data.enabled || !Array.isArray(data.placements) || data.placements.length === 0) {
-                return;
-            }
-            data.placements.forEach(function (p) {
-                if (!adsterraDeviceMatches(p.target_devices)) return;
-                injectPlacementIntoDocument(p.script_placement, p.ad_code);
-            });
-        } catch (e) {
-            console.error('Error loading Adsterra popunder:', e);
-        }
-    }
-
-    function loadPopunderGlobal() {
-        return loadAdsterraPopunderKey('popunder_global');
     }
 
     async function loadAdsterraSlot(placementKey, slot) {
@@ -116,13 +72,11 @@
     function initAdsterraEmbeds() {
         document.querySelectorAll('[id^="adsterraPlacement-"]').forEach(function (el) {
             var key = el.id.replace(/^adsterraPlacement-/, '');
-            if (key && !POPUNDER_KEYS[key]) loadAdsterraSlot(key, el);
+            if (key) loadAdsterraSlot(key, el);
         });
     }
 
     window.loadAdsterraSlot = loadAdsterraSlot;
-    window.loadAdsterraPopunderKey = loadAdsterraPopunderKey;
-    window.loadPopunderGlobal = loadPopunderGlobal;
     window.initAdsterraEmbeds = initAdsterraEmbeds;
 
     if (document.readyState === 'loading') {

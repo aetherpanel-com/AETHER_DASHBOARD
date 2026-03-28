@@ -301,13 +301,8 @@ router.get('/api/history', requireAuth, async (req, res) => {
 });
 
 // Public (authenticated) Adsterra embeds — no admin secrets returned.
-// Query: placement_key = ... | popunder_global | popunder_earn_coins_click (default: linkvertise_below_history)
-const ADSTERRA_EMBED_KEYS = new Set([
-    'linkvertise_below_history',
-    'global_header',
-    'popunder_global',
-    'popunder_earn_coins_click'
-]);
+// Query: placement_key = linkvertise_below_history | global_header (default: linkvertise_below_history)
+const ADSTERRA_EMBED_KEYS = new Set(['linkvertise_below_history', 'global_header']);
 
 router.get('/api/adsterra/embed', requireAuth, apiLimiter, async (req, res) => {
     try {
@@ -319,11 +314,7 @@ router.get('/api/adsterra/embed', requireAuth, apiLimiter, async (req, res) => {
             return res.json({ success: true, enabled: false, placements: [], placement_key: placementKey });
         }
 
-        const isPopunderPlacement =
-            placementKey === 'popunder_global' || placementKey === 'popunder_earn_coins_click';
-        const formatFilter = isPopunderPlacement
-            ? `AND LOWER(TRIM(COALESCE(ad_format, ''))) = 'popunder'`
-            : `AND LOWER(TRIM(COALESCE(ad_format, 'banner'))) != 'popunder'`;
+        const formatFilter = `AND LOWER(TRIM(COALESCE(ad_format, 'banner'))) != 'popunder'`;
 
         const rows = await query(
             `SELECT id, ad_code, script_placement, target_devices, sort_order, ad_format

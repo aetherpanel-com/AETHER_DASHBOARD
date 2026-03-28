@@ -137,13 +137,8 @@ function isValidTemplateIcon(iconValue) {
     return icon.length <= 8;
 }
 
-const ADSTERRA_ALLOWED_FORMATS = new Set(['banner', 'native_banner', 'popunder']);
-const ADSTERRA_ALLOWED_PLACEMENTS = new Set([
-    'linkvertise_below_history',
-    'global_header',
-    'popunder_global',
-    'popunder_earn_coins_click'
-]);
+const ADSTERRA_ALLOWED_FORMATS = new Set(['banner', 'native_banner']);
+const ADSTERRA_ALLOWED_PLACEMENTS = new Set(['linkvertise_below_history', 'global_header']);
 const ADSTERRA_ALLOWED_DEVICES = new Set(['all', 'desktop', 'mobile']);
 const ADSTERRA_ALLOWED_SCRIPT_PLACEMENTS = new Set(['head_end', 'body_end', 'inline']);
 
@@ -944,25 +939,6 @@ router.post('/api/adsterra/placements', requireAdmin, async (req, res) => {
         if (!adCode) {
             return res.status(400).json({ success: false, message: 'Ad code is required for this ad format' });
         }
-        if (
-            (placementKey === 'popunder_global' || placementKey === 'popunder_earn_coins_click') &&
-            adFormat !== 'popunder'
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: 'Popunder placements must use Ad Format: Popunder'
-            });
-        }
-        if (
-            adFormat === 'popunder' &&
-            placementKey !== 'popunder_global' &&
-            placementKey !== 'popunder_earn_coins_click'
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: 'Popunder format is only valid for Global Popunder or Earn Coins — Complete link click placements'
-            });
-        }
 
         const result = await run(
             `INSERT INTO adsterra_placements
@@ -1011,25 +987,6 @@ router.put('/api/adsterra/placements/:id', requireAdmin, async (req, res) => {
         }
         if (!adCode) {
             return res.status(400).json({ success: false, message: 'Ad code is required for this ad format' });
-        }
-        if (
-            (placementKey === 'popunder_global' || placementKey === 'popunder_earn_coins_click') &&
-            adFormat !== 'popunder'
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: 'Popunder placements must use Ad Format: Popunder'
-            });
-        }
-        if (
-            adFormat === 'popunder' &&
-            placementKey !== 'popunder_global' &&
-            placementKey !== 'popunder_earn_coins_click'
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: 'Popunder format is only valid for Global Popunder or Earn Coins — Complete link click placements'
-            });
         }
 
         const existing = await get('SELECT id FROM adsterra_placements WHERE id = ?', [id]);
