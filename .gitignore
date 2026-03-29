@@ -37,3 +37,6 @@ cloudflared.exe
 backups/
 public/assets/branding/
 public/icons/template-icons/
+
+# AD files
+sw.js
