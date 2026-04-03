@@ -1341,8 +1341,7 @@
                 loadTemplates();
                 loadEggsForTemplates();
             } else if (tabName === 'renewals') {
-                loadRenewalSettings();
-                loadRenewalServers();
+                loadRenewalSettings().then(() => loadRenewalServers());
             } else if (tabName === 'panel') {
                 loadPanelConfig();
                 loadPanelSettings();
