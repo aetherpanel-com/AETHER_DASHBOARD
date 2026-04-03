@@ -147,6 +147,14 @@ update_repository() {
         exit 1
     fi
 
+    # Discard local lock file changes to prevent merge conflicts.
+    # package-lock.json files are regenerated on every npm install and must not be tracked.
+    log_info "Clearing local lock file changes to prevent merge conflicts..."
+    git checkout -- package-lock.json 2>/dev/null || true
+    git checkout -- aether-discord-bot/package-lock.json 2>/dev/null || true
+    git rm --cached package-lock.json 2>/dev/null || true
+    git rm --cached aether-discord-bot/package-lock.json 2>/dev/null || true
+
     # Warn about uncommitted local changes
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
         log_warning "Uncommitted local changes detected."
