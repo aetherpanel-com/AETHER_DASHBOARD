@@ -452,6 +452,8 @@ router.post('/api/renew/:id', requireAuth, renewalLimiter, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Server not found.' });
         }
 
+        const wasServerSuspended = String(server.renewal_status || '').toLowerCase() === 'suspended';
+
         const settings = await get('SELECT * FROM renewal_settings ORDER BY id DESC LIMIT 1');
         const enabled = Number(settings?.renewal_enabled || 0) === 1;
         const frequency = String(settings?.renewal_frequency || 'monthly').toLowerCase();
@@ -537,11 +539,12 @@ router.post('/api/renew/:id', requireAuth, renewalLimiter, async (req, res) => {
             );
         });
 
-        // Best effort unsuspend only when overdue is fully cleared.
+        // Unsuspend when overdue is fully cleared, or immediately on first payment if server was suspended.
         try {
             const fresh = await get('SELECT pterodactyl_id, renewal_status FROM servers WHERE id = ?', [server.id]);
             const appId = parseInt(String(fresh?.pterodactyl_id || ''), 10);
-            if (fresh?.renewal_status === 'active' && !Number.isNaN(appId) && appId > 0 && await pterodactyl.isConfigured()) {
+            const shouldUnsuspend = fresh?.renewal_status === 'active' || wasServerSuspended;
+            if (shouldUnsuspend && !Number.isNaN(appId) && appId > 0 && await pterodactyl.isConfigured()) {
                 await pterodactyl.unsuspendServer(appId);
             }
         } catch (_) {}

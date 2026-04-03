@@ -217,6 +217,8 @@ async function manuallyDeductRenewal(serverId, adminUserId = null) {
         return { success: false, message: 'The user has already used maximum renewable cycles.' };
     }
 
+    const wasServerSuspended = String(server.renewal_status || '').toLowerCase() === 'suspended';
+
     const deductResult = await run(
         'UPDATE users SET coins = coins - ? WHERE id = ? AND coins >= ?',
         [settings.renewal_coins_per_cycle, server.user_id, settings.renewal_coins_per_cycle]
@@ -238,7 +240,7 @@ async function manuallyDeductRenewal(serverId, adminUserId = null) {
          WHERE id = ?`,
         [nextDue, newOverdue, newStatus, server.id]
     );
-    if (newStatus === 'active') {
+    if (newStatus === 'active' || wasServerSuspended) {
         await maybeSetServerSuspension(server, false);
     }
 
